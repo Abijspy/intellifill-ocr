@@ -1,0 +1,148 @@
+# IntelliFill OCR Desktop
+
+IntelliFill OCR Desktop is a fully offline Windows desktop application for OCR-driven data extraction, visual field mapping, and table/form filling.
+
+It supports template upload, source document upload, region-based OCR, fuzzy field matching, editable previews, SQLite persistence, traceability barcodes, and export to CSV/Excel/PDF or the original template format where supported.
+
+## Features
+
+- PySide6 desktop UI with dark/light themes, split panes, tabs, zoomable document preview, and editable table preview.
+- Offline OCR using Tesseract, `pytesseract`, OpenCV preprocessing, deskewing, denoising, confidence scoring, and bounding boxes.
+- Template import from CSV, Excel, DOCX tables, images, and PDFs, with immediate visual, parsed-text, and parsed-table preview after upload.
+- Source import from DOCX, XLSX/XLS, CSV, PNG/JPG/JPEG, and PDFs, with the same document/text/table preview tabs.
+- Manual region selection for OCR and exact destination-cell selection.
+- Drag/click mapping workflow from extracted text to template cells.
+- Fuzzy and keyword matching with confidence percentages.
+- Header-aware matching that fills blank cells beside or under template headings.
+- Traceability ID and Code 39 barcode for each extraction run. PDF, Word, and layout-preserving document exports include the ID/barcode so saved files can be matched back to the SQLite run.
+- SQLite storage through SQLAlchemy ORM for templates, runs, uploaded files, mappings, extracted values, and timestamps.
+- Save/load mapping templates.
+- Export completed output to CSV, XLSX, Word, and PDF with traceability.
+- Export back into DOCX, XLSX, and CSV templates while preserving the original file layout as much as those formats allow.
+- Export filled PDF templates with original PDF page artwork preserved and values overlaid into detected blank table cells when coordinates are available.
+- PyInstaller packaging script for a standalone Windows `.exe`.
+- MSIX installer packaging scripts for Windows deployment.
+
+## Windows Setup
+
+1. Install Python 3.11 or 3.12.
+2. Install Tesseract OCR for Windows.
+   - Recommended install path: `C:\Program Files\Tesseract-OCR\tesseract.exe`
+   - Install English language data at minimum.
+3. Create a virtual environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -e .
+```
+
+4. Run the application:
+
+```powershell
+python -m intellifill_ocr.main
+```
+
+If Tesseract is not on `PATH`, set `TESSERACT_CMD`:
+
+```powershell
+$env:TESSERACT_CMD="C:\Program Files\Tesseract-OCR\tesseract.exe"
+python -m intellifill_ocr.main
+```
+
+You can also set paths inside the app:
+
+1. Open **Settings** from the toolbar.
+2. Select the local `tesseract.exe` path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
+3. Select or create the SQLite database path, for example `%LOCALAPPDATA%\IntelliFillOCR\intellifill.sqlite3`.
+4. Choose dark or light appearance from the same Settings window.
+5. Save. The app writes these settings to `%LOCALAPPDATA%\IntelliFillOCR\settings.json`.
+
+## Build Standalone EXE
+
+```powershell
+.\build.ps1
+```
+
+The executable will be produced under `dist\IntelliFillOCR\IntelliFillOCR.exe`.
+
+## Build MSIX Installer
+
+MSIX packages must be built and signed on Windows. Install the Windows 10/11 SDK first so `MakeAppx.exe` and `SignTool.exe` are available.
+
+Build an unsigned MSIX:
+
+```powershell
+.\msix\build-msix.ps1
+```
+
+Build and sign with a local self-signed certificate:
+
+```powershell
+.\msix\build-msix.ps1 -CreateSelfSignedCertificate -CertificatePassword "ChangeThisPassword"
+```
+
+The package is created at:
+
+```text
+msix\out\IntelliFillOCR_1.0.0.0_x64.msix
+```
+
+For local installation of a self-signed package, trust the generated certificate and install the MSIX:
+
+```powershell
+.\msix\install-msix.ps1 `
+  -MsixPath .\msix\out\IntelliFillOCR_1.0.0.0_x64.msix `
+  -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
+  -CertificatePassword "ChangeThisPassword"
+```
+
+For production distribution, sign the MSIX with a certificate whose subject matches the manifest publisher. The default publisher is `CN=IntelliFillOCR`; override it if needed:
+
+```powershell
+.\msix\build-msix.ps1 `
+  -Publisher "CN=Your Company Name" `
+  -PublisherDisplayName "Your Company Name" `
+  -CertificatePath .\certs\your-code-signing-cert.pfx `
+  -CertificatePassword "YourPfxPassword"
+```
+
+The MSIX includes the PyInstaller output and remains fully offline. Tesseract OCR still needs to be installed locally on the target Windows machine unless you choose to bundle a Tesseract distribution into the PyInstaller build. After install, open **Settings** to point the app to the offline machine's local `tesseract.exe` and SQLite database path.
+
+This repository contains everything needed to build the MSIX, but the package itself must be produced on a Windows machine with Python and the Windows SDK installed. `MakeAppx.exe` creates the package and `SignTool.exe` signs it; both are part of the Windows SDK.
+
+## Create Offline ZIP
+
+After building the EXE and signed MSIX, create one folder/zip that can be copied to offline machines:
+
+```powershell
+.\msix\create-offline-package.ps1
+```
+
+The zip is created at:
+
+```text
+offline-dist\IntelliFillOCR-offline.zip
+```
+
+## Project Structure
+
+```text
+src/intellifill_ocr/
+  database/       SQLAlchemy models and repository
+  models/         App dataclasses
+  ocr/            Tesseract, OpenCV, PDF OCR, table detection
+  services/       Document parsing, templates, matching, mapping, export
+  ui/             PySide6 windows and widgets
+  utils/          Paths, config, exceptions, logging
+demo/             Small offline demo fixtures
+```
+
+## Offline Notes
+
+The app does not call cloud APIs. OCR, parsing, matching, database storage, and export all run locally. Tesseract language packs must be installed locally for each OCR language you want to use.
+
+## Demo
+
+Use `demo/template_invoice.csv` as a template and `demo/source_invoice.csv` as source data. Run `python demo/create_demo_files.py` after installing requirements to generate optional DOCX/XLSX demo files.

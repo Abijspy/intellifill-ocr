@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# Tooling and caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build outputs
+build/
+build-final/
+dist/
+dist-final/
+*.spec.log
+
+# Packaged installer outputs
+offline-dist/
+msix/out/
+msix/staging/
+msix/mini/
+msix/probe/
+msix/probe-base/
+*.msix
+*.pfx
+*.cer
+
+# Local app data
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
