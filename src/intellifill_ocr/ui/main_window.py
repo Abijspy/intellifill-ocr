@@ -52,6 +52,7 @@ from intellifill_ocr.ui.about_dialog import AboutReleaseDialog
 from intellifill_ocr.ui.barcode import barcode_pixmap
 from intellifill_ocr.ui.database_preview_dialog import DatabasePreviewDialog
 from intellifill_ocr.ui.detection_dialog import DetectionDialog
+from intellifill_ocr.ui.help_dialog import HelpGuideDialog
 from intellifill_ocr.ui.log_viewer_dialog import LogViewerDialog
 from intellifill_ocr.ui.settings_dialog import SettingsDialog
 from intellifill_ocr.ui.template_learning_dialog import TemplateSuggestionDialog
@@ -287,6 +288,7 @@ class MainWindow(QMainWindow):
         menu.addAction(self._action("Settings", self.open_settings))
 
         help_menu = menu.addMenu("Help")
+        help_menu.addAction(self._action("User Guide and Feature Help", self.open_help_guide))
         help_menu.addAction(self._action("Check for Updates", self.check_for_updates))
         help_menu.addAction(self._action("What's New", self.open_about_release))
         return menu
@@ -824,6 +826,10 @@ class MainWindow(QMainWindow):
 
     def open_log_viewer(self) -> None:
         dialog = LogViewerDialog(self.config.log_file, self)
+        dialog.exec()
+
+    def open_help_guide(self) -> None:
+        dialog = HelpGuideDialog(self)
         dialog.exec()
 
     def detect_signatures_and_stamps(self) -> None:

@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.2.0",
+    [string]$Version = "2.2.1",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -50,6 +50,7 @@ Notes
 - Taskbar pins use the new application icon after installing 2.0.1 and re-pinning from the updated shortcut.
 - Closed panels can be restored or hidden from Actions > Panels.
 - Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
+- User Guide and full scrollable changelog are available from Actions > Help.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8
