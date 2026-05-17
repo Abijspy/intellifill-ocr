@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo_512.png" alt="AutoFill & Export logo" width="220">
+</p>
+
 # IntelliFill OCR Desktop
 
 IntelliFill OCR Desktop is a fully offline Windows desktop application for OCR-driven data extraction, visual field mapping, and table/form filling.
@@ -6,7 +10,7 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 
 ## Features
 
-- PySide6 desktop UI with dark/light themes, split panes, tabs, zoomable document preview, and editable table preview.
+- PySide6 desktop UI with dark/light themes, a single Actions workflow button, split panes, tabs, zoomable document preview, and editable table preview.
 - Offline OCR using Tesseract, `pytesseract`, OpenCV preprocessing, deskewing, denoising, confidence scoring, and bounding boxes.
 - Template import from CSV, Excel, DOCX tables, images, and PDFs, with immediate visual, parsed-text, and parsed-table preview after upload.
 - Source import from DOCX, XLSX/XLS, CSV, PNG/JPG/JPEG, and PDFs, with the same document/text/table preview tabs.
@@ -14,12 +18,13 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 - Drag/click mapping workflow from extracted text to template cells.
 - Fuzzy and keyword matching with confidence percentages.
 - Header-aware matching that fills blank cells beside or under template headings.
-- Traceability ID and Code 39 barcode for each extraction run. PDF, Word, and layout-preserving document exports include the ID/barcode so saved files can be matched back to the SQLite run.
+- Compact traceability ID and Code 39 barcode for each extraction run. PDF, Word, and layout-preserving document exports place the ID/barcode once at the bottom center so saved files can be matched back to the SQLite run.
 - SQLite database preview, application log viewer, emoji What's New page with the installed version number, and user-triggered update checker.
+- First launch after a fresh install or update automatically shows the What's New changelog once for that installed version.
 - SQLite storage through SQLAlchemy ORM for templates, runs, uploaded files, mappings, extracted values, and timestamps.
 - Save/load mapping templates.
 - Export completed output to CSV, XLSX, Word, and PDF with traceability.
-- Export back into DOCX, XLSX, and CSV templates while preserving the original file layout as much as those formats allow.
+- Export back into DOCX, XLSX, and CSV templates while preserving the original file layout as much as those formats allow. DOCX/XLSX preserved exports fill only blank/template cells, keeping headings, logos, merged table structure, split rows/columns, and approved/rejected signature areas intact.
 - Export filled PDF templates with original PDF page artwork preserved and values overlaid into detected blank table cells when coordinates are available.
 - PyInstaller packaging script for a standalone Windows `.exe`.
 - MSIX installer packaging scripts for Windows deployment.
@@ -54,7 +59,7 @@ python -m intellifill_ocr.main
 
 You can also set paths inside the app:
 
-1. Open **Settings** from the toolbar.
+1. Open **Actions > Settings**.
 2. Select the local `tesseract.exe` path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
 3. Select or create the SQLite database path, for example `%LOCALAPPDATA%\IntelliFillOCR\intellifill.sqlite3`.
 4. Choose dark or light appearance from the same Settings window.
@@ -75,25 +80,25 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-1.1.1-win-x64.zip
-IntelliFillOCR-Setup-1.1.1-win-x64.exe
+IntelliFillOCR-2.0.0-win-x64.zip
+IntelliFillOCR-Setup-2.0.0-win-x64.exe
 ```
 
 and publishes both files to a GitHub release.
 
-To publish version `1.1.1` manually:
+To publish version `2.0.0` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `1.1.1` and run it.
+5. Keep version `2.0.0` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v1.1.1
-git push origin v1.1.1
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 ## Build Windows Installer
@@ -102,13 +107,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 1.1.1
+.\scripts\build-installer.ps1 -Version 2.0.0
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-1.1.1-win-x64.exe
+installer\out\IntelliFillOCR-Setup-2.0.0-win-x64.exe
 ```
 
 ## Build MSIX Installer
@@ -130,14 +135,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_1.1.1.0_x64.msix
+msix\out\IntelliFillOCR_2.0.0.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_1.1.1.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_2.0.0.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```
@@ -152,7 +157,7 @@ For production distribution, sign the MSIX with a certificate whose subject matc
   -CertificatePassword "YourPfxPassword"
 ```
 
-The MSIX includes the PyInstaller output and remains fully offline. Tesseract OCR still needs to be installed locally on the target Windows machine unless you choose to bundle a Tesseract distribution into the PyInstaller build. After install, open **Settings** to point the app to the offline machine's local `tesseract.exe` and SQLite database path.
+The MSIX includes the PyInstaller output and remains fully offline. Tesseract OCR still needs to be installed locally on the target Windows machine unless you choose to bundle a Tesseract distribution into the PyInstaller build. After install, open **Actions > Settings** to point the app to the offline machine's local `tesseract.exe` and SQLite database path.
 
 This repository contains everything needed to build the MSIX, but the package itself must be produced on a Windows machine with Python and the Windows SDK installed. `MakeAppx.exe` creates the package and `SignTool.exe` signs it; both are part of the Windows SDK.
 

@@ -7,6 +7,7 @@ SPEC_DIR = Path(SPECPATH).resolve()
 ROOT = SPEC_DIR.parent
 SRC = ROOT / "src"
 DEMO = ROOT / "demo"
+ASSETS = ROOT / "assets"
 
 hiddenimports = []
 hiddenimports += collect_submodules("pytesseract")
@@ -16,7 +17,7 @@ a = Analysis(
     [str(SRC / "intellifill_ocr" / "main.py")],
     pathex=[str(SRC)],
     binaries=[],
-    datas=[(str(DEMO), "demo")],
+    datas=[(str(DEMO), "demo"), (str(ASSETS), "assets")],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -41,6 +42,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=str(ASSETS / "app.ico"),
 )
 coll = COLLECT(
     exe,

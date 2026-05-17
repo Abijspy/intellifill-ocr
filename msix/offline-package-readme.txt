@@ -3,7 +3,7 @@ IntelliFill OCR Offline Install Package
 
 This package includes:
 
-- IntelliFillOCR_1.1.1.0_x64.msix
+- IntelliFillOCR_2.0.0.0_x64.msix
 - IntelliFillOCR_SigningCert.pfx
 - IntelliFillOCR_SigningCert.cer
 - install-msix.ps1
@@ -17,7 +17,7 @@ Recommended install
 3. Run:
 
    powershell.exe -ExecutionPolicy Bypass -File .\install-msix.ps1 `
-     -MsixPath .\IntelliFillOCR_1.1.1.0_x64.msix `
+     -MsixPath .\IntelliFillOCR_2.0.0.0_x64.msix `
      -CertificatePath .\IntelliFillOCR_SigningCert.pfx `
      -CertificatePassword "ChangeThisPassword" `
      -TrustMachineStore
@@ -33,7 +33,7 @@ OCR dependency
 --------------
 
 Tesseract OCR must be installed on the target machine, or the app must be pointed
-to a local tesseract.exe from Settings.
+to a local tesseract.exe from Actions > Settings.
 
 Recommended Tesseract path:
 
@@ -42,7 +42,7 @@ Recommended Tesseract path:
 After install
 -------------
 
-Open Settings in the app to choose:
+Open Actions > Settings in the app to choose:
 
 - Tesseract OCR executable
 - SQLite database path
@@ -58,5 +58,6 @@ Traceability barcode
 --------------------
 
 Each template upload starts an extraction run and creates a traceability ID. The
-ID is saved in SQLite and printed as text plus a Code 39 barcode on PDF and Word
-exports. Use it to match a final exported file back to the saved database run.
+ID is saved in SQLite and printed once as text plus a compact Code 39 barcode at
+the bottom center of PDF and Word exports. Use it to match a final exported file
+back to the saved database run.

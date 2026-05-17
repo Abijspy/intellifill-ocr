@@ -7,13 +7,14 @@ import pandas as pd
 import pdfplumber
 import pypdfium2 as pdfium
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPdfWriter
 from PySide6.QtGui import QPageSize
 
 from intellifill_ocr.models.template import TemplateTable
-from intellifill_ocr.ui.barcode import barcode_png_bytes, draw_code39
+from intellifill_ocr.ui.barcode import barcode_png_bytes, code39_width, draw_code39
 
 
 class ExportService:
@@ -31,13 +32,13 @@ class ExportService:
     def export_word(self, template: TemplateTable, path: Path, traceability_code: str = "") -> None:
         document = Document()
         document.add_heading(template.name or "Filled Template", level=1)
-        self._append_word_traceability(document, traceability_code)
         table = document.add_table(rows=max(template.row_count, 1), cols=max(template.column_count, 1))
         table.style = "Table Grid"
         for row_index, row in enumerate(template.cells):
             for column_index in range(template.column_count):
                 value = row[column_index].value if column_index < len(row) else ""
                 table.cell(row_index, column_index).text = value
+        self._append_word_traceability(document, traceability_code)
         document.save(path)
 
     def export_pdf(self, template: TemplateTable, path: Path, traceability_code: str = "") -> None:
@@ -49,9 +50,10 @@ class ExportService:
             painter.setFont(QFont("Segoe UI", 9))
             x, y = 40, 45
             if traceability_code:
-                y += self._draw_traceability_block(painter, x, y, traceability_code) + 12
+                self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
             row_height = 24
             col_width = max(110, int((writer.width() - 80) / max(template.column_count, 1)))
+            reserved_footer = 96 if traceability_code else 60
             for row in template.cells:
                 x = 40
                 for cell in row:
@@ -64,9 +66,11 @@ class ExportService:
                     )
                     x += col_width
                 y += row_height
-                if y > writer.height() - 60:
+                if y > writer.height() - reserved_footer:
                     writer.newPage()
                     y = 45
+                    if traceability_code:
+                        self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
         finally:
             painter.end()
 
@@ -99,7 +103,7 @@ class ExportService:
                     painter.drawImage(QRect(0, 0, writer.width(), writer.height()), image)
 
                     if page_index == 0 and traceability_code:
-                        self._draw_traceability_block(painter, 40, writer.height() - 88, traceability_code)
+                        self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
 
                     scale_x = writer.width() / max(float(page.width), 1.0)
                     scale_y = writer.height() / max(float(page.height), 1.0)
@@ -124,28 +128,52 @@ class ExportService:
         if overlays == 0:
             self.export_pdf(template, path, traceability_code)
 
-    def _draw_traceability_block(self, painter: QPainter, x: int, y: int, traceability_code: str) -> int:
-        block_width = 360
-        block_height = 62
+    def _draw_traceability_block(
+        self,
+        painter: QPainter,
+        x: int,
+        y: int,
+        traceability_code: str,
+        center: bool = False,
+    ) -> int:
+        narrow = 1
+        barcode_width = code39_width(traceability_code, narrow=narrow)
+        block_width = min(340, max(248, barcode_width + 24))
+        block_height = 58
+        text_alignment = Qt.AlignmentFlag.AlignHCenter if center else Qt.AlignmentFlag.AlignLeft
+        barcode_x = x + max(0, int((block_width - barcode_width) / 2)) if center else x
         painter.save()
         painter.fillRect(QRect(x - 4, y - 4, block_width, block_height), QColor("#ffffff"))
         painter.setPen(QColor("#111827"))
         painter.setFont(QFont("Segoe UI", 8))
         painter.drawText(
             QRect(x, y, block_width - 8, 16),
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            text_alignment | Qt.AlignmentFlag.AlignVCenter,
             f"Traceability ID: {traceability_code}",
         )
-        draw_code39(painter, traceability_code, x, y + 20, 34, narrow=2, show_text=False)
+        draw_code39(painter, traceability_code, barcode_x, y + 20, 30, narrow=narrow, show_text=False)
         painter.restore()
         return block_height
+
+    def _draw_traceability_footer(self, painter: QPainter, page_width: int, page_height: int, traceability_code: str) -> None:
+        barcode_width = code39_width(traceability_code, narrow=1)
+        block_width = min(340, max(248, barcode_width + 24))
+        x = max(4, int((page_width - block_width) / 2))
+        y = max(4, page_height - 68)
+        self._draw_traceability_block(painter, x, y, traceability_code, center=True)
 
     def _append_word_traceability(self, document: Document, traceability_code: str) -> None:
         if not traceability_code:
             return
-        paragraph = document.add_paragraph()
+        footer = document.sections[0].footer
+        paragraph = footer.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         paragraph.add_run(f"Traceability ID: {traceability_code}")
-        document.add_picture(barcode_png_bytes(traceability_code), width=Inches(3.2))
+        paragraph.add_run().add_break()
+        paragraph.add_run().add_picture(
+            barcode_png_bytes(traceability_code, narrow=1, bar_height=30),
+            width=Inches(2.55),
+        )
 
     def _has_pdf_coordinates(self, template: TemplateTable) -> bool:
         return any(cell.bbox for row in template.cells for cell in row)

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "1.1.1.0",
+    [string]$Version = "2.0.0.0",
     [string]$PackageName = "IntelliFillOCR.Desktop",
     [string]$DisplayName = "IntelliFill OCR",
     [string]$Publisher = "CN=IntelliFillOCR",
@@ -23,6 +23,7 @@ $StagingRoot = Join-Path $RepoRoot "msix\staging"
 $PackageRoot = Join-Path $StagingRoot "Package"
 $AssetsDir = Join-Path $PackageRoot "Assets"
 $OutputRoot = Join-Path $RepoRoot $OutputDir
+$LogoSource = Join-Path $RepoRoot "assets\logo.png"
 $MsixPath = Join-Path $OutputRoot "IntelliFillOCR_${Version}_${Architecture}.msix"
 $CertOutPath = Join-Path $OutputRoot "IntelliFillOCR_SigningCert.pfx"
 $CertPublicPath = Join-Path $OutputRoot "IntelliFillOCR_SigningCert.cer"
@@ -51,7 +52,8 @@ function New-TileAsset {
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][int]$Width,
         [Parameter(Mandatory = $true)][int]$Height,
-        [string]$Text = "IF"
+        [string]$Text = "IF",
+        [string]$LogoPath = ""
     )
 
     Add-Type -AssemblyName System.Drawing
@@ -62,6 +64,24 @@ function New-TileAsset {
     $accent = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(96, 165, 250))
     $white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(237, 242, 247))
     $graphics.FillRectangle($background, 0, 0, $Width, $Height)
+
+    if ($LogoPath -and (Test-Path $LogoPath)) {
+        $source = [System.Drawing.Image]::FromFile((Resolve-Path $LogoPath).Path)
+        try {
+            $scale = [Math]::Min($Width / $source.Width, $Height / $source.Height)
+            $drawWidth = $source.Width * $scale
+            $drawHeight = $source.Height * $scale
+            $drawX = ($Width - $drawWidth) / 2
+            $drawY = ($Height - $drawHeight) / 2
+            $graphics.DrawImage($source, [float]$drawX, [float]$drawY, [float]$drawWidth, [float]$drawHeight)
+            $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+            return
+        } finally {
+            $source.Dispose()
+            $graphics.Dispose()
+            $bitmap.Dispose()
+        }
+    }
 
     $circleSize = [Math]::Min($Width, $Height) * 0.58
     $circleX = ($Width - $circleSize) / 2
@@ -132,12 +152,12 @@ New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $AssetsDir -Force | Out-Null
 
 Copy-Item -Path $DistApp -Destination (Join-Path $PackageRoot "IntelliFillOCR") -Recurse
-New-TileAsset -Path (Join-Path $AssetsDir "StoreLogo.png") -Width 50 -Height 50
-New-TileAsset -Path (Join-Path $AssetsDir "Square44x44Logo.png") -Width 44 -Height 44
-New-TileAsset -Path (Join-Path $AssetsDir "Square71x71Logo.png") -Width 71 -Height 71
-New-TileAsset -Path (Join-Path $AssetsDir "Square150x150Logo.png") -Width 150 -Height 150
-New-TileAsset -Path (Join-Path $AssetsDir "Square310x310Logo.png") -Width 310 -Height 310
-New-TileAsset -Path (Join-Path $AssetsDir "Wide310x150Logo.png") -Width 310 -Height 150
+New-TileAsset -Path (Join-Path $AssetsDir "StoreLogo.png") -Width 50 -Height 50 -LogoPath $LogoSource
+New-TileAsset -Path (Join-Path $AssetsDir "Square44x44Logo.png") -Width 44 -Height 44 -LogoPath $LogoSource
+New-TileAsset -Path (Join-Path $AssetsDir "Square71x71Logo.png") -Width 71 -Height 71 -LogoPath $LogoSource
+New-TileAsset -Path (Join-Path $AssetsDir "Square150x150Logo.png") -Width 150 -Height 150 -LogoPath $LogoSource
+New-TileAsset -Path (Join-Path $AssetsDir "Square310x310Logo.png") -Width 310 -Height 310 -LogoPath $LogoSource
+New-TileAsset -Path (Join-Path $AssetsDir "Wide310x150Logo.png") -Width 310 -Height 150 -LogoPath $LogoSource
 Expand-ManifestTemplate
 Remove-InvalidMsixPayloadFiles
 

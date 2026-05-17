@@ -1,7 +1,7 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "1.1.1"
+#define AppVersion "2.0.0"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
@@ -11,6 +11,9 @@
 #endif
 #ifndef PrerequisitesFile
 #define PrerequisitesFile "prerequisites.txt"
+#endif
+#ifndef IconFile
+#define IconFile "..\assets\app.ico"
 #endif
 
 [Setup]
@@ -34,6 +37,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#AppExeName}
+SetupIconFile={#IconFile}
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany=IntelliFill OCR
 VersionInfoDescription=Offline OCR table filling desktop application

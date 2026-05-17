@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtGui import QDesktopServices, QFont, QPixmap
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from intellifill_ocr import __app_name__, __version__
+from intellifill_ocr.utils.paths import resource_path
 
 
 class AboutReleaseDialog(QDialog):
@@ -14,6 +15,13 @@ class AboutReleaseDialog(QDialog):
         self.setWindowTitle("What's New")
         self.setMinimumWidth(520)
 
+        logo = QLabel()
+        logo_path = resource_path("assets/logo_512.png")
+        if logo_path.exists():
+            pixmap = QPixmap(str(logo_path))
+            if not pixmap.isNull():
+                logo.setPixmap(pixmap.scaledToWidth(120))
+
         title = QLabel(f"What's New in {__app_name__} v{__version__}")
         title_font = QFont()
         title_font.setPointSize(18)
@@ -21,11 +29,12 @@ class AboutReleaseDialog(QDialog):
         title.setFont(title_font)
 
         details = QLabel(
-            "🧭 Installer now shows prerequisite notes before setup.\n"
-            "🗄️ SQLite database preview is available from Tools.\n"
-            "📋 Application logs can be viewed from Tools.\n"
-            "🚀 Check for Updates can download and launch newer installers.\n"
-            "🏷️ This page shows the installed release version."
+            "🖼️ New AutoFill & Export logo is used in the app, package, installer, and README.\n"
+            "🎛️ The old top toolbar is replaced by one Actions button with every workflow option.\n"
+            "📣 Fresh installs and updates show this changelog automatically on first launch.\n"
+            "🏷️ Traceability IDs are shorter, scannable, and printed once at the bottom center of PDF/Word exports.\n"
+            "📄 Preserved-layout exports now fill blank/template fields only and keep headings, logos, tables, and signature areas.\n"
+            "☀️ Light mode visibility is improved for the mapping workflow."
         )
         details.setWordWrap(True)
 
@@ -43,6 +52,7 @@ class AboutReleaseDialog(QDialog):
         buttons.addWidget(close_button)
 
         layout = QVBoxLayout(self)
+        layout.addWidget(logo)
         layout.addWidget(title)
         layout.addWidget(details)
         layout.addWidget(release_label)

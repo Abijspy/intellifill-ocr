@@ -4,13 +4,16 @@ from pathlib import Path
 
 import pandas as pd
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
 from openpyxl import load_workbook
 from openpyxl.cell.cell import MergedCell
 from openpyxl.drawing.image import Image as ExcelImage
 
+from intellifill_ocr.models.template import TemplateCell
 from intellifill_ocr.models.template import TemplateTable
 from intellifill_ocr.ui.barcode import barcode_png_bytes
+from intellifill_ocr.utils.placeholders import is_placeholder_text
 
 
 class PreservedTemplateExporter:
@@ -38,14 +41,15 @@ class PreservedTemplateExporter:
                 target_cell = sheet.cell(row=row_index, column=col_index)
                 if isinstance(target_cell, MergedCell):
                     continue
-                target_cell.value = cell.value
+                if self._should_fill_preserved_cell(cell, target_cell.value):
+                    target_cell.value = cell.value
         if traceability_code:
             traceability_row = sheet.max_row + 2
             sheet.cell(row=traceability_row, column=1).value = "Traceability ID"
             sheet.cell(row=traceability_row, column=2).value = traceability_code
             image = ExcelImage(barcode_png_bytes(traceability_code))
-            image.width = 320
-            image.height = 72
+            image.width = 255
+            image.height = 58
             sheet.add_image(image, f"A{traceability_row + 1}")
         workbook.save(output_path)
 
@@ -63,9 +67,17 @@ class PreservedTemplateExporter:
             for col_index, source_cell in enumerate(row):
                 if col_index >= len(target_table.rows[row_index].cells):
                     break
-                self._set_cell_text(target_table.rows[row_index].cells[col_index], source_cell.value)
+                target_cell = target_table.rows[row_index].cells[col_index]
+                if self._should_fill_preserved_cell(source_cell, self._cell_text(target_cell)):
+                    self._set_cell_text(target_cell, source_cell.value)
         self._append_docx_traceability(document, traceability_code)
         document.save(output_path)
+
+    def _should_fill_preserved_cell(self, cell: TemplateCell, original_value: object | None) -> bool:
+        return cell.is_placeholder and bool(cell.value.strip()) and is_placeholder_text(original_value)
+
+    def _cell_text(self, cell) -> str:
+        return "\n".join(paragraph.text for paragraph in cell.paragraphs).strip()
 
     def _set_cell_text(self, cell, value: str) -> None:
         paragraph = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph()
@@ -79,6 +91,12 @@ class PreservedTemplateExporter:
     def _append_docx_traceability(self, document: Document, traceability_code: str) -> None:
         if not traceability_code:
             return
-        paragraph = document.add_paragraph()
+        footer = document.sections[0].footer
+        paragraph = footer.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         paragraph.add_run(f"Traceability ID: {traceability_code}")
-        document.add_picture(barcode_png_bytes(traceability_code), width=Inches(3.2))
+        paragraph.add_run().add_break()
+        paragraph.add_run().add_picture(
+            barcode_png_bytes(traceability_code, narrow=1, bar_height=30),
+            width=Inches(2.55),
+        )

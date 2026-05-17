@@ -101,18 +101,20 @@ def draw_code39(
     return cursor - x
 
 
-def barcode_pixmap(value: str, width: int = 360, height: int = 74) -> QPixmap:
+def barcode_pixmap(value: str, width: int = 320, height: int = 68) -> QPixmap:
     pixmap = QPixmap(width, height)
     pixmap.fill(QColor("#ffffff"))
     painter = QPainter(pixmap)
     try:
-        draw_code39(painter, value, 8, 8, 42, narrow=2, show_text=True)
+        barcode_width = code39_width(value, narrow=1)
+        x = max(8, int((width - barcode_width) / 2))
+        draw_code39(painter, value, x, 8, 36, narrow=1, show_text=True)
     finally:
         painter.end()
     return pixmap
 
 
-def barcode_png_bytes(value: str, narrow: int = 2, bar_height: int = 46, show_text: bool = True) -> BytesIO:
+def barcode_png_bytes(value: str, narrow: int = 1, bar_height: int = 34, show_text: bool = True) -> BytesIO:
     encoded = f"*{normalize_code39(value)}*"
     quiet_zone = 12
     text_height = 18 if show_text else 0

@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from PySide6.QtCore import QProcess, QTimer, QUrl, Qt
-from PySide6.QtGui import QAction, QDesktopServices
+from PySide6.QtGui import QAction, QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QDockWidget,
     QDialog,
     QFileDialog,
+    QFrame,
+    QHBoxLayout,
     QLabel,
     QListWidget,
     QMainWindow,
@@ -24,12 +26,12 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
-    QToolBar,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from intellifill_ocr import __version__
 from intellifill_ocr.database.repository import Repository
 from intellifill_ocr.models.document import ExtractedField, ParsedDocument
 from intellifill_ocr.models.template import TemplateTable
@@ -52,7 +54,7 @@ from intellifill_ocr.ui.widgets.mapping_panel import MappingPanel
 from intellifill_ocr.ui.widgets.template_grid import TemplateGrid
 from intellifill_ocr.utils.config import AppConfig
 from intellifill_ocr.utils.exceptions import IntelliFillError
-from intellifill_ocr.utils.paths import app_data_dir
+from intellifill_ocr.utils.paths import app_data_dir, resource_path
 
 LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +85,11 @@ class MainWindow(QMainWindow):
         self.current_image_path: Path | None = None
 
         self.setWindowTitle("IntelliFill OCR - Offline Data Extraction")
+        icon_path = resource_path("assets/app.ico")
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         self._build_ui()
+        QTimer.singleShot(900, self._show_install_changelog_if_needed)
 
     def _build_ui(self) -> None:
         self.setDockOptions(
@@ -91,8 +97,6 @@ class MainWindow(QMainWindow):
             | QMainWindow.DockOption.AllowTabbedDocks
             | QMainWindow.DockOption.AnimatedDocks
         )
-        self._build_menu_bar()
-        self._build_toolbar()
 
         self.file_list = QListWidget()
         self.file_list.currentRowChanged.connect(self._show_document_text)
@@ -125,7 +129,14 @@ class MainWindow(QMainWindow):
         document_tabs.addTab(self.viewer, "Document Preview")
         document_tabs.addTab(self.text_preview, "Parsed Text")
         document_tabs.addTab(table_tab, "Parsed Tables")
-        self.setCentralWidget(document_tabs)
+
+        central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(10, 8, 10, 8)
+        central_layout.setSpacing(8)
+        central_layout.addWidget(self._build_action_header())
+        central_layout.addWidget(document_tabs, 1)
+        self.setCentralWidget(central)
 
         left = QWidget()
         left_layout = QVBoxLayout(left)
@@ -160,125 +171,94 @@ class MainWindow(QMainWindow):
         preview_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, preview_dock)
 
-    def _build_menu_bar(self) -> None:
-        templates_menu = self.menuBar().addMenu("&Saved Mapping Templates")
-        templates_menu.addAction(self._action("Save Current Field Mapping", self.save_mapping_template))
-        templates_menu.addAction(self._action("Load Saved Field Mapping", self.load_mapping_template))
+    def _build_action_header(self) -> QWidget:
+        header = QFrame(self)
+        header.setObjectName("ActionHeader")
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(10)
 
-        tools_menu = self.menuBar().addMenu("&Tools")
+        logo_label = QLabel()
+        logo_label.setFixedSize(46, 46)
+        logo_path = resource_path("assets/logo_512.png")
+        if logo_path.exists():
+            pixmap = QPixmap(str(logo_path))
+            if not pixmap.isNull():
+                logo_label.setPixmap(
+                    pixmap.scaled(
+                        44,
+                        44,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+
+        title_block = QWidget()
+        title_layout = QVBoxLayout(title_block)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(0)
+        title = QLabel("IntelliFill OCR")
+        title.setObjectName("AppTitle")
+        subtitle = QLabel("Offline OCR, table filling, preserved exports")
+        subtitle.setObjectName("AppSubtitle")
+        title_layout.addWidget(title)
+        title_layout.addWidget(subtitle)
+
+        actions_button = QToolButton(self)
+        actions_button.setObjectName("PrimaryActionsButton")
+        actions_button.setText("Actions")
+        actions_button.setToolTip("Open upload, mapping, export, tools, settings, and update actions")
+        actions_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
+        actions_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        actions_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        actions_button.setMenu(self._build_actions_menu(actions_button))
+
+        layout.addWidget(logo_label)
+        layout.addWidget(title_block)
+        layout.addStretch(1)
+        layout.addWidget(actions_button)
+        return header
+
+    def _build_actions_menu(self, parent: QWidget) -> QMenu:
+        menu = QMenu(parent)
+        menu.addAction(self._action("Upload Template", self.load_template))
+        menu.addAction(self._action("Upload Source Files", self.load_sources))
+        menu.addSeparator()
+        menu.addAction(self._action("Auto Fill Matching Fields", self.auto_match))
+        menu.addAction(self._action("Map Selected Field to Destination Cell", self.map_selected))
+
+        mapping_menu = menu.addMenu("Saved Mapping Templates")
+        mapping_menu.addAction(self._action("Save Current Field Mapping", self.save_mapping_template))
+        mapping_menu.addAction(self._action("Load Saved Field Mapping", self.load_mapping_template))
+
+        menu.addSeparator()
+        menu.addAction(self._action("Save Filled Output to SQLite", self.save_to_database))
+
+        export_menu = menu.addMenu("Export Filled Output")
+        export_menu.addAction(self._action("Export CSV", self.export_csv))
+        export_menu.addAction(self._action("Export Excel Workbook", self.export_excel))
+        export_menu.addAction(self._action("Export Word Document", self.export_word))
+        export_menu.addAction(self._action("Export PDF with Traceability Barcode", self.export_pdf))
+        export_menu.addSeparator()
+        export_menu.addAction(self._action("Export Filled Template - Preserve Original Layout", self.export_original_format))
+        export_menu.addAction(self._action("Export Filled Template PDF - Preserve Original Layout", self.export_preserved_pdf))
+
+        tools_menu = menu.addMenu("Tools")
         tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
         tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
 
-        help_menu = self.menuBar().addMenu("&Help")
+        menu.addSeparator()
+        menu.addAction(self._action("Settings", self.open_settings))
+
+        help_menu = menu.addMenu("Help")
         help_menu.addAction(self._action("Check for Updates", self.check_for_updates))
         help_menu.addAction(self._action("What's New", self.open_about_release))
-
-    def _build_toolbar(self) -> None:
-        toolbar = QToolBar("Workflow")
-        toolbar.setMovable(False)
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.addToolBar(toolbar)
-
-        self._add_toolbar_button(
-            toolbar,
-            "1. Upload Template",
-            "Choose the blank table, form, PDF, DOCX, or spreadsheet to fill",
-            self.load_template,
-            QStyle.StandardPixmap.SP_FileDialogNewFolder,
-        )
-        self._add_toolbar_button(
-            toolbar,
-            "2. Upload Sources",
-            "Add up to 5 documents, sheets, PDFs, or images",
-            self.load_sources,
-            QStyle.StandardPixmap.SP_DialogOpenButton,
-        )
-        toolbar.addSeparator()
-        self._add_toolbar_button(
-            toolbar,
-            "3. Auto Fill",
-            "Suggest and fill matching fields automatically",
-            self.auto_match,
-            QStyle.StandardPixmap.SP_FileDialogContentsView,
-        )
-        self._add_toolbar_button(
-            toolbar,
-            "Map Selected",
-            "Send the selected extracted value to the selected table cell",
-            self.map_selected,
-            QStyle.StandardPixmap.SP_ArrowForward,
-        )
-        toolbar.addSeparator()
-        self._add_toolbar_button(
-            toolbar,
-            "Save to Database",
-            "Save the completed output to SQLite",
-            self.save_to_database,
-            QStyle.StandardPixmap.SP_DialogSaveButton,
-        )
-
-        export_button = QToolButton(self)
-        export_button.setText("Export")
-        export_button.setToolTip("Export the completed table. PDF exports include the traceability ID and barcode.")
-        export_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DriveFDIcon))
-        export_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        export_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        export_menu = QMenu(export_button)
-        export_menu.addAction(self._action("CSV", self.export_csv))
-        export_menu.addAction(self._action("Excel", self.export_excel))
-        export_menu.addAction(self._action("Word Document", self.export_word))
-        export_menu.addAction(self._action("PDF", self.export_pdf))
-        export_menu.addSeparator()
-        export_menu.addAction(self._action("Filled Template - Preserve Layout", self.export_original_format))
-        export_menu.addAction(self._action("Filled Template PDF - Preserve Layout", self.export_preserved_pdf))
-        export_button.setMenu(export_menu)
-        toolbar.addWidget(export_button)
-
-        toolbar.addSeparator()
-        tools_button = QToolButton(self)
-        tools_button.setText("Tools")
-        tools_button.setToolTip("Preview the SQLite database or inspect application logs")
-        tools_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView))
-        tools_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        tools_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        tools_menu = QMenu(tools_button)
-        tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
-        tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
-        tools_menu.addSeparator()
-        tools_menu.addAction(self._action("Check for Updates", self.check_for_updates))
-        tools_menu.addAction(self._action("What's New", self.open_about_release))
-        tools_button.setMenu(tools_menu)
-        toolbar.addWidget(tools_button)
-
-        self._add_toolbar_button(
-            toolbar,
-            "Settings",
-            "Set Tesseract OCR, SQLite database, OCR language, and theme",
-            self.open_settings,
-            QStyle.StandardPixmap.SP_FileDialogDetailedView,
-        )
+        return menu
 
     def _action(self, label: str, callback) -> QAction:
         action = QAction(label, self)
         action.triggered.connect(lambda _checked=False: callback())
         return action
-
-    def _add_toolbar_button(
-        self,
-        toolbar: QToolBar,
-        label: str,
-        tooltip: str,
-        callback,
-        icon: QStyle.StandardPixmap,
-    ) -> QToolButton:
-        button = QToolButton(self)
-        button.setText(label)
-        button.setToolTip(tooltip)
-        button.setIcon(self.style().standardIcon(icon))
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        button.clicked.connect(lambda _checked=False: callback())
-        toolbar.addWidget(button)
-        return button
 
     def load_template(self) -> None:
         path_str, _ = QFileDialog.getOpenFileName(
@@ -538,6 +518,18 @@ class MainWindow(QMainWindow):
         dialog = AboutReleaseDialog(self)
         dialog.exec()
 
+    def _show_install_changelog_if_needed(self) -> None:
+        state_path = app_data_dir() / "last_seen_release_version.txt"
+        try:
+            seen_version = state_path.read_text(encoding="utf-8").strip() if state_path.exists() else ""
+            if seen_version == __version__:
+                return
+            dialog = AboutReleaseDialog(self)
+            dialog.exec()
+            state_path.write_text(__version__, encoding="utf-8")
+        except Exception:
+            LOGGER.exception("Could not show install/update changelog")
+
     def check_for_updates(self) -> None:
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
@@ -699,12 +691,14 @@ class MainWindow(QMainWindow):
             )
             self.barcode_label.clear()
             return
-        self.traceability_label.setText(f"Traceability ID: {self.traceability_code} (included in PDF and Word exports)")
+        self.traceability_label.setText(
+            f"Traceability ID: {self.traceability_code} (bottom-center barcode on PDF and Word exports)"
+        )
         self.traceability_label.setToolTip(
-            "This ID is stored with the SQLite extraction run and printed as a barcode on PDF and Word exports."
+            "This compact ID is stored with the SQLite extraction run and printed as a bottom-center barcode on exports."
         )
         self.barcode_label.setPixmap(barcode_pixmap(self.traceability_code))
-        self.barcode_label.setToolTip("Scan or read this barcode to match an exported PDF back to the saved SQLite run.")
+        self.barcode_label.setToolTip("Scan or read this barcode to match an exported document back to the saved SQLite run.")
 
     def _load_document_tables(self, document: ParsedDocument) -> None:
         self.table_selector.blockSignals(True)

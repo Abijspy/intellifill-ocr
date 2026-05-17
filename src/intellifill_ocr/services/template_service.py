@@ -10,6 +10,7 @@ from openpyxl import load_workbook
 from intellifill_ocr.models.template import TemplateCell, TemplateTable
 from intellifill_ocr.ocr.engine import OCREngine
 from intellifill_ocr.ocr.pdf import parse_pdf_text
+from intellifill_ocr.utils.placeholders import is_placeholder_text
 
 
 class TemplateService:
@@ -40,7 +41,14 @@ class TemplateService:
             cells: list[TemplateCell] = []
             for col_index, value in enumerate(row.tolist()):
                 text = "" if pd.isna(value) else str(value)
-                cells.append(TemplateCell(row=row_index, column=col_index, value=text, is_placeholder=not text.strip()))
+                cells.append(
+                    TemplateCell(
+                        row=row_index,
+                        column=col_index,
+                        value=text,
+                        is_placeholder=is_placeholder_text(text),
+                    )
+                )
             rows.append(cells)
         return TemplateTable(name=name, cells=rows)
 
@@ -71,7 +79,7 @@ class TemplateService:
                         row=row_index,
                         column=col_index,
                         value=text,
-                        is_placeholder=not text.strip() or (row_index, col_index) in covered,
+                        is_placeholder=is_placeholder_text(text) or (row_index, col_index) in covered,
                         row_span=row_span,
                         column_span=column_span,
                     )
@@ -100,7 +108,7 @@ class TemplateService:
                                 row=row_index,
                                 column=col_index,
                                 value=text,
-                                is_placeholder=not text,
+                                is_placeholder=is_placeholder_text(text),
                                 source_page=page_index,
                                 bbox=tuple(float(part) for part in bbox) if bbox else None,
                             )
@@ -115,7 +123,12 @@ class TemplateService:
             for row_index, row in enumerate(parsed.tables[0]):
                 rows.append(
                     [
-                        TemplateCell(row=row_index, column=col_index, value=value, is_placeholder=not value.strip())
+                        TemplateCell(
+                            row=row_index,
+                            column=col_index,
+                            value=value,
+                            is_placeholder=is_placeholder_text(value),
+                        )
                         for col_index, value in enumerate(row)
                     ]
                 )
@@ -140,6 +153,13 @@ class TemplateService:
             cells: list[TemplateCell] = []
             for col_index, cell in enumerate(row.cells):
                 text = cell.text.strip()
-                cells.append(TemplateCell(row=row_index, column=col_index, value=text, is_placeholder=not text))
+                cells.append(
+                    TemplateCell(
+                        row=row_index,
+                        column=col_index,
+                        value=text,
+                        is_placeholder=is_placeholder_text(text),
+                    )
+                )
             rows.append(cells)
         return TemplateTable(name=path.stem, cells=rows)

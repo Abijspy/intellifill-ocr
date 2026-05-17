@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "1.1.1"
+        default: "2.0.0"
   push:
     tags:
       - "v*"
@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -56,7 +56,7 @@ jobs:
           "installer=${env:APP_NAME}-Setup-$version-win-x64.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -99,11 +99,12 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🧭 Installer now shows prerequisite notes before setup.",
-            "🗄️ SQLite database preview is available from Tools.",
-            "📋 Application logs can be viewed from Tools.",
-            "🚀 Check for Updates can download and launch newer installers.",
-            "🏷️ What's New page shows the installed release version.",
+            "🖼️ New AutoFill & Export logo is included in the app, installer, EXE, MSIX tiles, and README.",
+            "🎛️ One Actions button now contains upload, mapping, export, tools, settings, and update options.",
+            "📣 Fresh installs and updates show this What's New changelog once on first launch.",
+            "🏷️ Traceability IDs are shorter and the barcode prints once at the bottom center of PDF/Word exports.",
+            "📄 Preserved-layout exports fill only blank/template fields and keep headings, logos, merged tables, and signature areas.",
+            "☀️ Light mode mapping visibility is improved.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",
@@ -111,7 +112,7 @@ jobs:
           ) | Set-Content -Path release-notes.md -Encoding UTF8
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-${{ steps.version.outputs.version }}-win-x64
           path: |

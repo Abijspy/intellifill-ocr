@@ -5,6 +5,6 @@ from uuid import uuid4
 
 
 def new_traceability_code() -> str:
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    suffix = uuid4().hex[:6].upper()
-    return f"IF-{timestamp}-{suffix}"
+    timestamp = datetime.now().strftime("%y%m%d%H%M")
+    suffix = uuid4().hex[:5].upper()
+    return f"IF{timestamp}{suffix}"
