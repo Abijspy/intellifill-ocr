@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.2.1"
+        default: "2.2.2"
   push:
     tags:
       - "v*"
@@ -99,10 +99,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "📘 Version $env:RELEASE_VERSION",
-            "- Added a detailed offline User Guide under Actions > Help.",
-            "- The in-app What's New page is now scrollable and includes the full history from v1.0.0 through the installed version.",
-            "- GitHub release notes now stay focused on the latest release only.",
+            "🪟 Version $env:RELEASE_VERSION",
+            "- Large help, database, log, validation, detection, and learned-template windows now open inside the visible screen area.",
+            "- Dock panel close and float controls are visible in light mode.",
+            "- Dialogs include resize grips so users can adjust large windows comfortably.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

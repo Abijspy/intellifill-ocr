@@ -5,6 +5,7 @@ from PySide6.QtGui import QDesktopServices, QFont, QPixmap
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout
 
 from intellifill_ocr import __app_name__, __version__
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 from intellifill_ocr.utils.paths import resource_path
 
 
@@ -14,6 +15,7 @@ class AboutReleaseDialog(QDialog):
         self.release_url = f"https://github.com/Abijspy/intellifill-ocr/releases/tag/v{__version__}"
         self.setWindowTitle("What's New")
         self.setMinimumWidth(520)
+        keep_dialog_on_screen(self, 720, 680)
 
         logo = QLabel()
         logo_path = resource_path("assets/logo_512.png")
@@ -60,6 +62,12 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🪟 Version 2.2.2</h2>
+        <ul>
+          <li>Large help, database, log, validation, detection, and learned-template windows now open inside the visible screen area.</li>
+          <li>Dock panel close/float buttons are visible again in light mode.</li>
+        </ul>
+
         <h2>📘 Version 2.2.1</h2>
         <ul>
           <li>Added a full offline User Guide under Actions &gt; Help.</li>

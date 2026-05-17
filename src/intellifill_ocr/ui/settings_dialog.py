@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 from intellifill_ocr.utils.config import AppConfig
 
 
@@ -24,6 +25,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Application Settings")
         self.setMinimumWidth(680)
+        keep_dialog_on_screen(self, 740, 360)
 
         self.tesseract_edit = QLineEdit(config.tesseract_cmd or "")
         self.database_edit = QLineEdit(str(config.database_path))

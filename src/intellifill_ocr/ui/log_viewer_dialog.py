@@ -6,6 +6,8 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices, QFont, QTextCursor
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout
 
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
+
 
 class LogViewerDialog(QDialog):
     """Simple read-only viewer for the application log file."""
@@ -16,7 +18,7 @@ class LogViewerDialog(QDialog):
         super().__init__(parent)
         self.log_file = log_file
         self.setWindowTitle("Application Logs")
-        self.resize(1000, 650)
+        keep_dialog_on_screen(self, 1000, 650)
 
         self.path_label = QLabel(f"Log file: {self.log_file}")
         self.path_label.setWordWrap(True)

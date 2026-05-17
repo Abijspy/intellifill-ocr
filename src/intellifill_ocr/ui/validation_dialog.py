@@ -12,13 +12,14 @@ from PySide6.QtWidgets import (
 )
 
 from intellifill_ocr.services.validation import ValidationIssue
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 
 
 class ValidationDialog(QDialog):
     def __init__(self, issues: list[ValidationIssue], parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Validation Results")
-        self.resize(980, 560)
+        keep_dialog_on_screen(self, 980, 560)
 
         error_count = sum(1 for issue in issues if issue.severity.lower() == "error")
         warning_count = len(issues) - error_count

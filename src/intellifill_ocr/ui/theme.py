@@ -87,15 +87,22 @@ QToolButton#PrimaryActionsButton:hover {
 QToolButton#PrimaryActionsButton::menu-indicator {
     image: none;
 }
-QDockWidget {
-    titlebar-close-icon: none;
-    titlebar-normal-icon: none;
-}
 QDockWidget::title {
     background: #edf1f7;
     color: #172033;
-    padding: 7px;
+    padding: 7px 44px 7px 8px;
     border: 1px solid #d9dee8;
+}
+QDockWidget::close-button, QDockWidget::float-button {
+    background: #ffffff;
+    border: 1px solid #c7d0dc;
+    border-radius: 3px;
+    width: 16px;
+    height: 16px;
+}
+QDockWidget::close-button:hover, QDockWidget::float-button:hover {
+    background: #d9e9ff;
+    border-color: #8db8f7;
 }
 QTableWidget, QTextEdit, QListWidget, QTreeWidget, QLineEdit, QComboBox {
     background: #ffffff;
@@ -181,7 +188,9 @@ QToolButton#PrimaryActionsButton:hover { background: #93c5fd; border-color: #93c
 QToolButton#PrimaryActionsButton::menu-indicator { image: none; }
 QLineEdit, QComboBox { background: #1d2430; border: 1px solid #445064; padding: 5px; }
 QHeaderView::section { background: #252d3a; padding: 6px; border: 0; color: #edf2f7; }
-QDockWidget::title { background: #252d3a; color: #edf2f7; padding: 7px; border: 1px solid #303948; }
+QDockWidget::title { background: #252d3a; color: #edf2f7; padding: 7px 44px 7px 8px; border: 1px solid #303948; }
+QDockWidget::close-button, QDockWidget::float-button { background: #1d2430; border: 1px solid #64748b; border-radius: 3px; width: 16px; height: 16px; }
+QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: #31405a; border-color: #93c5fd; }
 QTableWidget::item:selected, QListWidget::item:selected { background: #334b70; color: #ffffff; }
 QTabBar::tab { background: #252d3a; color: #cbd5e1; padding: 8px 14px; border: 1px solid #303948; border-bottom: 0; border-top-left-radius: 5px; border-top-right-radius: 5px; }
 QTabBar::tab:selected { background: #1d2430; color: #ffffff; }

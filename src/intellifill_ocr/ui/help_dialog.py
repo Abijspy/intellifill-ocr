@@ -4,6 +4,8 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextBrowser, QVBoxLayout
 
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
+
 
 class HelpGuideDialog(QDialog):
     """Offline user guide for the main IntelliFill OCR workflows."""
@@ -11,7 +13,7 @@ class HelpGuideDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("IntelliFill OCR User Guide")
-        self.resize(980, 720)
+        keep_dialog_on_screen(self, 980, 720)
 
         guide = QTextBrowser()
         guide.setOpenExternalLinks(False)

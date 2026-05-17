@@ -3,7 +3,7 @@ IntelliFill OCR Offline Install Package
 
 This package includes:
 
-- IntelliFillOCR_2.2.1.0_x64.msix
+- IntelliFillOCR_2.2.2.0_x64.msix
 - IntelliFillOCR_SigningCert.pfx
 - IntelliFillOCR_SigningCert.cer
 - install-msix.ps1
@@ -17,7 +17,7 @@ Recommended install
 3. Run:
 
    powershell.exe -ExecutionPolicy Bypass -File .\install-msix.ps1 `
-     -MsixPath .\IntelliFillOCR_2.2.1.0_x64.msix `
+     -MsixPath .\IntelliFillOCR_2.2.2.0_x64.msix `
      -CertificatePath .\IntelliFillOCR_SigningCert.pfx `
      -CertificatePassword "ChangeThisPassword" `
      -TrustMachineStore

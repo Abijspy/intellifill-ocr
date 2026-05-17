@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.2.1",
+    [string]$Version = "2.2.2",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -51,6 +51,7 @@ Notes
 - Closed panels can be restored or hidden from Actions > Panels.
 - Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
 - User Guide and full scrollable changelog are available from Actions > Help.
+- Large dialogs stay inside the visible screen, and dock panel close/float buttons are visible in light mode.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8

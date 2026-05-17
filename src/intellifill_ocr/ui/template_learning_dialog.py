@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from intellifill_ocr.services.template_learning import TemplateMatch
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 
 
 class TemplateSuggestionDialog(QDialog):
@@ -20,7 +21,7 @@ class TemplateSuggestionDialog(QDialog):
         self.matches = matches
         self.selected_match: TemplateMatch | None = None
         self.setWindowTitle("Learned Template Suggestions")
-        self.resize(900, 520)
+        keep_dialog_on_screen(self, 900, 520)
 
         summary = QLabel("Reusable mapping templates that look similar to the uploaded source documents.")
         summary.setWordWrap(True)

@@ -12,13 +12,14 @@ from PySide6.QtWidgets import (
 )
 
 from intellifill_ocr.services.signature_detection import DetectedMark
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 
 
 class DetectionDialog(QDialog):
     def __init__(self, marks: list[DetectedMark], parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Signature and Stamp Detection")
-        self.resize(980, 560)
+        keep_dialog_on_screen(self, 980, 560)
 
         summary = QLabel(
             "Detected marks are heuristic offline results. Preserved-layout DOCX/PDF exports keep the original signature "

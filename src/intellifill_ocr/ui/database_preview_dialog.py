@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
+
 
 class DatabasePreviewDialog(QDialog):
     """Read-only preview of the configured SQLite database."""
@@ -29,7 +31,7 @@ class DatabasePreviewDialog(QDialog):
         super().__init__(parent)
         self.database_path = database_path
         self.setWindowTitle("SQLite Database Preview")
-        self.resize(1050, 680)
+        keep_dialog_on_screen(self, 1050, 680)
 
         self.path_label = QLabel(f"Database: {self.database_path}")
         self.path_label.setWordWrap(True)
@@ -164,4 +166,3 @@ class DatabasePreviewDialog(QDialog):
 
     def _show_sqlite_error(self, title: str, exc: sqlite3.Error) -> None:
         QMessageBox.warning(self, title, str(exc))
-
