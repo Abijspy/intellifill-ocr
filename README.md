@@ -15,6 +15,7 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 - Fuzzy and keyword matching with confidence percentages.
 - Header-aware matching that fills blank cells beside or under template headings.
 - Traceability ID and Code 39 barcode for each extraction run. PDF, Word, and layout-preserving document exports include the ID/barcode so saved files can be matched back to the SQLite run.
+- SQLite database preview, application log viewer, emoji What's New page with the installed version number, and user-triggered update checker.
 - SQLite storage through SQLAlchemy ORM for templates, runs, uploaded files, mappings, extracted values, and timestamps.
 - Save/load mapping templates.
 - Export completed output to CSV, XLSX, Word, and PDF with traceability.
@@ -74,25 +75,25 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-1.1.0-win-x64.zip
-IntelliFillOCR-Setup-1.1.0-win-x64.exe
+IntelliFillOCR-1.1.1-win-x64.zip
+IntelliFillOCR-Setup-1.1.1-win-x64.exe
 ```
 
 and publishes both files to a GitHub release.
 
-To publish version `1.1.0` manually:
+To publish version `1.1.1` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `1.1.0` and run it.
+5. Keep version `1.1.1` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 ## Build Windows Installer
@@ -101,13 +102,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 1.1.0
+.\scripts\build-installer.ps1 -Version 1.1.1
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-1.1.0-win-x64.exe
+installer\out\IntelliFillOCR-Setup-1.1.1-win-x64.exe
 ```
 
 ## Build MSIX Installer
@@ -129,14 +130,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_1.1.0.0_x64.msix
+msix\out\IntelliFillOCR_1.1.1.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_1.1.0.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_1.1.1.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```

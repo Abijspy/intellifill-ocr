@@ -4,8 +4,8 @@ import json
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QProcess, QTimer, QUrl, Qt
+from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QProgressDialog,
     QStyle,
     QTabWidget,
     QTableWidget,
@@ -39,7 +40,11 @@ from intellifill_ocr.services.mapping_service import MappingService
 from intellifill_ocr.services.matching import FieldMatcher
 from intellifill_ocr.services.preserved_template_export import PreservedTemplateExporter
 from intellifill_ocr.services.template_service import TemplateService
+from intellifill_ocr.services.update_service import ReleaseAsset, UpdateInfo, UpdateService
+from intellifill_ocr.ui.about_dialog import AboutReleaseDialog
 from intellifill_ocr.ui.barcode import barcode_pixmap
+from intellifill_ocr.ui.database_preview_dialog import DatabasePreviewDialog
+from intellifill_ocr.ui.log_viewer_dialog import LogViewerDialog
 from intellifill_ocr.ui.settings_dialog import SettingsDialog
 from intellifill_ocr.ui.theme import apply_theme
 from intellifill_ocr.ui.widgets.document_viewer import DocumentViewer
@@ -64,6 +69,7 @@ class MainWindow(QMainWindow):
         self.mapping_service = MappingService()
         self.export_service = ExportService()
         self.preserved_exporter = PreservedTemplateExporter()
+        self.update_service = UpdateService()
 
         self.template: TemplateTable | None = None
         self.template_path: Path | None = None
@@ -159,6 +165,14 @@ class MainWindow(QMainWindow):
         templates_menu.addAction(self._action("Save Current Field Mapping", self.save_mapping_template))
         templates_menu.addAction(self._action("Load Saved Field Mapping", self.load_mapping_template))
 
+        tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
+        tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
+
+        help_menu = self.menuBar().addMenu("&Help")
+        help_menu.addAction(self._action("Check for Updates", self.check_for_updates))
+        help_menu.addAction(self._action("What's New", self.open_about_release))
+
     def _build_toolbar(self) -> None:
         toolbar = QToolBar("Workflow")
         toolbar.setMovable(False)
@@ -221,6 +235,21 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(export_button)
 
         toolbar.addSeparator()
+        tools_button = QToolButton(self)
+        tools_button.setText("Tools")
+        tools_button.setToolTip("Preview the SQLite database or inspect application logs")
+        tools_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView))
+        tools_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        tools_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        tools_menu = QMenu(tools_button)
+        tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
+        tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
+        tools_menu.addSeparator()
+        tools_menu.addAction(self._action("Check for Updates", self.check_for_updates))
+        tools_menu.addAction(self._action("What's New", self.open_about_release))
+        tools_button.setMenu(tools_menu)
+        toolbar.addWidget(tools_button)
+
         self._add_toolbar_button(
             toolbar,
             "Settings",
@@ -491,6 +520,114 @@ class MainWindow(QMainWindow):
                 apply_theme(app, self.config.theme)
 
         self.statusBar().showMessage("Settings saved", 5000)
+
+    def open_database_preview(self) -> None:
+        try:
+            self.repository.create_schema()
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Database preview failed", exc)
+            return
+        dialog = DatabasePreviewDialog(self.config.database_path, self)
+        dialog.exec()
+
+    def open_log_viewer(self) -> None:
+        dialog = LogViewerDialog(self.config.log_file, self)
+        dialog.exec()
+
+    def open_about_release(self) -> None:
+        dialog = AboutReleaseDialog(self)
+        dialog.exec()
+
+    def check_for_updates(self) -> None:
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            update_info = self.update_service.fetch_latest()
+        except Exception as exc:  # noqa: BLE001
+            QApplication.restoreOverrideCursor()
+            self._show_error("Update check failed", exc)
+            return
+        finally:
+            if QApplication.overrideCursor():
+                QApplication.restoreOverrideCursor()
+
+        if not update_info.is_newer:
+            QMessageBox.information(
+                self,
+                "No Update Available",
+                f"You are running IntelliFill OCR {update_info.current_version}.\n"
+                f"The latest release is {update_info.latest_version}.",
+            )
+            return
+
+        if not update_info.installer_asset:
+            self._show_update_without_installer(update_info)
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Update Available",
+            f"IntelliFill OCR {update_info.latest_version} is available.\n"
+            f"Current version: {update_info.current_version}\n\n"
+            "Download and launch the installer now?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        installer_path = self._download_update_installer(update_info.installer_asset)
+        if not installer_path:
+            return
+
+        if not QProcess.startDetached(str(installer_path), []):
+            QMessageBox.warning(self, "Installer launch failed", f"Could not start installer:\n{installer_path}")
+            return
+
+        QMessageBox.information(
+            self,
+            "Installer Started",
+            "The update installer has started. IntelliFill OCR will close now so the installer can replace files.",
+        )
+        QTimer.singleShot(500, QApplication.quit)
+
+    def _download_update_installer(self, asset: ReleaseAsset) -> Path | None:
+        progress = QProgressDialog("Downloading update installer...", "Cancel", 0, 100, self)
+        progress.setWindowTitle("Downloading Update")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        def on_progress(downloaded: int, total: int) -> None:
+            if progress.wasCanceled():
+                raise IntelliFillError("Update download was canceled.")
+            if total > 0:
+                progress.setValue(min(100, int(downloaded * 100 / total)))
+            else:
+                progress.setValue(0)
+            QApplication.processEvents()
+
+        try:
+            installer_path = self.update_service.download_asset(
+                asset,
+                app_data_dir() / "updates",
+                on_progress,
+            )
+            progress.setValue(100)
+            return installer_path
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Update download failed", exc)
+            return None
+        finally:
+            progress.close()
+
+    def _show_update_without_installer(self, update_info: UpdateInfo) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Update Available",
+            f"IntelliFill OCR {update_info.latest_version} is available, but no setup installer was attached.\n\n"
+            "Open the release page in your browser?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes and update_info.release_url:
+            QDesktopServices.openUrl(QUrl(update_info.release_url))
 
     def _export(self, suffix: str) -> None:
         if not self.template:

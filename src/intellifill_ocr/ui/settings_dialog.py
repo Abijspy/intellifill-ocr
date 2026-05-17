@@ -54,7 +54,7 @@ class SettingsDialog(QDialog):
 
         note = QLabel(
             "Changing the SQLite path switches the app to that database and creates the schema if needed. "
-            "Changing Tesseract affects new OCR operations."
+            "Changing Tesseract affects new OCR operations. Use Tools to preview SQLite records or view logs."
         )
         note.setWordWrap(True)
 

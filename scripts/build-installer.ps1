@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.1.0",
+    [string]$Version = "1.1.1",
     [string]$DistDir = "dist",
     [string]$OutputDir = "installer\out",
     [string]$InstallerScript = "installer\IntelliFillOCR.iss"
@@ -13,6 +13,7 @@ $DistPath = Join-Path $Root $DistDir
 $AppDistPath = Join-Path $DistPath $AppName
 $OutputPath = Join-Path $Root $OutputDir
 $ScriptPath = Join-Path $Root $InstallerScript
+$PrerequisitesPath = Join-Path (Split-Path -Parent $ScriptPath) "prerequisites.txt"
 $InstallerFile = Join-Path $OutputPath "$AppName-Setup-$Version-win-x64.exe"
 
 function Find-Iscc {
@@ -49,6 +50,10 @@ if (-not (Test-Path $ScriptPath)) {
     throw "Installer script was not found at $ScriptPath."
 }
 
+if (-not (Test-Path $PrerequisitesPath)) {
+    throw "Installer prerequisite notice was not found at $PrerequisitesPath."
+}
+
 if (-not (Test-Path $OutputPath)) {
     New-Item -ItemType Directory -Path $OutputPath | Out-Null
 }
@@ -63,6 +68,7 @@ $Iscc = Find-Iscc
     "/DAppVersion=$Version" `
     "/DSourceDir=$AppDistPath" `
     "/DOutputDir=$OutputPath" `
+    "/DPrerequisitesFile=$PrerequisitesPath" `
     $ScriptPath
 
 if ($LASTEXITCODE -ne 0) {

@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "1.1.0"
+        default: "1.1.1"
   push:
     tags:
       - "v*"
@@ -94,23 +94,17 @@ jobs:
         shell: pwsh
         run: |
           @(
-            "# IntelliFill OCR Desktop $env:RELEASE_VERSION",
+            "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "Windows x64 offline desktop release.",
+            "🧭 Installer now shows prerequisite notes before setup.",
+            "🗄️ SQLite database preview is available from Tools.",
+            "📋 Application logs can be viewed from Tools.",
+            "🚀 Check for Updates can download and launch newer installers.",
+            "🏷️ What's New page shows the installed release version.",
             "",
-            "Included:",
-            "- Windows installer setup executable.",
-            "- Standalone PyInstaller executable package.",
-            "- OCR-driven template/source extraction workflow.",
-            "- PDF, Word, Excel, CSV, and image import support.",
-            "- Visual OCR region selection and destination-cell mapping.",
-            "- Traceability barcode export.",
-            "- CSV, Excel, PDF, Word, and preserved-layout exports where supported.",
-            "- SQLite storage with configurable database path.",
-            "",
-            "Requirements:",
-            "- Windows 10/11 x64.",
-            "- Tesseract OCR installed locally for OCR features."
+            "Assets:",
+            "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",
+            "- IntelliFillOCR-$env:RELEASE_VERSION-win-x64.zip"
           ) | Set-Content -Path release-notes.md -Encoding UTF8
 
       - name: Upload workflow artifact

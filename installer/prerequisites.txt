@@ -1,0 +1,16 @@
+Before installing IntelliFill OCR
+
+This application runs fully offline, but these local components are required for best results:
+
+1. Tesseract OCR
+   Install Tesseract OCR for Windows before OCR extraction.
+   Recommended path:
+   C:\Program Files\Tesseract-OCR\tesseract.exe
+
+2. SQLite database storage
+   IntelliFill OCR stores templates, mappings, extraction runs, traceability codes, and completed output in a local SQLite database file.
+   SQLite runtime support is included with the application package. No cloud database is used.
+   After installation, open Settings and select or create the SQLite database file path.
+
+You can change both paths later from Settings.
+

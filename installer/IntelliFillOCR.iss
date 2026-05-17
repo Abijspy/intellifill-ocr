@@ -1,13 +1,16 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "1.1.0"
+#define AppVersion "1.1.1"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
 #endif
 #ifndef OutputDir
 #define OutputDir "out"
+#endif
+#ifndef PrerequisitesFile
+#define PrerequisitesFile "prerequisites.txt"
 #endif
 
 [Setup]
@@ -21,6 +24,7 @@ AppUpdatesURL=https://github.com/Abijspy/intellifill-ocr/releases
 DefaultDirName={localappdata}\Programs\IntelliFill OCR
 DefaultGroupName=IntelliFill OCR
 DisableProgramGroupPage=yes
+InfoBeforeFile={#PrerequisitesFile}
 OutputDir={#OutputDir}
 OutputBaseFilename=IntelliFillOCR-Setup-{#AppVersion}-win-x64
 Compression=lzma2
