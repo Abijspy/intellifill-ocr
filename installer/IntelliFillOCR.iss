@@ -1,7 +1,7 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "2.0.0"
+#define AppVersion "2.0.1"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
@@ -54,8 +54,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\IntelliFill OCR"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\IntelliFill OCR"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\IntelliFill OCR"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"; AppUserModelID: "IntelliFillOCR.Desktop"
+Name: "{autodesktop}\IntelliFill OCR"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"; AppUserModelID: "IntelliFillOCR.Desktop"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,IntelliFill OCR}"; Flags: nowait postinstall skipifsilent

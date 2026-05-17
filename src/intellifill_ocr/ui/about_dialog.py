@@ -29,12 +29,16 @@ class AboutReleaseDialog(QDialog):
         title.setFont(title_font)
 
         details = QLabel(
-            "🖼️ New AutoFill & Export logo is used in the app, package, installer, and README.\n"
-            "🎛️ The old top toolbar is replaced by one Actions button with every workflow option.\n"
-            "📣 Fresh installs and updates show this changelog automatically on first launch.\n"
-            "🏷️ Traceability IDs are shorter, scannable, and printed once at the bottom center of PDF/Word exports.\n"
-            "📄 Preserved-layout exports now fill blank/template fields only and keep headings, logos, tables, and signature areas.\n"
-            "☀️ Light mode visibility is improved for the mapping workflow."
+            "📌 Version 2.0.1\n"
+            "• Windows taskbar pins now use the new icon when pinned from the updated shortcut.\n"
+            "• Installer shortcuts use the same app identity as the running application.\n\n"
+            "🖼️ Version 2.0.0\n"
+            "• New AutoFill & Export logo is used in the app, package, installer, and README.\n"
+            "• The old top toolbar is replaced by one Actions button with every workflow option.\n"
+            "• Fresh installs and updates show this changelog automatically on first launch.\n"
+            "• Traceability IDs are shorter, scannable, and printed once at the bottom center of PDF/Word exports.\n"
+            "• Preserved-layout exports now fill blank/template fields only and keep headings, logos, tables, and signature areas.\n"
+            "• Light mode visibility is improved for the mapping workflow."
         )
         details.setWordWrap(True)
 

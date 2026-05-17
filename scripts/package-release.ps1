@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.0.0",
+    [string]$Version = "2.0.1",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -47,6 +47,7 @@ Notes
 - Source and template upload supports Word, Excel, CSV, images, and PDF files.
 - Exports include CSV, Excel, PDF, Word, and preserved-layout document output where supported.
 - Traceability barcodes are compact and are placed at the bottom center of PDF/Word exports.
+- Taskbar pins use the new application icon after installing 2.0.1 and re-pinning from the updated shortcut.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8

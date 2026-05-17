@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.0.0"
+        default: "2.0.1"
   push:
     tags:
       - "v*"
@@ -99,12 +99,17 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🖼️ New AutoFill & Export logo is included in the app, installer, EXE, MSIX tiles, and README.",
-            "🎛️ One Actions button now contains upload, mapping, export, tools, settings, and update options.",
-            "📣 Fresh installs and updates show this What's New changelog once on first launch.",
-            "🏷️ Traceability IDs are shorter and the barcode prints once at the bottom center of PDF/Word exports.",
-            "📄 Preserved-layout exports fill only blank/template fields and keep headings, logos, merged tables, and signature areas.",
-            "☀️ Light mode mapping visibility is improved.",
+            "📌 Version 2.0.1",
+            "- Windows taskbar pins now use the new app icon with a stable app identity and updated installer shortcuts.",
+            "- Installer shortcuts use the same app identity as the running application.",
+            "",
+            "🖼️ Version 2.0.0",
+            "- New AutoFill & Export logo is included in the app, installer, EXE, MSIX tiles, and README.",
+            "- One Actions button now contains upload, mapping, export, tools, settings, and update options.",
+            "- Fresh installs and updates show this What's New changelog once on first launch.",
+            "- Traceability IDs are shorter and the barcode prints once at the bottom center of PDF/Word exports.",
+            "- Preserved-layout exports fill only blank/template fields and keep headings, logos, merged tables, and signature areas.",
+            "- Light mode mapping visibility is improved.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",
