@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "1.0.0.0",
+    [string]$Version = "1.1.0.0",
     [ValidateSet("x64", "x86", "arm64", "neutral")]
     [string]$Architecture = "x64",
     [string]$OutputRoot = "offline-dist",

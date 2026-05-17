@@ -21,6 +21,7 @@ build-final/
 dist/
 dist-final/
 release/
+installer/out/
 *.spec.log
 
 # Packaged installer outputs
