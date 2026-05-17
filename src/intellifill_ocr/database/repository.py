@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -10,6 +11,7 @@ from intellifill_ocr.database.models import (
     Base,
     ExtractedValueRecord,
     ExtractionRunRecord,
+    LearnedTemplateRecord,
     MappingRecord,
     TemplateRecord,
     UploadedFileRecord,
@@ -131,6 +133,54 @@ class Repository:
                 run.status = "saved"
             session.commit()
 
+    def save_learned_template(
+        self,
+        name: str,
+        target_template_name: str,
+        document_type: str,
+        signature: dict[str, Any],
+        mappings: list[dict[str, Any]],
+        confidence_threshold: float = 72.0,
+    ) -> int:
+        with self.session_factory() as session:
+            record = LearnedTemplateRecord(
+                name=name,
+                target_template_name=target_template_name,
+                document_type=document_type,
+                signature_json=json.dumps(signature),
+                mapping_json=json.dumps(mappings),
+                confidence_threshold=confidence_threshold,
+            )
+            session.add(record)
+            session.commit()
+            return record.id
+
+    def list_learned_templates(self) -> list[dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = session.query(LearnedTemplateRecord).order_by(LearnedTemplateRecord.updated_at.desc()).all()
+            return [
+                {
+                    "id": row.id,
+                    "name": row.name,
+                    "document_type": row.document_type,
+                    "target_template_name": row.target_template_name,
+                    "signature": self._json_loads(row.signature_json, {}),
+                    "mappings": self._json_loads(row.mapping_json, []),
+                    "confidence_threshold": row.confidence_threshold,
+                    "usage_count": row.usage_count,
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                }
+                for row in rows
+            ]
+
+    def increment_learned_template_usage(self, learned_template_id: int) -> None:
+        with self.session_factory() as session:
+            record = session.get(LearnedTemplateRecord, learned_template_id)
+            if record:
+                record.usage_count += 1
+                session.commit()
+
     def session(self) -> Session:
         return self.session_factory()
 
@@ -142,3 +192,10 @@ class Repository:
             }
             if "traceability_code" not in columns:
                 connection.exec_driver_sql("ALTER TABLE extraction_runs ADD COLUMN traceability_code VARCHAR(80) DEFAULT ''")
+
+    @staticmethod
+    def _json_loads(value: str, fallback: Any) -> Any:
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return fallback

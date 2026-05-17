@@ -77,3 +77,18 @@ class ExtractedValueRecord(Base):
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
 
     run: Mapped[ExtractionRunRecord] = relationship(back_populates="values")
+
+
+class LearnedTemplateRecord(Base):
+    __tablename__ = "learned_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    document_type: Mapped[str] = mapped_column(String(120), default="")
+    target_template_name: Mapped[str] = mapped_column(String(255), default="")
+    signature_json: Mapped[str] = mapped_column(Text, nullable=False)
+    mapping_json: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence_threshold: Mapped[float] = mapped_column(Float, default=72.0)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

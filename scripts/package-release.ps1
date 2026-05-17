@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.1.0",
+    [string]$Version = "2.2.0",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -49,6 +49,7 @@ Notes
 - Traceability barcodes are compact and are placed at the bottom center of PDF/Word exports.
 - Taskbar pins use the new application icon after installing 2.0.1 and re-pinning from the updated shortcut.
 - Closed panels can be restored or hidden from Actions > Panels.
+- Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8

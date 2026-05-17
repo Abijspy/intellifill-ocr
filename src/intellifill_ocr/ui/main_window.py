@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QMainWindow,
@@ -33,7 +34,7 @@ from PySide6.QtWidgets import (
 
 from intellifill_ocr import __version__
 from intellifill_ocr.database.repository import Repository
-from intellifill_ocr.models.document import ExtractedField, ParsedDocument
+from intellifill_ocr.models.document import ExtractedField, OCRBox, ParsedDocument
 from intellifill_ocr.models.template import TemplateTable
 from intellifill_ocr.ocr.engine import OCREngine
 from intellifill_ocr.services.document_loader import DocumentLoader
@@ -41,14 +42,21 @@ from intellifill_ocr.services.export_service import ExportService
 from intellifill_ocr.services.mapping_service import MappingService
 from intellifill_ocr.services.matching import FieldMatcher
 from intellifill_ocr.services.preserved_template_export import PreservedTemplateExporter
+from intellifill_ocr.services.scanner_service import ScannerService
+from intellifill_ocr.services.signature_detection import DetectedMark, SignatureStampDetector
+from intellifill_ocr.services.template_learning import TemplateLearningService, TemplateMatch
 from intellifill_ocr.services.template_service import TemplateService
 from intellifill_ocr.services.update_service import ReleaseAsset, UpdateInfo, UpdateService
+from intellifill_ocr.services.validation import ValidationIssue, ValidationEngine
 from intellifill_ocr.ui.about_dialog import AboutReleaseDialog
 from intellifill_ocr.ui.barcode import barcode_pixmap
 from intellifill_ocr.ui.database_preview_dialog import DatabasePreviewDialog
+from intellifill_ocr.ui.detection_dialog import DetectionDialog
 from intellifill_ocr.ui.log_viewer_dialog import LogViewerDialog
 from intellifill_ocr.ui.settings_dialog import SettingsDialog
+from intellifill_ocr.ui.template_learning_dialog import TemplateSuggestionDialog
 from intellifill_ocr.ui.theme import apply_theme
+from intellifill_ocr.ui.validation_dialog import ValidationDialog
 from intellifill_ocr.ui.widgets.document_viewer import DocumentViewer
 from intellifill_ocr.ui.widgets.mapping_panel import MappingPanel
 from intellifill_ocr.ui.widgets.template_grid import TemplateGrid
@@ -72,6 +80,10 @@ class MainWindow(QMainWindow):
         self.export_service = ExportService()
         self.preserved_exporter = PreservedTemplateExporter()
         self.update_service = UpdateService()
+        self.template_learning = TemplateLearningService()
+        self.validation_engine = ValidationEngine()
+        self.signature_detector = SignatureStampDetector()
+        self.scanner_service = ScannerService()
 
         self.template: TemplateTable | None = None
         self.template_path: Path | None = None
@@ -81,6 +93,10 @@ class MainWindow(QMainWindow):
         self.documents: list[ParsedDocument] = []
         self.preview_documents: list[ParsedDocument] = []
         self.fields: list[ExtractedField] = []
+        self.learned_template_suggestions: list[TemplateMatch] = []
+        self.prompted_learned_template_ids: set[int] = set()
+        self.last_validation_issues: list[ValidationIssue] = []
+        self.detected_marks: list[DetectedMark] = []
         self.current_preview_document: ParsedDocument | None = None
         self.current_image_path: Path | None = None
 
@@ -224,6 +240,7 @@ class MainWindow(QMainWindow):
         menu = QMenu(parent)
         menu.addAction(self._action("Upload Template", self.load_template))
         menu.addAction(self._action("Upload Source Files", self.load_sources))
+        menu.addAction(self._action("Scan Source Document", self.scan_source_document))
         menu.addSeparator()
         menu.addAction(self._action("Auto Fill Matching Fields", self.auto_match))
         menu.addAction(self._action("Map Selected Field to Destination Cell", self.map_selected))
@@ -232,7 +249,13 @@ class MainWindow(QMainWindow):
         mapping_menu.addAction(self._action("Save Current Field Mapping", self.save_mapping_template))
         mapping_menu.addAction(self._action("Load Saved Field Mapping", self.load_mapping_template))
 
+        learning_menu = menu.addMenu("Template Learning")
+        learning_menu.addAction(self._action("Save Current Mapping as Learned Template", self.save_learned_template))
+        learning_menu.addAction(self._action("Suggest Learned Templates", self.suggest_learned_templates))
+        learning_menu.addAction(self._action("Apply Best Learned Template", self.apply_best_learned_template))
+
         menu.addSeparator()
+        menu.addAction(self._action("Run Validation Checks", self.run_validation_checks))
         menu.addAction(self._action("Save Filled Output to SQLite", self.save_to_database))
 
         export_menu = menu.addMenu("Export Filled Output")
@@ -245,6 +268,7 @@ class MainWindow(QMainWindow):
         export_menu.addAction(self._action("Export Filled Template PDF - Preserve Original Layout", self.export_preserved_pdf))
 
         tools_menu = menu.addMenu("Tools")
+        tools_menu.addAction(self._action("Detect Signatures and Stamps", self.detect_signatures_and_stamps))
         tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
         tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
 
@@ -357,19 +381,38 @@ class MainWindow(QMainWindow):
             return
         try:
             for path_str in paths:
-                parsed = self.document_loader.parse(Path(path_str))
-                self.documents.append(parsed)
-                self.preview_documents.append(parsed)
-                self.file_list.addItem(f"Source: {parsed.path.name}")
-                if self.run_id:
-                    self.repository.save_uploaded_file(self.run_id, parsed)
-            self.fields = self.matcher.extract_fields(self.documents)
-            self.mapping_panel.set_fields(self.fields)
-            self.file_list.setCurrentRow(len(self.preview_documents) - 1)
-            self._show_document_text(len(self.preview_documents) - 1)
+                self._add_source_document(Path(path_str))
+            self._refresh_extracted_fields_after_source_load()
             self.statusBar().showMessage(f"Loaded {len(paths)} source file(s)", 5000)
         except Exception as exc:  # noqa: BLE001
             self._show_error("Source load failed", exc)
+
+    def scan_source_document(self) -> None:
+        try:
+            result = self.scanner_service.acquire_image()
+            self._add_source_document(result.image_path)
+            self._refresh_extracted_fields_after_source_load()
+            self.statusBar().showMessage(f"Scanned source document: {result.image_path.name}", 6000)
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Scanner acquisition failed", exc)
+
+    def _add_source_document(self, path: Path) -> ParsedDocument:
+        if len(self.documents) >= 5:
+            raise IntelliFillError("This workflow supports up to 5 source documents.")
+        parsed = self.document_loader.parse(path)
+        self.documents.append(parsed)
+        self.preview_documents.append(parsed)
+        self.file_list.addItem(f"Source: {parsed.path.name}")
+        if self.run_id:
+            self.repository.save_uploaded_file(self.run_id, parsed)
+        return parsed
+
+    def _refresh_extracted_fields_after_source_load(self) -> None:
+        self.fields = self.matcher.extract_fields(self.documents)
+        self.mapping_panel.set_fields(self.fields)
+        self.file_list.setCurrentRow(len(self.preview_documents) - 1)
+        self._show_document_text(len(self.preview_documents) - 1)
+        self._refresh_learned_template_suggestions(prompt_when_strong=True)
 
     def auto_match(self) -> None:
         if not self.template:
@@ -435,8 +478,44 @@ class MainWindow(QMainWindow):
         if not self.template or not self.run_id:
             QMessageBox.information(self, "Nothing to save", "Load a template and create mappings first.")
             return
+        if not self._confirm_validation_before_output("save to SQLite"):
+            return
         self.repository.save_completed_values(self.run_id, self.template)
         QMessageBox.information(self, "Saved", "Final table and mappings were saved to SQLite.")
+
+    def run_validation_checks(self) -> None:
+        if not self.template:
+            QMessageBox.information(self, "Template required", "Upload and fill a template before running validation.")
+            return
+        issues = self._validate_current_template()
+        if not issues:
+            QMessageBox.information(self, "Validation Passed", "No validation warnings were found.")
+            return
+        dialog = ValidationDialog(issues, self)
+        dialog.exec()
+
+    def _validate_current_template(self) -> list[ValidationIssue]:
+        if not self.template:
+            return []
+        issues = self.validation_engine.validate(self.template)
+        self.last_validation_issues = issues
+        self.template_grid.highlight_validation_issues(issues)
+        return issues
+
+    def _confirm_validation_before_output(self, action_label: str) -> bool:
+        issues = self._validate_current_template()
+        if not issues:
+            return True
+        errors = sum(1 for issue in issues if issue.severity.lower() == "error")
+        warnings = len(issues) - errors
+        answer = QMessageBox.question(
+            self,
+            "Validation Warnings",
+            f"Validation found {errors} error(s) and {warnings} warning(s) before {action_label}.\n\n"
+            "Continue anyway?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 
     def save_mapping_template(self) -> None:
         path_str, _ = QFileDialog.getSaveFileName(self, "Save Mapping Template", "mapping.json", "JSON (*.json)")
@@ -469,6 +548,176 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             self._show_error("Load mapping failed", exc)
 
+    def save_learned_template(self) -> None:
+        if not self.template:
+            QMessageBox.information(self, "Template required", "Upload a template before saving learned mappings.")
+            return
+        if not self.documents or not self.fields:
+            QMessageBox.information(self, "Source required", "Upload or scan source documents before saving a learned template.")
+            return
+        if not self.mapping_service.mappings:
+            QMessageBox.information(self, "Mappings required", "Create at least one mapping before saving a learned template.")
+            return
+
+        default_name = self.template.name or "Learned Template"
+        name, ok = QInputDialog.getText(self, "Learned Template Name", "Name", text=default_name)
+        if not ok or not name.strip():
+            return
+        document_type, ok = QInputDialog.getText(
+            self,
+            "Document Type",
+            "Document type or family",
+            text=self._suggest_document_type_name(),
+        )
+        if not ok:
+            return
+        threshold, ok = QInputDialog.getDouble(
+            self,
+            "Template Confidence",
+            "Auto-suggest threshold (%)",
+            72.0,
+            0.0,
+            100.0,
+            1,
+        )
+        if not ok:
+            return
+
+        try:
+            signature = self.template_learning.build_signature(self.documents, self.fields)
+            mappings = self.template_learning.serialize_mappings(self.mapping_service.mappings)
+            learned_id = self.repository.save_learned_template(
+                name=name.strip(),
+                target_template_name=self.template.name,
+                document_type=document_type.strip(),
+                signature=signature,
+                mappings=mappings,
+                confidence_threshold=float(threshold),
+            )
+            self.statusBar().showMessage(f"Saved learned template #{learned_id}: {name.strip()}", 6000)
+            QMessageBox.information(
+                self,
+                "Learned Template Saved",
+                "Future documents with a similar layout can now be suggested and auto-filled from this mapping.",
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Learned template save failed", exc)
+
+    def suggest_learned_templates(self) -> None:
+        try:
+            matches = self._load_learned_template_matches()
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Template suggestion failed", exc)
+            return
+        if not matches:
+            QMessageBox.information(self, "No Suggestions", "No learned templates matched the current source documents.")
+            return
+        dialog = TemplateSuggestionDialog(matches, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_match:
+            self._apply_learned_template_match(dialog.selected_match)
+
+    def apply_best_learned_template(self) -> None:
+        try:
+            matches = self._load_learned_template_matches()
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Template suggestion failed", exc)
+            return
+        if not matches:
+            QMessageBox.information(self, "No Learned Template", "No learned template matched the current source documents.")
+            return
+        self._apply_learned_template_match(matches[0])
+
+    def _refresh_learned_template_suggestions(self, prompt_when_strong: bool) -> None:
+        if not self.documents or not self.fields:
+            self.learned_template_suggestions = []
+            return
+        try:
+            matches = self._load_learned_template_matches()
+        except Exception:
+            LOGGER.exception("Could not refresh learned template suggestions")
+            return
+        self.learned_template_suggestions = matches
+        if not matches:
+            return
+
+        best = matches[0]
+        self.statusBar().showMessage(
+            f"Learned template suggestion: {best.template.name} ({best.confidence:.1f}% confidence)",
+            8000,
+        )
+        if (
+            not prompt_when_strong
+            or not self.template
+            or best.confidence < best.template.confidence_threshold
+            or best.template.id in self.prompted_learned_template_ids
+        ):
+            return
+
+        self.prompted_learned_template_ids.add(best.template.id)
+        answer = QMessageBox.question(
+            self,
+            "Apply Learned Template?",
+            f"{best.template.name} matches these sources at {best.confidence:.1f}% confidence.\n\n"
+            "Apply its saved mappings now?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self._apply_learned_template_match(best)
+
+    def _load_learned_template_matches(self) -> list[TemplateMatch]:
+        if not self.documents or not self.fields:
+            return []
+        records = self.repository.list_learned_templates()
+        learned_templates = self.template_learning.from_records(records)
+        signature = self.template_learning.build_signature(self.documents, self.fields)
+        return self.template_learning.suggest(learned_templates, signature)
+
+    def _apply_learned_template_match(self, match: TemplateMatch) -> None:
+        if not self.template:
+            QMessageBox.information(self, "Template required", "Upload the destination template before applying learned mappings.")
+            return
+        applications = self.template_learning.apply_mappings(match.template, self.fields, self.matcher)
+        if not applications:
+            QMessageBox.warning(
+                self,
+                "No Fields Applied",
+                "The learned template matched the document type, but its saved source fields were not found in this upload.",
+            )
+            return
+
+        self.mapping_service.clear()
+        for application in applications:
+            field = ExtractedField(application.source_label, application.source_value, application.confidence)
+            mapping = self.mapping_service.add_mapping(
+                field,
+                application.target_row,
+                application.target_column,
+                application.confidence,
+            )
+            if self.run_id:
+                self.repository.save_mapping(
+                    self.run_id,
+                    mapping.source_label,
+                    mapping.source_value,
+                    mapping.target_row,
+                    mapping.target_column,
+                    mapping.confidence,
+                    mapping.region,
+                )
+        self.mapping_service.apply(self.template)
+        self.template_grid.update_from_template()
+        self.repository.increment_learned_template_usage(match.template.id)
+        self.statusBar().showMessage(
+            f"Applied {len(applications)} mapping(s) from learned template {match.template.name}",
+            7000,
+        )
+
+    def _suggest_document_type_name(self) -> str:
+        if self.documents:
+            name = self.documents[0].path.stem.replace("_", " ").replace("-", " ")
+            return name.title()
+        return self.template.name if self.template else "General"
+
     def export_csv(self) -> None:
         self._export("csv")
 
@@ -497,6 +746,8 @@ class MainWindow(QMainWindow):
         path_str, _ = QFileDialog.getSaveFileName(self, "Export Filled Template", default_name, f"*{suffix}")
         if not path_str:
             return
+        if not self._confirm_validation_before_output("export"):
+            return
         try:
             self.preserved_exporter.export(self.template_path, self.template, Path(path_str), self.traceability_code)
             self.statusBar().showMessage("Exported filled template while preserving original layout", 6000)
@@ -510,6 +761,8 @@ class MainWindow(QMainWindow):
         default_name = f"{self.template_path.stem}_filled.pdf"
         path_str, _ = QFileDialog.getSaveFileName(self, "Export Filled Template PDF", default_name, "PDF (*.pdf)")
         if not path_str:
+            return
+        if not self._confirm_validation_before_output("export"):
             return
         try:
             self.export_service.export_preserved_pdf(
@@ -572,6 +825,52 @@ class MainWindow(QMainWindow):
     def open_log_viewer(self) -> None:
         dialog = LogViewerDialog(self.config.log_file, self)
         dialog.exec()
+
+    def detect_signatures_and_stamps(self) -> None:
+        documents = self.documents or self.preview_documents
+        if not documents:
+            QMessageBox.information(self, "Documents required", "Upload or scan a document before running detection.")
+            return
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            self.detected_marks = self.signature_detector.detect(documents)
+        except Exception as exc:  # noqa: BLE001
+            self._show_error("Signature/stamp detection failed", exc)
+            return
+        finally:
+            if QApplication.overrideCursor():
+                QApplication.restoreOverrideCursor()
+
+        if not self.detected_marks:
+            QMessageBox.information(
+                self,
+                "No Marks Detected",
+                "No signature or stamp-like marks were detected. Preserved exports will still keep the original document artwork.",
+            )
+            return
+        self._show_detected_marks_on_current_preview()
+        dialog = DetectionDialog(self.detected_marks, self)
+        dialog.exec()
+
+    def _show_detected_marks_on_current_preview(self) -> None:
+        if not self.current_preview_document:
+            return
+        current_path = self.current_preview_document.path
+        boxes = [
+            OCRBox(
+                text=mark.kind,
+                confidence=mark.confidence,
+                x=mark.x,
+                y=mark.y,
+                width=mark.width,
+                height=mark.height,
+                page=mark.page,
+            )
+            for mark in self.detected_marks
+            if mark.source_path.resolve() == current_path.resolve() and mark.width > 0 and mark.height > 0
+        ]
+        if boxes:
+            self.viewer.show_boxes(boxes)
 
     def open_about_release(self) -> None:
         dialog = AboutReleaseDialog(self)
@@ -687,6 +986,8 @@ class MainWindow(QMainWindow):
         path_str, _ = QFileDialog.getSaveFileName(self, "Export Output", f"output.{suffix}", f"*.{suffix}")
         if not path_str:
             return
+        if not self._confirm_validation_before_output("export"):
+            return
         path = Path(path_str)
         if suffix == "csv":
             self.export_service.export_csv(self.template, path)
@@ -722,6 +1023,10 @@ class MainWindow(QMainWindow):
         self.documents.clear()
         self.preview_documents.clear()
         self.fields.clear()
+        self.learned_template_suggestions.clear()
+        self.prompted_learned_template_ids.clear()
+        self.last_validation_issues.clear()
+        self.detected_marks.clear()
         self.mapping_service.clear()
         self.file_list.clear()
         self.mapping_panel.set_fields([])

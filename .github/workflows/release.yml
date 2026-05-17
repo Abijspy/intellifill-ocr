@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.1.0"
+        default: "2.2.0"
   push:
     tags:
       - "v*"
@@ -98,6 +98,12 @@ jobs:
         run: |
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
+            "",
+            "🧠 Version 2.2.0",
+            "- Template Learning saves reusable mappings, detects similar documents later, and applies them with confidence scores.",
+            "- Validation checks warn about required blanks, GST/GSTIN format, dates, amounts, duplicate IDs, and invoice total mismatches.",
+            "- Signature and stamp detection helps review approvals while preserved exports keep original marks intact.",
+            "- Windows scanner import can acquire source images directly from local WIA scanner drivers.",
             "",
             "🧩 Version 2.1.0",
             "- Actions > Panels can now show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview.",

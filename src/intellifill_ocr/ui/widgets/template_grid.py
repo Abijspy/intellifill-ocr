@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QAbstractItemView, QTableWidget, QTableWidgetItem
 
 from intellifill_ocr.models.template import TemplateCell, TemplateTable
+from intellifill_ocr.services.validation import ValidationIssue
 
 
 class TemplateGrid(QTableWidget):
@@ -37,6 +39,26 @@ class TemplateGrid(QTableWidget):
     def update_from_template(self) -> None:
         if self.template:
             self.load_template(self.template)
+
+    def highlight_validation_issues(self, issues: list[ValidationIssue]) -> None:
+        self.clear_validation_highlights()
+        for issue in issues:
+            item = self.item(issue.row, issue.column)
+            if not item:
+                continue
+            color = QColor("#fecaca") if issue.severity.lower() == "error" else QColor("#fde68a")
+            item.setBackground(QBrush(color))
+            tooltip = item.toolTip()
+            message = f"{issue.severity}: {issue.message}"
+            item.setToolTip(f"{tooltip}\n{message}" if tooltip else message)
+
+    def clear_validation_highlights(self) -> None:
+        for row in range(self.rowCount()):
+            for column in range(self.columnCount()):
+                item = self.item(row, column)
+                if item:
+                    item.setBackground(QBrush())
+                    item.setToolTip("Blank destination cell" if not item.text().strip() else "")
 
     def current_destination(self) -> tuple[int, int] | None:
         item = self.currentItem()

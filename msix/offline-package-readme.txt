@@ -3,7 +3,7 @@ IntelliFill OCR Offline Install Package
 
 This package includes:
 
-- IntelliFillOCR_2.1.0.0_x64.msix
+- IntelliFillOCR_2.2.0.0_x64.msix
 - IntelliFillOCR_SigningCert.pfx
 - IntelliFillOCR_SigningCert.cer
 - install-msix.ps1
@@ -17,7 +17,7 @@ Recommended install
 3. Run:
 
    powershell.exe -ExecutionPolicy Bypass -File .\install-msix.ps1 `
-     -MsixPath .\IntelliFillOCR_2.1.0.0_x64.msix `
+     -MsixPath .\IntelliFillOCR_2.2.0.0_x64.msix `
      -CertificatePath .\IntelliFillOCR_SigningCert.pfx `
      -CertificatePassword "ChangeThisPassword" `
      -TrustMachineStore
@@ -52,7 +52,8 @@ Open Actions > Settings in the app to choose:
 The current build supports PDF upload for templates and source files, immediate
 document/text/table preview after upload, traceability barcode IDs for extraction
 runs, Word export, and layout-preserving export for DOCX, XLSX, CSV, and detected
-PDF template table cells.
+PDF template table cells, reusable learned templates, validation checks,
+signature/stamp detection, and direct Windows scanner import.
 
 Traceability barcode
 --------------------

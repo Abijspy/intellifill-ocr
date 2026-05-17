@@ -29,6 +29,11 @@ class AboutReleaseDialog(QDialog):
         title.setFont(title_font)
 
         details = QLabel(
+            "🧠 Version 2.2.0\n"
+            "• Template Learning saves reusable mappings, detects similar documents later, and applies them with confidence scores.\n"
+            "• Validation checks warn about required blanks, GST/GSTIN format, dates, amounts, duplicate IDs, and invoice total mismatches.\n"
+            "• Signature and stamp detection helps review approvals while preserved exports keep original marks intact.\n"
+            "• Windows scanner import can acquire source images directly from local WIA scanner drivers.\n\n"
             "🧩 Version 2.1.0\n"
             "• Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview.\n"
             "• Closing those panels is no longer a dead end; restore them from the Actions button.\n\n"
