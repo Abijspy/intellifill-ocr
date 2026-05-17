@@ -29,6 +29,9 @@ class AboutReleaseDialog(QDialog):
         title.setFont(title_font)
 
         details = QLabel(
+            "🧩 Version 2.1.0\n"
+            "• Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview.\n"
+            "• Closing those panels is no longer a dead end; restore them from the Actions button.\n\n"
             "📌 Version 2.0.1\n"
             "• Windows taskbar pins now use the new icon when pinned from the updated shortcut.\n"
             "• Installer shortcuts use the same app identity as the running application.\n\n"

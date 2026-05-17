@@ -142,19 +142,19 @@ class MainWindow(QMainWindow):
         left_layout = QVBoxLayout(left)
         left_layout.addWidget(QLabel("Uploaded Files"))
         left_layout.addWidget(self.file_list)
-        files_dock = QDockWidget("Uploaded Files", self)
-        files_dock.setWidget(left)
-        files_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, files_dock)
+        self.files_dock = QDockWidget("Uploaded Files", self)
+        self.files_dock.setWidget(left)
+        self.files_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.files_dock)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.addWidget(QLabel("Extracted Fields"))
         right_layout.addWidget(self.mapping_panel)
-        fields_dock = QDockWidget("Extracted Fields", self)
-        fields_dock.setWidget(right)
-        fields_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, fields_dock)
+        self.fields_dock = QDockWidget("Extracted Fields", self)
+        self.fields_dock.setWidget(right)
+        self.fields_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.fields_dock)
 
         bottom = QWidget()
         bottom_layout = QVBoxLayout(bottom)
@@ -166,10 +166,11 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(self.barcode_label)
         bottom_layout.addWidget(QLabel("Output Table Preview - click a destination cell, then Map Selected"))
         bottom_layout.addWidget(self.template_grid)
-        preview_dock = QDockWidget("Output Preview", self)
-        preview_dock.setWidget(bottom)
-        preview_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, preview_dock)
+        self.preview_dock = QDockWidget("Output Preview", self)
+        self.preview_dock.setWidget(bottom)
+        self.preview_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.preview_dock)
+        self._connect_panel_actions()
 
     def _build_action_header(self) -> QWidget:
         header = QFrame(self)
@@ -247,6 +248,17 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(self._action("Preview SQLite Database", self.open_database_preview))
         tools_menu.addAction(self._action("View Application Logs", self.open_log_viewer))
 
+        panels_menu = menu.addMenu("Panels")
+        panels_menu.aboutToShow.connect(self._sync_panel_actions)
+        panels_menu.addAction(self._action("Restore All Panels", self.restore_all_panels))
+        panels_menu.addSeparator()
+        self.files_panel_action = self._panel_action("Show Uploaded Files Panel", "files")
+        self.fields_panel_action = self._panel_action("Show Extracted Fields Panel", "fields")
+        self.preview_panel_action = self._panel_action("Show Output Preview Panel", "preview")
+        panels_menu.addAction(self.files_panel_action)
+        panels_menu.addAction(self.fields_panel_action)
+        panels_menu.addAction(self.preview_panel_action)
+
         menu.addSeparator()
         menu.addAction(self._action("Settings", self.open_settings))
 
@@ -259,6 +271,53 @@ class MainWindow(QMainWindow):
         action = QAction(label, self)
         action.triggered.connect(lambda _checked=False: callback())
         return action
+
+    def _panel_action(self, label: str, panel_name: str) -> QAction:
+        action = QAction(label, self)
+        action.setCheckable(True)
+        action.setChecked(True)
+        action.triggered.connect(lambda checked=False: self.set_panel_visible(panel_name, checked))
+        return action
+
+    def _connect_panel_actions(self) -> None:
+        for panel_name, action in self._panel_actions().items():
+            dock = self._panel_dock(panel_name)
+            if dock:
+                dock.visibilityChanged.connect(lambda visible, panel_action=action: panel_action.setChecked(visible))
+        self._sync_panel_actions()
+
+    def _panel_actions(self) -> dict[str, QAction]:
+        return {
+            "files": self.files_panel_action,
+            "fields": self.fields_panel_action,
+            "preview": self.preview_panel_action,
+        }
+
+    def _panel_dock(self, panel_name: str) -> QDockWidget | None:
+        return {
+            "files": getattr(self, "files_dock", None),
+            "fields": getattr(self, "fields_dock", None),
+            "preview": getattr(self, "preview_dock", None),
+        }.get(panel_name)
+
+    def _sync_panel_actions(self) -> None:
+        for panel_name, action in self._panel_actions().items():
+            dock = self._panel_dock(panel_name)
+            action.setChecked(bool(dock and dock.isVisible()))
+
+    def set_panel_visible(self, panel_name: str, visible: bool) -> None:
+        dock = self._panel_dock(panel_name)
+        if not dock:
+            return
+        dock.setVisible(visible)
+        if visible:
+            dock.raise_()
+
+    def restore_all_panels(self) -> None:
+        for panel_name in self._panel_actions():
+            self.set_panel_visible(panel_name, True)
+        self._sync_panel_actions()
+        self.statusBar().showMessage("Restored Uploaded Files, Extracted Fields, and Output Preview panels", 5000)
 
     def load_template(self) -> None:
         path_str, _ = QFileDialog.getOpenFileName(

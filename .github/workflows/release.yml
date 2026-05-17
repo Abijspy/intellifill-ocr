@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.0.1"
+        default: "2.1.0"
   push:
     tags:
       - "v*"
@@ -98,6 +98,10 @@ jobs:
         run: |
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
+            "",
+            "🧩 Version 2.1.0",
+            "- Actions > Panels can now show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview.",
+            "- Closing those panels is no longer a dead end; restore them from the Actions button.",
             "",
             "📌 Version 2.0.1",
             "- Windows taskbar pins now use the new app icon with a stable app identity and updated installer shortcuts.",
