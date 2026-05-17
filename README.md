@@ -67,6 +67,33 @@ You can also set paths inside the app:
 
 The executable will be produced under `dist\IntelliFillOCR\IntelliFillOCR.exe`.
 
+## GitHub Release Pipeline
+
+The repository includes a GitHub Actions workflow at `.github/workflows/release.yml`.
+
+It builds the Windows x64 PyInstaller executable, packages it as:
+
+```text
+IntelliFillOCR-1.0.0-win-x64.zip
+```
+
+and publishes it to a GitHub release.
+
+To publish version `1.0.0` manually:
+
+1. Open the GitHub repository.
+2. Go to **Actions**.
+3. Select **CI/CD Release**.
+4. Click **Run workflow**.
+5. Keep version `1.0.0` and run it.
+
+You can also publish by pushing a tag:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Build MSIX Installer
 
 MSIX packages must be built and signed on Windows. Install the Windows 10/11 SDK first so `MakeAppx.exe` and `SignTool.exe` are available.

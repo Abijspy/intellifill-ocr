@@ -3,7 +3,8 @@
 from PyInstaller.utils.hooks import collect_submodules
 from pathlib import Path
 
-ROOT = Path(SPECPATH).parent.resolve()
+SPEC_DIR = Path(SPECPATH).resolve()
+ROOT = SPEC_DIR.parent
 SRC = ROOT / "src"
 DEMO = ROOT / "demo"
 
