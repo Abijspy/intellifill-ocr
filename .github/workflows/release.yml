@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.2.2"
+        default: "2.2.2.1"
   push:
     tags:
       - "v*"
@@ -42,8 +42,8 @@ jobs:
             $version = "${{ github.ref_name }}".TrimStart("v")
           }
 
-          if ($version -notmatch '^\d+\.\d+\.\d+$') {
-            throw "Version must use semantic format like 1.0.0. Received: $version"
+          if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
+            throw "Version must use semantic format like 1.0.0 or hotfix format like 2.2.2.1. Received: $version"
           }
 
           "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -99,10 +99,9 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🪟 Version $env:RELEASE_VERSION",
-            "- Large help, database, log, validation, detection, and learned-template windows now open inside the visible screen area.",
-            "- Dock panel close and float controls are visible in light mode.",
-            "- Dialogs include resize grips so users can adjust large windows comfortably.",
+            "🩹 Version $env:RELEASE_VERSION",
+            "- Dock panel close and float controls now use custom high-contrast buttons in dark and light mode.",
+            "- Removed reliance on native Windows/Qt dock glyphs that could remain white and disappear against the button box.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

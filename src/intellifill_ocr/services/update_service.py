@@ -119,6 +119,6 @@ class UpdateService:
         return cls._version_tuple(candidate) > cls._version_tuple(current)
 
     @staticmethod
-    def _version_tuple(version: str) -> tuple[int, int, int]:
-        parts = [int(part) for part in re.findall(r"\d+", version)[:3]]
-        return tuple((parts + [0, 0, 0])[:3])
+    def _version_tuple(version: str) -> tuple[int, int, int, int]:
+        parts = [int(part) for part in re.findall(r"\d+", version)[:4]]
+        return tuple((parts + [0, 0, 0, 0])[:4])

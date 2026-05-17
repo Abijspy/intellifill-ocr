@@ -62,6 +62,12 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🩹 Version 2.2.2.1</h2>
+        <ul>
+          <li>Dock panel close and float controls now use custom high-contrast buttons in dark and light mode.</li>
+          <li>Removed reliance on native Windows/Qt dock glyphs that could remain white and disappear against the button box.</li>
+        </ul>
+
         <h2>🪟 Version 2.2.2</h2>
         <ul>
           <li>Large help, database, log, validation, detection, and learned-template windows now open inside the visible screen area.</li>

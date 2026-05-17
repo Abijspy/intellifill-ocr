@@ -86,25 +86,25 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-2.2.2-win-x64.zip
-IntelliFillOCR-Setup-2.2.2-win-x64.exe
+IntelliFillOCR-2.2.2.1-win-x64.zip
+IntelliFillOCR-Setup-2.2.2.1-win-x64.exe
 ```
 
 and publishes both files to a GitHub release.
 
-To publish version `2.2.2` manually:
+To publish version `2.2.2.1` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `2.2.2` and run it.
+5. Keep version `2.2.2.1` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v2.2.2
-git push origin v2.2.2
+git tag v2.2.2.1
+git push origin v2.2.2.1
 ```
 
 ## Build Windows Installer
@@ -113,13 +113,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 2.2.2
+.\scripts\build-installer.ps1 -Version 2.2.2.1
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-2.2.2-win-x64.exe
+installer\out\IntelliFillOCR-Setup-2.2.2.1-win-x64.exe
 ```
 
 ## Build MSIX Installer
@@ -141,14 +141,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_2.2.2.0_x64.msix
+msix\out\IntelliFillOCR_2.2.2.1_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_2.2.2.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_2.2.2.1_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```
