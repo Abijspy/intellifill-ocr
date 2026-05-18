@@ -14,7 +14,7 @@ from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPdfWriter
 from PySide6.QtGui import QPageSize
 
 from intellifill_ocr.models.template import TemplateTable
-from intellifill_ocr.ui.barcode import barcode_png_bytes, code39_width, draw_code39
+from intellifill_ocr.ui.barcode import barcode_png_bytes, barcode_qimage
 
 
 class ExportService:
@@ -133,34 +133,50 @@ class ExportService:
         painter: QPainter,
         x: int,
         y: int,
+        block_width: int,
         traceability_code: str,
-        center: bool = False,
+        barcode_image: QImage,
+        barcode_width: int,
+        barcode_height: int,
     ) -> int:
-        narrow = 1
-        barcode_width = code39_width(traceability_code, narrow=narrow)
-        block_width = min(340, max(248, barcode_width + 24))
-        block_height = 58
-        text_alignment = Qt.AlignmentFlag.AlignHCenter if center else Qt.AlignmentFlag.AlignLeft
-        barcode_x = x + max(0, int((block_width - barcode_width) / 2)) if center else x
+        block_height = 22 + barcode_height + 8
+        barcode_x = x + max(0, int((block_width - barcode_width) / 2))
+        barcode_y = y + 20
         painter.save()
-        painter.fillRect(QRect(x - 4, y - 4, block_width, block_height), QColor("#ffffff"))
+        painter.fillRect(QRect(x - 6, y - 6, block_width + 12, block_height + 12), QColor("#ffffff"))
         painter.setPen(QColor("#111827"))
         painter.setFont(QFont("Segoe UI", 8))
         painter.drawText(
-            QRect(x, y, block_width - 8, 16),
-            text_alignment | Qt.AlignmentFlag.AlignVCenter,
+            QRect(x, y, block_width, 16),
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
             f"Traceability ID: {traceability_code}",
         )
-        draw_code39(painter, traceability_code, barcode_x, y + 20, 30, narrow=narrow, show_text=False)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        painter.drawImage(QRect(barcode_x, barcode_y, barcode_width, barcode_height), barcode_image)
         painter.restore()
         return block_height
 
     def _draw_traceability_footer(self, painter: QPainter, page_width: int, page_height: int, traceability_code: str) -> None:
-        barcode_width = code39_width(traceability_code, narrow=1)
-        block_width = min(340, max(248, barcode_width + 24))
+        barcode_image = barcode_qimage(traceability_code, narrow=2, bar_height=34, show_text=False, quiet_zone=8)
+        raw_width = max(1, barcode_image.width())
+        raw_height = max(1, barcode_image.height())
+        max_block_width = max(160, page_width - 80)
+        block_width = min(max_block_width, max(340, raw_width + 24))
+        barcode_width = min(raw_width, max(120, block_width - 16))
+        barcode_height = max(24, int(raw_height * (barcode_width / raw_width)))
+        block_height = 22 + barcode_height + 8
         x = max(4, int((page_width - block_width) / 2))
-        y = max(4, page_height - 68)
-        self._draw_traceability_block(painter, x, y, traceability_code, center=True)
+        y = max(4, page_height - block_height - 12)
+        self._draw_traceability_block(
+            painter,
+            x,
+            y,
+            block_width,
+            traceability_code,
+            barcode_image,
+            barcode_width,
+            barcode_height,
+        )
 
     def _append_word_traceability(self, document: Document, traceability_code: str) -> None:
         if not traceability_code:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 
 from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap
 from PIL import Image, ImageDraw
 
 
@@ -114,9 +114,14 @@ def barcode_pixmap(value: str, width: int = 320, height: int = 68) -> QPixmap:
     return pixmap
 
 
-def barcode_png_bytes(value: str, narrow: int = 1, bar_height: int = 34, show_text: bool = True) -> BytesIO:
+def barcode_png_bytes(
+    value: str,
+    narrow: int = 1,
+    bar_height: int = 34,
+    show_text: bool = True,
+    quiet_zone: int = 12,
+) -> BytesIO:
     encoded = f"*{normalize_code39(value)}*"
-    quiet_zone = 12
     text_height = 18 if show_text else 0
     width = max(240, code39_width(value, narrow=narrow) + quiet_zone * 2)
     height = bar_height + text_height + quiet_zone * 2
@@ -131,7 +136,7 @@ def barcode_png_bytes(value: str, narrow: int = 1, bar_height: int = 34, show_te
         for index, marker in enumerate(pattern):
             bar_width = wide if marker == "w" else narrow
             if index % 2 == 0:
-                draw.rectangle((cursor, top, cursor + bar_width - 1, top + bar_height), fill="black")
+                draw.rectangle((cursor, top, cursor + bar_width - 1, top + bar_height - 1), fill="black")
             cursor += bar_width
         cursor += narrow
 
@@ -142,3 +147,23 @@ def barcode_png_bytes(value: str, narrow: int = 1, bar_height: int = 34, show_te
     image.save(output, format="PNG")
     output.seek(0)
     return output
+
+
+def barcode_qimage(
+    value: str,
+    narrow: int = 2,
+    bar_height: int = 34,
+    show_text: bool = False,
+    quiet_zone: int = 8,
+) -> QImage:
+    image = QImage()
+    png_bytes = barcode_png_bytes(
+        value,
+        narrow=narrow,
+        bar_height=bar_height,
+        show_text=show_text,
+        quiet_zone=quiet_zone,
+    ).getvalue()
+    if not image.loadFromData(png_bytes, "PNG"):
+        raise ValueError("Could not render barcode image.")
+    return image

@@ -62,6 +62,12 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🏷️ Version 2.2.3</h2>
+        <ul>
+          <li>PDF traceability barcodes now render as clear bottom-center barcode images instead of collapsed black strips.</li>
+          <li>Barcode exports keep a white quiet zone and wider modules so the ID remains scannable in PDF viewers and prints.</li>
+        </ul>
+
         <h2>🩹 Version 2.2.2.1</h2>
         <ul>
           <li>Dock panel close and float controls now use custom high-contrast buttons in dark and light mode.</li>

@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.2.2.1"
+        default: "2.2.3"
   push:
     tags:
       - "v*"
@@ -99,9 +99,9 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🩹 Version $env:RELEASE_VERSION",
-            "- Dock panel close and float controls now use custom high-contrast buttons in dark and light mode.",
-            "- Removed reliance on native Windows/Qt dock glyphs that could remain white and disappear against the button box.",
+            "🏷️ Version $env:RELEASE_VERSION",
+            "- PDF traceability barcodes now render as clear bottom-center barcode images instead of collapsed black strips.",
+            "- Barcode exports keep a white quiet zone and wider modules so the ID remains scannable in PDF viewers and prints.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

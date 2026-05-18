@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.2.2.1",
+    [string]$Version = "2.2.3",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -52,6 +52,7 @@ Notes
 - Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
 - User Guide and full scrollable changelog are available from Actions > Help.
 - Large dialogs stay inside the visible screen, and dock panel close/float buttons use custom high-contrast controls in light and dark mode.
+- PDF traceability barcodes render as clear, scannable bottom-center barcode images instead of collapsed black strips.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8
