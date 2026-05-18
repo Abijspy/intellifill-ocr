@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.2.3"
+        default: "2.2.4"
   push:
     tags:
       - "v*"
@@ -99,9 +99,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🏷️ Version $env:RELEASE_VERSION",
-            "- PDF traceability barcodes now render as clear bottom-center barcode images instead of collapsed black strips.",
-            "- Barcode exports keep a white quiet zone and wider modules so the ID remains scannable in PDF viewers and prints.",
+            "🧭 Version $env:RELEASE_VERSION",
+            "- Added smoother wheel scrolling for tables, logs, parsed text, help, database preview, and changelog pages.",
+            "- Polished scrollbar styling in light and dark mode.",
+            "- Expanded the in-app User Guide with clearer workflow, mapping, export, validation, and troubleshooting details.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

@@ -62,6 +62,13 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🧭 Version 2.2.4</h2>
+        <ul>
+          <li>Added smoother wheel scrolling for tables, logs, parsed text, help, database preview, and changelog pages.</li>
+          <li>Polished scrollbar styling in light and dark mode.</li>
+          <li>Expanded the in-app User Guide with clearer workflow, mapping, export, validation, and troubleshooting details.</li>
+        </ul>
+
         <h2>🏷️ Version 2.2.3</h2>
         <ul>
           <li>PDF traceability barcodes now render as clear bottom-center barcode images instead of collapsed black strips.</li>

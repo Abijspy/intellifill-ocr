@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication
 from intellifill_ocr import __version__
 from intellifill_ocr.database.repository import Repository
 from intellifill_ocr.ui.main_window import MainWindow
+from intellifill_ocr.ui.smooth_scroll import install_smooth_scrolling
 from intellifill_ocr.ui.theme import apply_theme
 from intellifill_ocr.utils.config import AppConfig
 from intellifill_ocr.utils.logging_config import configure_logging
@@ -42,6 +43,7 @@ def main() -> int:
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     apply_theme(app, config.theme)
+    install_smooth_scrolling(app)
 
     window = MainWindow(config=config, repository=repository)
     window.resize(1500, 920)
