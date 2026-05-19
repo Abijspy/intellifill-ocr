@@ -11,6 +11,7 @@ class TemplateCell:
     is_placeholder: bool = False
     row_span: int = 1
     column_span: int = 1
+    table_index: int = 0
     source_page: int = 0
     bbox: tuple[float, float, float, float] | None = None
 
@@ -19,6 +20,9 @@ class TemplateCell:
 class TemplateTable:
     name: str
     cells: list[list[TemplateCell]] = field(default_factory=list)
+    table_index: int = 0
+    display_name: str = ""
+    document_tables: list["TemplateTable"] = field(default_factory=list, repr=False, compare=False)
 
     @property
     def row_count(self) -> int:
@@ -38,8 +42,21 @@ class TemplateTable:
         while len(self.cells) <= row:
             self.cells.append([])
         while len(self.cells[row]) <= column:
-            self.cells[row].append(TemplateCell(row=row, column=len(self.cells[row])))
+            self.cells[row].append(
+                TemplateCell(row=row, column=len(self.cells[row]), table_index=self.table_index)
+            )
         self.cells[row][column].value = value
+
+    def all_tables(self) -> list["TemplateTable"]:
+        return self.document_tables or [self]
+
+    @property
+    def table_count(self) -> int:
+        return len(self.all_tables())
+
+    @property
+    def label(self) -> str:
+        return self.display_name or f"Table {self.table_index + 1}"
 
     def field_candidates(self) -> list[tuple[int, int, str]]:
         candidates: list[tuple[int, int, str]] = []

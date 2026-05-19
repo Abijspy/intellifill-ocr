@@ -85,6 +85,12 @@ class HelpGuideDialog(QDialog):
         model that will be filled.
         </p>
         <p>
+        If a template has two or more tables, the <b>Output Preview</b> panel shows a table selector
+        above the grid. Choose <b>Table 1</b>, <b>Table 2</b>, or any later table before mapping.
+        Mappings remember the selected table number, so values intended for a second approval,
+        summary, or line-item table do not overwrite the first table.
+        </p>
+        <p>
         For DOCX, XLSX, and supported PDF templates, use the preserved-layout exports to keep
         headings, logos, table structure, signature areas, and existing document artwork while
         filling only blank/template fields.
@@ -135,6 +141,7 @@ class HelpGuideDialog(QDialog):
         </p>
         <ol>
           <li>Click the source field in <b>Extracted Fields</b>.</li>
+          <li>If the template has multiple tables, choose the destination table in <b>Output Preview</b>.</li>
           <li>Click the destination cell in <b>Output Preview</b>.</li>
           <li>Run <b>Map Selected Field to Destination Cell</b>.</li>
           <li>Correct the destination cell text manually if OCR misread letters or numbers.</li>
@@ -209,12 +216,12 @@ class HelpGuideDialog(QDialog):
 
         <h2>Exports</h2>
         <ul>
-          <li><b>CSV</b>: simple table output.</li>
-          <li><b>Excel Workbook</b>: structured spreadsheet output.</li>
-          <li><b>Word Document</b>: generated Word table with traceability barcode.</li>
-          <li><b>PDF with Traceability Barcode</b>: generated PDF table with barcode.</li>
-          <li><b>Export Filled Template - Preserve Original Layout</b>: fills DOCX, XLSX, or CSV templates in place where supported.</li>
-          <li><b>Export Filled Template PDF - Preserve Original Layout</b>: keeps original PDF page artwork and overlays values into detected blank cells when coordinates are available.</li>
+          <li><b>CSV</b>: one file containing every output table separated by table headings.</li>
+          <li><b>Excel Workbook</b>: one workbook with each output table on its own sheet.</li>
+          <li><b>Word Document</b>: one Word file containing every output table and the traceability barcode.</li>
+          <li><b>PDF with Traceability Barcode</b>: one generated PDF containing every output table and barcode.</li>
+          <li><b>Export Filled Template - Preserve Original Layout</b>: fills all supported DOCX/XLSX template tables in place where possible.</li>
+          <li><b>Export Filled Template PDF - Preserve Original Layout</b>: keeps original PDF page artwork and overlays values into detected blank cells across all detected tables when coordinates are available.</li>
         </ul>
         <p>
         Choose generated PDF/Word when you want a clean table built from the output preview. Choose
@@ -233,10 +240,11 @@ class HelpGuideDialog(QDialog):
         <p>
         Use <b>Actions &gt; Settings</b> to choose the local Tesseract OCR executable, SQLite
         database path, OCR language, and dark/light appearance. The app remains offline; no cloud
-        OCR or cloud database is used.
+        OCR or cloud database is used. On Ubuntu/Debian/Fedora, the app can auto-detect local
+        Tesseract from PATH or common locations such as <b>/usr/bin/tesseract</b>.
         </p>
         <ul>
-          <li><b>Tesseract path</b>: select the local <code>tesseract.exe</code> used for OCR.</li>
+          <li><b>Tesseract path</b>: select the local <code>tesseract.exe</code> on Windows or <code>tesseract</code> on Linux. Use <b>Auto Detect</b> when available.</li>
           <li><b>SQLite database</b>: choose where runs, mappings, metadata, and extracted values are stored.</li>
           <li><b>OCR language</b>: use English by default; install local language packs for other languages.</li>
           <li><b>Theme</b>: switch between light and dark mode without changing your saved data.</li>
@@ -244,7 +252,7 @@ class HelpGuideDialog(QDialog):
 
         <h2>Updates, Logs, and Troubleshooting</h2>
         <ul>
-          <li><b>Actions &gt; Help &gt; Check for Updates</b>: checks GitHub releases and can download the newer installer.</li>
+          <li><b>Actions &gt; Help &gt; Check for Updates</b>: checks releases and can download the newer Windows installer or Linux .deb/.rpm package for this platform.</li>
           <li><b>Actions &gt; Help &gt; What's New</b>: full scrollable in-app changelog.</li>
           <li><b>Actions &gt; Tools &gt; View Application Logs</b>: opens the local log viewer.</li>
           <li>If OCR fails, confirm Tesseract is installed and configured in Settings.</li>

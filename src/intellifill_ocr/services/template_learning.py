@@ -32,6 +32,7 @@ class TemplateMatch:
 class LearnedMappingApplication:
     source_label: str
     source_value: str
+    target_table_index: int
     target_row: int
     target_column: int
     confidence: float
@@ -99,6 +100,7 @@ class TemplateLearningService:
         return [
             {
                 "source_label": str(mapping.source_label),
+                "target_table_index": int(getattr(mapping, "target_table_index", 0)),
                 "target_row": int(mapping.target_row),
                 "target_column": int(mapping.target_column),
                 "confidence": float(mapping.confidence),
@@ -165,6 +167,7 @@ class TemplateLearningService:
         used_indexes: set[int] = set()
         for mapping in learned_template.mappings:
             source_label = str(mapping.get("source_label") or "")
+            target_table_index = int(mapping.get("target_table_index") or 0)
             target_row = int(mapping.get("target_row") or 0)
             target_column = int(mapping.get("target_column") or 0)
             best_index = -1
@@ -186,6 +189,7 @@ class TemplateLearningService:
                 LearnedMappingApplication(
                     source_label=field.label,
                     source_value=field.value,
+                    target_table_index=target_table_index,
                     target_row=target_row,
                     target_column=target_column,
                     confidence=round(best_score, 1),

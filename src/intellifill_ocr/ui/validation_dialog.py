@@ -30,18 +30,19 @@ class ValidationDialog(QDialog):
         table.setAlternatingRowColors(True)
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setColumnCount(7)
+        table.setColumnCount(8)
         table.setRowCount(len(issues))
-        table.setHorizontalHeaderLabels(["Severity", "Rule", "Cell", "Field", "Value", "Message", "Location"])
+        table.setHorizontalHeaderLabels(["Severity", "Rule", "Table", "Cell", "Field", "Value", "Message", "Location"])
         for row_index, issue in enumerate(issues):
             values = [
                 issue.severity,
                 issue.rule,
+                f"Table {issue.table_index + 1}",
                 f"R{issue.row + 1} C{issue.column + 1}",
                 issue.field_name,
                 issue.value,
                 issue.message,
-                f"{issue.row},{issue.column}",
+                f"{issue.table_index},{issue.row},{issue.column}",
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices, QFont, QPixmap
+from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout
 
 from intellifill_ocr import __app_name__, __version__
@@ -12,7 +11,6 @@ from intellifill_ocr.utils.paths import resource_path
 class AboutReleaseDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.release_url = f"https://github.com/Abijspy/intellifill-ocr/releases/tag/v{__version__}"
         self.setWindowTitle("What's New")
         self.setMinimumWidth(520)
         keep_dialog_on_screen(self, 720, 680)
@@ -35,16 +33,10 @@ class AboutReleaseDialog(QDialog):
         details.setOpenExternalLinks(False)
         details.setHtml(self._changelog_html())
 
-        release_label = QLabel(f"Release page:\n{self.release_url}")
-        release_label.setWordWrap(True)
-
-        open_release_button = QPushButton("Open GitHub Release")
-        open_release_button.clicked.connect(self._open_release_page)
         close_button = QPushButton("Close")
         close_button.clicked.connect(self.accept)
 
         buttons = QHBoxLayout()
-        buttons.addWidget(open_release_button)
         buttons.addStretch(1)
         buttons.addWidget(close_button)
 
@@ -52,16 +44,24 @@ class AboutReleaseDialog(QDialog):
         layout.addWidget(logo)
         layout.addWidget(title)
         layout.addWidget(details, 1)
-        layout.addWidget(release_label)
         layout.addLayout(buttons)
-
-    def _open_release_page(self) -> None:
-        QDesktopServices.openUrl(QUrl(self.release_url))
 
     def _changelog_html(self) -> str:
         return """
         <html>
         <body>
+        <h2>🗂️ Version 2.3.0</h2>
+        <ul>
+          <li>Template documents with two or more tables now load every table into the Output Preview.</li>
+          <li>Use the table selector above the output grid to fill Table 1, Table 2, Table 3, and any later tables.</li>
+          <li>Manual mappings, intelligent matching, learned templates, validation, SQLite storage, and exports now remember the destination table number.</li>
+          <li>CSV, Excel, Word, PDF, and preserved-layout exports include all template tables in one output document.</li>
+          <li>The release pipeline can build Linux Debian and Fedora packages from GitHub Actions.</li>
+          <li>Linux update checks can download .deb or .rpm packages and show the correct terminal install command.</li>
+          <li>Ubuntu/Debian/Fedora builds automatically detect local Tesseract from PATH and common install locations.</li>
+          <li>Removed the external release link from this What's New page.</li>
+        </ul>
+
         <h2>🧭 Version 2.2.4</h2>
         <ul>
           <li>Added smoother wheel scrolling for tables, logs, parsed text, help, database preview, and changelog pages.</li>

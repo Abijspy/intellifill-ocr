@@ -13,6 +13,7 @@ class FieldMapping:
     target_row: int
     target_column: int
     confidence: float
+    target_table_index: int = 0
     region: RegionSelection | None = None
 
 
@@ -26,6 +27,7 @@ class MappingService:
         target_row: int,
         target_column: int,
         confidence: float | None = None,
+        target_table_index: int = 0,
     ) -> FieldMapping:
         mapping = FieldMapping(
             source_label=field.label,
@@ -33,14 +35,17 @@ class MappingService:
             target_row=target_row,
             target_column=target_column,
             confidence=field.confidence if confidence is None else confidence,
+            target_table_index=target_table_index,
             region=field.source_region,
         )
         self.mappings.append(mapping)
         return mapping
 
     def apply(self, template: TemplateTable) -> TemplateTable:
+        tables = template.all_tables()
         for mapping in self.mappings:
-            template.set_value(mapping.target_row, mapping.target_column, mapping.source_value)
+            target_table = tables[mapping.target_table_index] if mapping.target_table_index < len(tables) else template
+            target_table.set_value(mapping.target_row, mapping.target_column, mapping.source_value)
         return template
 
     def clear(self) -> None:

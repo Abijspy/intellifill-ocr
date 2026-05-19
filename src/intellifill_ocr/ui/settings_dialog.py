@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import sys
 from pathlib import Path
 
 from PySide6.QtWidgets import (
@@ -17,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
-from intellifill_ocr.utils.config import AppConfig
+from intellifill_ocr.utils.config import AppConfig, detect_tesseract_cmd
 
 
 class SettingsDialog(QDialog):
@@ -37,11 +39,14 @@ class SettingsDialog(QDialog):
 
         tesseract_browse = QPushButton("Browse")
         tesseract_browse.clicked.connect(self._browse_tesseract)
+        tesseract_detect = QPushButton("Auto Detect")
+        tesseract_detect.clicked.connect(self._auto_detect_tesseract)
         database_browse = QPushButton("Browse")
         database_browse.clicked.connect(self._browse_database)
 
         tesseract_row = QHBoxLayout()
         tesseract_row.addWidget(self.tesseract_edit)
+        tesseract_row.addWidget(tesseract_detect)
         tesseract_row.addWidget(tesseract_browse)
 
         database_row = QHBoxLayout()
@@ -90,8 +95,10 @@ class SettingsDialog(QDialog):
         tesseract_text = self.tesseract_edit.text().strip()
         if tesseract_text:
             tesseract_path = Path(tesseract_text)
-            if not tesseract_path.exists() or tesseract_path.name.lower() != "tesseract.exe":
-                QMessageBox.warning(self, "Invalid Tesseract path", "Select a valid tesseract.exe file.")
+            allowed_names = {"tesseract.exe"} if sys.platform == "win32" else {"tesseract", "tesseract.exe"}
+            exists = tesseract_path.exists() or bool(shutil.which(tesseract_text))
+            if not exists or tesseract_path.name.lower() not in allowed_names:
+                QMessageBox.warning(self, "Invalid Tesseract path", "Select a valid local Tesseract executable.")
                 return False
 
         database_path = Path(os.path.expandvars(self.database_edit.text().strip())).expanduser()
@@ -108,14 +115,31 @@ class SettingsDialog(QDialog):
             super().accept()
 
     def _browse_tesseract(self) -> None:
+        executable_filter = "Tesseract OCR (tesseract.exe);;Executable (*.exe)"
+        start_dir = self.tesseract_edit.text() or r"C:\Program Files\Tesseract-OCR"
+        if sys.platform != "win32":
+            executable_filter = "Tesseract OCR (tesseract);;Executable (*)"
+            start_dir = self.tesseract_edit.text() or "/usr/bin"
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select tesseract.exe",
-            self.tesseract_edit.text() or r"C:\Program Files\Tesseract-OCR",
-            "Tesseract OCR (tesseract.exe);;Executable (*.exe)",
+            "Select Tesseract OCR executable",
+            start_dir,
+            executable_filter,
         )
         if path:
             self.tesseract_edit.setText(path)
+
+    def _auto_detect_tesseract(self) -> None:
+        detected = detect_tesseract_cmd()
+        if not detected:
+            QMessageBox.information(
+                self,
+                "Tesseract not found",
+                "Tesseract was not found on PATH or in common install locations. Install it locally, then try Auto Detect again.",
+            )
+            return
+        self.tesseract_edit.setText(detected)
+        QMessageBox.information(self, "Tesseract detected", f"Using:\n{detected}")
 
     def _browse_database(self) -> None:
         path, _ = QFileDialog.getSaveFileName(

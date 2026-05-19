@@ -1,7 +1,7 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "2.2.4"
+#define AppVersion "2.3.0"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"

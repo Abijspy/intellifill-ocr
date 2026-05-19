@@ -23,21 +23,41 @@ class ExportService:
         return pd.DataFrame(rows)
 
     def export_csv(self, template: TemplateTable, path: Path) -> None:
-        self.to_dataframe(template).to_csv(path, header=False, index=False)
+        tables = template.all_tables()
+        if len(tables) == 1:
+            self.to_dataframe(tables[0]).to_csv(path, header=False, index=False)
+            return
+
+        rows: list[list[str]] = []
+        for table in tables:
+            if rows:
+                rows.append([])
+            rows.append([table.label])
+            rows.extend([[cell.value for cell in row] for row in table.cells])
+        pd.DataFrame(rows).to_csv(path, header=False, index=False)
 
     def export_excel(self, template: TemplateTable, path: Path) -> None:
         with pd.ExcelWriter(path, engine="openpyxl") as writer:
-            self.to_dataframe(template).to_excel(writer, sheet_name="Output", header=False, index=False)
+            tables = template.all_tables()
+            for table in tables:
+                sheet_name = self._excel_sheet_name(table.label, table.table_index)
+                self.to_dataframe(table).to_excel(writer, sheet_name=sheet_name, header=False, index=False)
 
     def export_word(self, template: TemplateTable, path: Path, traceability_code: str = "") -> None:
         document = Document()
         document.add_heading(template.name or "Filled Template", level=1)
-        table = document.add_table(rows=max(template.row_count, 1), cols=max(template.column_count, 1))
-        table.style = "Table Grid"
-        for row_index, row in enumerate(template.cells):
-            for column_index in range(template.column_count):
-                value = row[column_index].value if column_index < len(row) else ""
-                table.cell(row_index, column_index).text = value
+        tables = template.all_tables()
+        for table_index, template_table in enumerate(tables):
+            if len(tables) > 1:
+                if table_index:
+                    document.add_paragraph()
+                document.add_heading(template_table.label, level=2)
+            table = document.add_table(rows=max(template_table.row_count, 1), cols=max(template_table.column_count, 1))
+            table.style = "Table Grid"
+            for row_index, row in enumerate(template_table.cells):
+                for column_index in range(template_table.column_count):
+                    value = row[column_index].value if column_index < len(row) else ""
+                    table.cell(row_index, column_index).text = value
         self._append_word_traceability(document, traceability_code)
         document.save(path)
 
@@ -52,25 +72,38 @@ class ExportService:
             if traceability_code:
                 self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
             row_height = 24
-            col_width = max(110, int((writer.width() - 80) / max(template.column_count, 1)))
             reserved_footer = 96 if traceability_code else 60
-            for row in template.cells:
-                x = 40
-                for cell in row:
-                    rect = QRect(x, y, col_width, row_height)
-                    painter.drawRect(rect)
-                    painter.drawText(
-                        rect.adjusted(4, 2, -4, -2),
-                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                        cell.value,
-                    )
-                    x += col_width
-                y += row_height
-                if y > writer.height() - reserved_footer:
+            for table_index, template_table in enumerate(template.all_tables()):
+                if table_index:
+                    y += 26
+                if y > writer.height() - reserved_footer - 50:
                     writer.newPage()
                     y = 45
                     if traceability_code:
                         self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
+                if template.table_count > 1:
+                    painter.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+                    painter.drawText(QRect(40, y, writer.width() - 80, 20), Qt.AlignmentFlag.AlignLeft, template_table.label)
+                    y += 26
+                    painter.setFont(QFont("Segoe UI", 9))
+                col_width = max(90, int((writer.width() - 80) / max(template_table.column_count, 1)))
+                for row in template_table.cells:
+                    x = 40
+                    for cell in row:
+                        rect = QRect(x, y, col_width, row_height)
+                        painter.drawRect(rect)
+                        painter.drawText(
+                            rect.adjusted(4, 2, -4, -2),
+                            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                            cell.value,
+                        )
+                        x += col_width
+                    y += row_height
+                    if y > writer.height() - reserved_footer:
+                        writer.newPage()
+                        y = 45
+                        if traceability_code:
+                            self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
         finally:
             painter.end()
 
@@ -109,19 +142,20 @@ class ExportService:
                     scale_y = writer.height() / max(float(page.height), 1.0)
                     painter.setFont(QFont("Segoe UI", 9))
                     painter.setPen(QColor("#111827"))
-                    for row in template.cells:
-                        for cell in row:
-                            if not cell.is_placeholder or not cell.value.strip() or cell.source_page != page_index or not cell.bbox:
-                                continue
-                            x0, top, x1, bottom = cell.bbox
-                            rect = QRect(
-                                int(x0 * scale_x) + 3,
-                                int(top * scale_y) + 2,
-                                max(8, int((x1 - x0) * scale_x) - 6),
-                                max(8, int((bottom - top) * scale_y) - 4),
-                            )
-                            painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, cell.value)
-                            overlays += 1
+                    for table in template.all_tables():
+                        for row in table.cells:
+                            for cell in row:
+                                if not cell.is_placeholder or not cell.value.strip() or cell.source_page != page_index or not cell.bbox:
+                                    continue
+                                x0, top, x1, bottom = cell.bbox
+                                rect = QRect(
+                                    int(x0 * scale_x) + 3,
+                                    int(top * scale_y) + 2,
+                                    max(8, int((x1 - x0) * scale_x) - 6),
+                                    max(8, int((bottom - top) * scale_y) - 4),
+                                )
+                                painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, cell.value)
+                                overlays += 1
         finally:
             painter.end()
 
@@ -192,4 +226,9 @@ class ExportService:
         )
 
     def _has_pdf_coordinates(self, template: TemplateTable) -> bool:
-        return any(cell.bbox for row in template.cells for cell in row)
+        return any(cell.bbox for table in template.all_tables() for row in table.cells for cell in row)
+
+    def _excel_sheet_name(self, label: str, table_index: int) -> str:
+        cleaned = "".join("_" if char in "[]:*?/\\" else char for char in label).strip()
+        cleaned = cleaned or f"Table {table_index + 1}"
+        return cleaned[:31]

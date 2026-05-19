@@ -11,6 +11,7 @@ from intellifill_ocr.models.template import TemplateTable
 class ValidationIssue:
     severity: str
     rule: str
+    table_index: int
     row: int
     column: int
     field_name: str
@@ -35,25 +36,27 @@ class ValidationEngine:
 
     def _required_issues(self, template: TemplateTable) -> list[ValidationIssue]:
         issues: list[ValidationIssue] = []
-        for row_index, row in enumerate(template.cells):
-            for column_index, cell in enumerate(row):
-                if cell.value.strip():
-                    continue
-                label = self._label_for_blank_cell(template, row_index, column_index)
-                if not label:
-                    continue
-                if cell.is_placeholder or self._looks_like_required_destination(label):
-                    issues.append(
-                        ValidationIssue(
-                            severity="Warning",
-                            rule="Required field",
-                            row=row_index,
-                            column=column_index,
-                            field_name=label,
-                            value="",
-                            message="Required-looking destination cell is still blank.",
+        for table in template.all_tables():
+            for row_index, row in enumerate(table.cells):
+                for column_index, cell in enumerate(row):
+                    if cell.value.strip():
+                        continue
+                    label = self._label_for_blank_cell(table, row_index, column_index)
+                    if not label:
+                        continue
+                    if cell.is_placeholder or self._looks_like_required_destination(label):
+                        issues.append(
+                            ValidationIssue(
+                                severity="Warning",
+                                rule="Required field",
+                                table_index=table.table_index,
+                                row=row_index,
+                                column=column_index,
+                                field_name=label,
+                                value="",
+                                message="Required-looking destination cell is still blank.",
+                            )
                         )
-                    )
         return issues
 
     def _format_issues(self, snapshots: list[dict[str, object]]) -> list[ValidationIssue]:
@@ -116,22 +119,24 @@ class ValidationEngine:
 
     def _field_snapshots(self, template: TemplateTable) -> list[dict[str, object]]:
         snapshots: list[dict[str, object]] = []
-        for row_index, row in enumerate(template.cells):
-            for column_index, cell in enumerate(row):
-                value = cell.value.strip()
-                if not value:
-                    continue
-                label = self._label_for_value_cell(template, row_index, column_index)
-                if not label or self._normalize(label) == self._normalize(value):
-                    continue
-                snapshots.append(
-                    {
-                        "row": row_index,
-                        "column": column_index,
-                        "label": label,
-                        "value": value,
-                    }
-                )
+        for table in template.all_tables():
+            for row_index, row in enumerate(table.cells):
+                for column_index, cell in enumerate(row):
+                    value = cell.value.strip()
+                    if not value:
+                        continue
+                    label = self._label_for_value_cell(table, row_index, column_index)
+                    if not label or self._normalize(label) == self._normalize(value):
+                        continue
+                    snapshots.append(
+                        {
+                            "table_index": table.table_index,
+                            "row": row_index,
+                            "column": column_index,
+                            "label": label,
+                            "value": value,
+                        }
+                    )
         return snapshots
 
     def _amounts_by_kind(self, snapshots: list[dict[str, object]]) -> dict[str, list[tuple[float, dict[str, object]]]]:
@@ -153,6 +158,7 @@ class ValidationEngine:
         return ValidationIssue(
             severity=severity,
             rule=rule,
+            table_index=int(item.get("table_index", 0)),
             row=int(item["row"]),
             column=int(item["column"]),
             field_name=str(item["label"]),

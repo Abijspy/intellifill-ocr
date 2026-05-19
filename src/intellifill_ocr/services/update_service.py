@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -20,6 +22,7 @@ class ReleaseAsset:
     name: str
     browser_download_url: str
     size: int = 0
+    package_type: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -30,6 +33,7 @@ class UpdateInfo:
     release_notes: str
     is_newer: bool
     installer_asset: ReleaseAsset | None
+    platform_label: str = ""
 
 
 class UpdateService:
@@ -67,6 +71,7 @@ class UpdateService:
             release_notes=str(payload.get("body") or ""),
             is_newer=self._is_newer(latest_version, __version__),
             installer_asset=installer_asset,
+            platform_label=self.platform_label(),
         )
 
     def download_asset(
@@ -105,14 +110,74 @@ class UpdateService:
 
         return destination
 
-    @staticmethod
-    def _select_installer_asset(assets: list[ReleaseAsset]) -> ReleaseAsset | None:
-        setup_assets = [
-            asset
+    @classmethod
+    def _select_installer_asset(cls, assets: list[ReleaseAsset]) -> ReleaseAsset | None:
+        platform_package = cls.platform_package_type()
+        candidates = [
+            ReleaseAsset(asset.name, asset.browser_download_url, asset.size, platform_package)
             for asset in assets
-            if asset.name.lower().endswith(".exe") and "setup" in asset.name.lower()
+            if cls._asset_matches_platform(asset.name, platform_package)
         ]
-        return setup_assets[0] if setup_assets else None
+        return candidates[0] if candidates else None
+
+    @classmethod
+    def _asset_matches_platform(cls, name: str, platform_package: str) -> bool:
+        lower_name = name.lower()
+        if platform_package == "windows":
+            return lower_name.endswith(".exe") and "setup" in lower_name
+        if platform_package == "debian":
+            return lower_name.endswith(".deb")
+        if platform_package == "fedora":
+            return lower_name.endswith(".rpm")
+        return False
+
+    @classmethod
+    def platform_package_type(cls) -> str:
+        if sys.platform == "win32":
+            return "windows"
+        if sys.platform.startswith("linux"):
+            distro_id = cls._linux_distro_id()
+            if distro_id in {"ubuntu", "debian", "linuxmint", "pop", "elementary", "zorin"}:
+                return "debian"
+            if distro_id in {"fedora", "rhel", "centos", "rocky", "almalinux"}:
+                return "fedora"
+            if Path("/usr/bin/dnf").exists() or Path("/bin/dnf").exists():
+                return "fedora"
+            if Path("/usr/bin/apt").exists() or Path("/bin/apt").exists():
+                return "debian"
+        return "unknown"
+
+    @classmethod
+    def platform_label(cls) -> str:
+        return {
+            "windows": "Windows setup installer",
+            "debian": "Debian/Ubuntu package",
+            "fedora": "Fedora/RPM package",
+        }.get(cls.platform_package_type(), "current platform")
+
+    @staticmethod
+    def install_command(asset_path: Path, package_type: str) -> str:
+        quoted_path = shlex.quote(str(asset_path))
+        if package_type == "debian":
+            return f"sudo apt install {quoted_path}"
+        if package_type == "fedora":
+            return f"sudo dnf install {quoted_path}"
+        if package_type == "windows":
+            return str(asset_path)
+        return str(asset_path)
+
+    @staticmethod
+    def _linux_distro_id() -> str:
+        os_release = Path("/etc/os-release")
+        if not os_release.exists():
+            return ""
+        try:
+            for line in os_release.read_text(encoding="utf-8").splitlines():
+                if line.startswith("ID="):
+                    return line.split("=", 1)[1].strip().strip('"').lower()
+        except OSError:
+            return ""
+        return ""
 
     @classmethod
     def _is_newer(cls, candidate: str, current: str) -> bool:

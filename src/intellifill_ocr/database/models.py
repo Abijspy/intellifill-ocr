@@ -57,6 +57,7 @@ class MappingRecord(Base):
     run_id: Mapped[int] = mapped_column(ForeignKey("extraction_runs.id"), nullable=False)
     source_label: Mapped[str] = mapped_column(String(255), nullable=False)
     source_value: Mapped[str] = mapped_column(Text, nullable=False)
+    target_table_index: Mapped[int] = mapped_column(Integer, default=0)
     target_row: Mapped[int] = mapped_column(Integer, nullable=False)
     target_column: Mapped[int] = mapped_column(Integer, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
@@ -70,6 +71,7 @@ class ExtractedValueRecord(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     run_id: Mapped[int] = mapped_column(ForeignKey("extraction_runs.id"), nullable=False)
+    table_index: Mapped[int] = mapped_column(Integer, default=0)
     row: Mapped[int] = mapped_column(Integer, nullable=False)
     column: Mapped[int] = mapped_column(Integer, nullable=False)
     field_name: Mapped[str] = mapped_column(String(255), default="")

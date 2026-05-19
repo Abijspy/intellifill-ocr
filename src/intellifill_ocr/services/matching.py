@@ -12,6 +12,7 @@ from intellifill_ocr.models.template import TemplateTable
 class MatchSuggestion:
     source_label: str
     source_value: str
+    target_table_index: int
     target_row: int
     target_column: int
     target_label: str
@@ -32,21 +33,21 @@ class FieldMatcher:
         destinations = self._destinations(template)
         candidates: list[tuple[int, MatchSuggestion]] = []
         for field_index, field in enumerate(fields):
-            for row, column, label in destinations:
+            for table_index, row, column, label in destinations:
                 confidence = self.score(field.label, label)
                 if confidence >= 45:
                     candidates.append(
                         (
                             field_index,
-                            MatchSuggestion(field.label, field.value, row, column, label, confidence),
+                            MatchSuggestion(field.label, field.value, table_index, row, column, label, confidence),
                         )
                     )
 
         suggestions: list[MatchSuggestion] = []
         used_sources: set[int] = set()
-        used_destinations: set[tuple[int, int]] = set()
+        used_destinations: set[tuple[int, int, int]] = set()
         for field_index, suggestion in sorted(candidates, key=lambda item: item[1].confidence, reverse=True):
-            destination = (suggestion.target_row, suggestion.target_column)
+            destination = (suggestion.target_table_index, suggestion.target_row, suggestion.target_column)
             if field_index in used_sources or destination in used_destinations:
                 continue
             used_sources.add(field_index)
@@ -89,28 +90,32 @@ class FieldMatcher:
                 )
         return fields
 
-    def _destinations(self, template: TemplateTable) -> list[tuple[int, int, str]]:
-        destinations: list[tuple[int, int, str]] = []
-        seen: set[tuple[int, int]] = set()
-        for row_index, row in enumerate(template.cells):
-            for col_index, cell in enumerate(row):
-                if not cell.value.strip():
-                    label = self._label_for_blank_cell(template, row_index, col_index)
-                    if label and (row_index, col_index) not in seen:
-                        destinations.append((row_index, col_index, label))
-                        seen.add((row_index, col_index))
+    def _destinations(self, template: TemplateTable) -> list[tuple[int, int, int, str]]:
+        destinations: list[tuple[int, int, int, str]] = []
+        seen: set[tuple[int, int, int]] = set()
+        for table in template.all_tables():
+            for row_index, row in enumerate(table.cells):
+                for col_index, cell in enumerate(row):
+                    if not cell.value.strip():
+                        label = self._label_for_blank_cell(table, row_index, col_index)
+                        destination = (table.table_index, row_index, col_index)
+                        if label and destination not in seen:
+                            destinations.append((table.table_index, row_index, col_index, label))
+                            seen.add(destination)
 
         if destinations:
             return destinations
 
-        for row_index, row in enumerate(template.cells):
-            for col_index, cell in enumerate(row):
-                if cell.value.strip():
-                    target_column = min(col_index + 1, max(template.column_count - 1, 0))
-                    if (row_index, target_column) not in seen:
-                        destinations.append((row_index, target_column, cell.value.strip()))
-                        seen.add((row_index, target_column))
-                    break
+        for table in template.all_tables():
+            for row_index, row in enumerate(table.cells):
+                for col_index, cell in enumerate(row):
+                    if cell.value.strip():
+                        target_column = min(col_index + 1, max(table.column_count - 1, 0))
+                        destination = (table.table_index, row_index, target_column)
+                        if destination not in seen:
+                            destinations.append((table.table_index, row_index, target_column, cell.value.strip()))
+                            seen.add(destination)
+                        break
         return destinations
 
     def _label_for_blank_cell(self, template: TemplateTable, row: int, column: int) -> str:

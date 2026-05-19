@@ -22,6 +22,7 @@ class TemplateGrid(QTableWidget):
     def load_template(self, template: TemplateTable) -> None:
         self.blockSignals(True)
         self.template = template
+        self.clearSpans()
         self.setRowCount(template.row_count)
         self.setColumnCount(template.column_count)
         for row in range(template.row_count):
@@ -30,7 +31,9 @@ class TemplateGrid(QTableWidget):
                 if not template.value_at(row, col):
                     item.setToolTip("Blank destination cell")
                 self.setItem(row, col, item)
-                cell = template.cells[row][col]
+                cell = template.cells[row][col] if col < len(template.cells[row]) else None
+                if not cell:
+                    continue
                 if cell.row_span > 1 or cell.column_span > 1:
                     self.setSpan(row, col, cell.row_span, cell.column_span)
         self.resizeColumnsToContents()
@@ -42,7 +45,10 @@ class TemplateGrid(QTableWidget):
 
     def highlight_validation_issues(self, issues: list[ValidationIssue]) -> None:
         self.clear_validation_highlights()
+        table_index = self.template.table_index if self.template else 0
         for issue in issues:
+            if issue.table_index != table_index:
+                continue
             item = self.item(issue.row, issue.column)
             if not item:
                 continue

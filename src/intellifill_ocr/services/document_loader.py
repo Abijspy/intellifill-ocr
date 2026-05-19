@@ -38,13 +38,20 @@ class DocumentLoader:
         doc = Document(path)
         text_parts = [p.text for p in doc.paragraphs if p.text.strip()]
         tables: list[list[list[str]]] = []
-        for table in doc.tables:
+        for table in self._iter_docx_tables(doc):
             parsed_table: list[list[str]] = []
             for row in table.rows:
                 parsed_table.append([cell.text.strip() for cell in row.cells])
             tables.append(parsed_table)
             text_parts.extend(" | ".join(row) for row in parsed_table)
         return ParsedDocument(path=path, text="\n".join(text_parts), tables=tables)
+
+    def _iter_docx_tables(self, container):
+        for table in container.tables:
+            yield table
+            for row in table.rows:
+                for cell in row.cells:
+                    yield from self._iter_docx_tables(cell)
 
     def _parse_excel(self, path: Path) -> ParsedDocument:
         sheets = pd.read_excel(path, sheet_name=None, header=None, dtype=str)

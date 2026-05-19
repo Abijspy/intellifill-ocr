@@ -13,7 +13,7 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 - PySide6 desktop UI with dark/light themes, a single Actions workflow button, split panes, tabs, zoomable document preview, and editable table preview.
 - Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview after those dock panels are closed.
 - Offline OCR using Tesseract, `pytesseract`, OpenCV preprocessing, deskewing, denoising, confidence scoring, and bounding boxes.
-- Template import from CSV, Excel, DOCX tables, images, and PDFs, with immediate visual, parsed-text, and parsed-table preview after upload.
+- Template import from CSV, Excel, DOCX tables, images, and PDFs, including templates with multiple tables. The Output Preview table selector lets users fill each table separately while saving/exporting them together.
 - Source import from DOCX, XLSX/XLS, CSV, PNG/JPG/JPEG, and PDFs, with the same document/text/table preview tabs.
 - Manual region selection for OCR and exact destination-cell selection.
 - Drag/click mapping workflow from extracted text to template cells.
@@ -22,16 +22,18 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 - Validation Rules Engine for required fields, GST/GSTIN format, dates, amounts, duplicate identifiers, and invoice subtotal/tax/total mismatch warnings.
 - Signature and stamp detection for approval/compliance documents, with visual review and preserved-layout exports that keep original signature/stamp artwork intact.
 - Direct Windows scanner import through local WIA scanner drivers, saving scanned pages as offline source images.
+- Ubuntu/Debian/Fedora builds auto-detect local Tesseract from `PATH` and common locations such as `/usr/bin/tesseract`.
 - Header-aware matching that fills blank cells beside or under template headings.
 - Compact traceability ID and Code 39 barcode for each extraction run. PDF, Word, and layout-preserving document exports place the ID/barcode once at the bottom center so saved files can be matched back to the SQLite run.
 - Detailed offline user guide, SQLite database preview, application log viewer, scrollable emoji What's New page with the installed version number, and user-triggered update checker.
 - Smooth wheel scrolling and polished scrollbars across tables, parsed text, help, logs, database preview, and changelog pages.
 - First launch after a fresh install or update automatically shows the What's New changelog once for that installed version.
+- Check for Updates downloads the matching Windows installer or Linux `.deb`/`.rpm` package. Linux updates show the terminal install command because package installation needs local admin privileges.
 - Windows installer shortcuts and runtime app identity are configured so taskbar pins use the current application icon.
 - SQLite storage through SQLAlchemy ORM for templates, runs, uploaded files, mappings, learned templates, extracted values, and timestamps.
 - Save/load mapping templates.
-- Export completed output to CSV, XLSX, Word, and PDF with traceability.
-- Export back into DOCX, XLSX, and CSV templates while preserving the original file layout as much as those formats allow. DOCX/XLSX preserved exports fill only blank/template cells, keeping headings, logos, merged table structure, split rows/columns, and approved/rejected signature areas intact.
+- Export completed output to CSV, XLSX, Word, and PDF with traceability. Multi-table templates export all tables in one output document: CSV sections, Excel sheets, Word tables, or PDF table sections.
+- Export back into DOCX, XLSX, and CSV templates while preserving the original file layout as much as those formats allow. DOCX/XLSX preserved exports fill all supported template tables, only blank/template cells, keeping headings, logos, merged table structure, split rows/columns, and approved/rejected signature areas intact.
 - Export filled PDF templates with original PDF page artwork preserved and values overlaid into detected blank table cells when coordinates are available.
 - PyInstaller packaging script for a standalone Windows `.exe`.
 - MSIX installer packaging scripts for Windows deployment.
@@ -72,6 +74,17 @@ You can also set paths inside the app:
 4. Choose dark or light appearance from the same Settings window.
 5. Save. The app writes these settings to `%LOCALAPPDATA%\IntelliFillOCR\settings.json`.
 
+## Linux Packages
+
+The GitHub release workflow builds Linux packages for Debian/Ubuntu and Fedora/RPM systems. Install Tesseract locally first or let the app auto-detect it from `PATH`:
+
+```bash
+sudo apt install tesseract-ocr
+sudo dnf install tesseract
+```
+
+The app UI and OCR workflow are the same PySide6 application as Windows. Windows-only scanner acquisition uses WIA drivers, so Linux users should import scanned images or PDFs as source files.
+
 ## Build Standalone EXE
 
 ```powershell
@@ -87,25 +100,32 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-2.2.4-win-x64.zip
-IntelliFillOCR-Setup-2.2.4-win-x64.exe
+IntelliFillOCR-2.3.0-win-x64.zip
+IntelliFillOCR-Setup-2.3.0-win-x64.exe
 ```
 
-and publishes both files to a GitHub release.
+It also builds Linux packages in GitHub Actions only:
 
-To publish version `2.2.4` manually:
+```text
+IntelliFillOCR-2.3.0-linux-x64.deb
+IntelliFillOCR-2.3.0-linux-x64.rpm
+```
+
+and publishes all release files to a GitHub release.
+
+To publish version `2.3.0` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `2.2.4` and run it.
+5. Keep version `2.3.0` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v2.2.4
-git push origin v2.2.4
+git tag v2.3.0
+git push origin v2.3.0
 ```
 
 ## Build Windows Installer
@@ -114,13 +134,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 2.2.4
+.\scripts\build-installer.ps1 -Version 2.3.0
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-2.2.4-win-x64.exe
+installer\out\IntelliFillOCR-Setup-2.3.0-win-x64.exe
 ```
 
 ## Build MSIX Installer
@@ -142,14 +162,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_2.2.4.0_x64.msix
+msix\out\IntelliFillOCR_2.3.0.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_2.2.4.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_2.3.0.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```

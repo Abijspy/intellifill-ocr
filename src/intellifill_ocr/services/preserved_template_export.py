@@ -26,7 +26,13 @@ class PreservedTemplateExporter:
             self._export_docx(template_path, table, output_path, traceability_code)
             return
         if suffix == ".csv":
-            rows = [[cell.value for cell in row] for row in table.cells]
+            rows: list[list[str]] = []
+            for template_table in table.all_tables():
+                if rows:
+                    rows.append([])
+                if table.table_count > 1:
+                    rows.append([template_table.label])
+                rows.extend([[cell.value for cell in row] for row in template_table.cells])
             if traceability_code:
                 rows.extend([[], ["Traceability ID", traceability_code]])
             pd.DataFrame(rows).to_csv(output_path, index=False, header=False)
@@ -35,15 +41,19 @@ class PreservedTemplateExporter:
 
     def _export_xlsx(self, template_path: Path, table: TemplateTable, output_path: Path, traceability_code: str) -> None:
         workbook = load_workbook(template_path)
-        sheet = workbook.active
-        for row_index, row in enumerate(table.cells, start=1):
-            for col_index, cell in enumerate(row, start=1):
-                target_cell = sheet.cell(row=row_index, column=col_index)
-                if isinstance(target_cell, MergedCell):
-                    continue
-                if self._should_fill_preserved_cell(cell, target_cell.value):
-                    target_cell.value = cell.value
+        for template_table in table.all_tables():
+            if template_table.table_index >= len(workbook.worksheets):
+                continue
+            sheet = workbook.worksheets[template_table.table_index]
+            for row_index, row in enumerate(template_table.cells, start=1):
+                for col_index, cell in enumerate(row, start=1):
+                    target_cell = sheet.cell(row=row_index, column=col_index)
+                    if isinstance(target_cell, MergedCell):
+                        continue
+                    if self._should_fill_preserved_cell(cell, target_cell.value):
+                        target_cell.value = cell.value
         if traceability_code:
+            sheet = workbook.active
             traceability_row = sheet.max_row + 2
             sheet.cell(row=traceability_row, column=1).value = "Traceability ID"
             sheet.cell(row=traceability_row, column=2).value = traceability_code
@@ -55,23 +65,34 @@ class PreservedTemplateExporter:
 
     def _export_docx(self, template_path: Path, table: TemplateTable, output_path: Path, traceability_code: str) -> None:
         document = Document(template_path)
-        if not document.tables:
+        document_tables = list(self._iter_docx_tables(document))
+        if not document_tables:
             self._append_docx_traceability(document, traceability_code)
             document.save(output_path)
             return
 
-        target_table = document.tables[0]
-        for row_index, row in enumerate(table.cells):
-            if row_index >= len(target_table.rows):
-                break
-            for col_index, source_cell in enumerate(row):
-                if col_index >= len(target_table.rows[row_index].cells):
+        for template_table in table.all_tables():
+            if template_table.table_index >= len(document_tables):
+                continue
+            target_table = document_tables[template_table.table_index]
+            for row_index, row in enumerate(template_table.cells):
+                if row_index >= len(target_table.rows):
                     break
-                target_cell = target_table.rows[row_index].cells[col_index]
-                if self._should_fill_preserved_cell(source_cell, self._cell_text(target_cell)):
-                    self._set_cell_text(target_cell, source_cell.value)
+                for col_index, source_cell in enumerate(row):
+                    if col_index >= len(target_table.rows[row_index].cells):
+                        break
+                    target_cell = target_table.rows[row_index].cells[col_index]
+                    if self._should_fill_preserved_cell(source_cell, self._cell_text(target_cell)):
+                        self._set_cell_text(target_cell, source_cell.value)
         self._append_docx_traceability(document, traceability_code)
         document.save(output_path)
+
+    def _iter_docx_tables(self, container):
+        for table in container.tables:
+            yield table
+            for row in table.rows:
+                for cell in row.cells:
+                    yield from self._iter_docx_tables(cell)
 
     def _should_fill_preserved_cell(self, cell: TemplateCell, original_value: object | None) -> bool:
         return cell.is_placeholder and bool(cell.value.strip()) and is_placeholder_text(original_value)

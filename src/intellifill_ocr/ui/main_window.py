@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QProcess, QTimer, QUrl, Qt
@@ -88,6 +89,8 @@ class MainWindow(QMainWindow):
         self.scanner_service = ScannerService()
 
         self.template: TemplateTable | None = None
+        self.template_tables: list[TemplateTable] = []
+        self.current_template_table_index = 0
         self.template_path: Path | None = None
         self.template_id: int | None = None
         self.run_id: int | None = None
@@ -136,6 +139,9 @@ class MainWindow(QMainWindow):
 
         self.mapping_panel = MappingPanel()
         self.template_grid = TemplateGrid()
+        self.template_table_selector = QComboBox()
+        self.template_table_selector.setEnabled(False)
+        self.template_table_selector.currentIndexChanged.connect(self._show_selected_template_table)
 
         table_tab = QWidget()
         table_layout = QVBoxLayout(table_tab)
@@ -184,7 +190,8 @@ class MainWindow(QMainWindow):
         self.barcode_label.setFixedHeight(78)
         bottom_layout.addWidget(self.traceability_label)
         bottom_layout.addWidget(self.barcode_label)
-        bottom_layout.addWidget(QLabel("Output Table Preview - click a destination cell, then Map Selected"))
+        bottom_layout.addWidget(QLabel("Output Table Preview - choose a table, click a destination cell, then Map Selected"))
+        bottom_layout.addWidget(self.template_table_selector)
         bottom_layout.addWidget(self.template_grid)
         self.preview_dock = QDockWidget("Output Preview", self)
         self.preview_dock.setTitleBarWidget(DockTitleBar(self.preview_dock, "Output Preview"))
@@ -349,6 +356,40 @@ class MainWindow(QMainWindow):
         self._sync_panel_actions()
         self.statusBar().showMessage("Restored Uploaded Files, Extracted Fields, and Output Preview panels", 5000)
 
+    def _load_template_table_selector(self) -> None:
+        if not self.template:
+            return
+        self.template_tables = self.template.all_tables()
+        self.current_template_table_index = 0
+        self.template_table_selector.blockSignals(True)
+        self.template_table_selector.clear()
+        for table in self.template_tables:
+            self.template_table_selector.addItem(
+                f"{table.label}: {table.row_count} rows x {table.column_count} columns",
+                table.table_index,
+            )
+        self.template_table_selector.setEnabled(len(self.template_tables) > 1)
+        self.template_table_selector.setCurrentIndex(0)
+        self.template_table_selector.blockSignals(False)
+        self._show_selected_template_table(0)
+
+    def _active_template_table(self) -> TemplateTable | None:
+        if not self.template:
+            return None
+        if not self.template_tables:
+            self.template_tables = self.template.all_tables()
+        if 0 <= self.current_template_table_index < len(self.template_tables):
+            return self.template_tables[self.current_template_table_index]
+        return self.template_tables[0] if self.template_tables else self.template
+
+    def _show_selected_template_table(self, index: int) -> None:
+        if not (0 <= index < len(self.template_tables)):
+            return
+        self.current_template_table_index = index
+        self.template_grid.load_template(self.template_tables[index])
+        if self.last_validation_issues:
+            self.template_grid.highlight_validation_issues(self.last_validation_issues)
+
     def load_template(self) -> None:
         path_str, _ = QFileDialog.getOpenFileName(
             self,
@@ -367,9 +408,12 @@ class MainWindow(QMainWindow):
             self.run_id = self.repository.start_run(self.template_id)
             self.traceability_code = self.repository.get_traceability_code(self.run_id)
             self._update_traceability_preview()
-            self.template_grid.load_template(self.template)
+            self._load_template_table_selector()
             self._add_preview_document(path, "Template")
-            self.statusBar().showMessage(f"Loaded template: {path.name}", 5000)
+            self.statusBar().showMessage(
+                f"Loaded template: {path.name} with {len(self.template_tables)} table(s)",
+                5000,
+            )
         except Exception as exc:  # noqa: BLE001
             self._show_error("Template load failed", exc)
 
@@ -428,7 +472,13 @@ class MainWindow(QMainWindow):
         self.mapping_service.clear()
         for suggestion in suggestions:
             field = ExtractedField(suggestion.source_label, suggestion.source_value, suggestion.confidence)
-            mapping = self.mapping_service.add_mapping(field, suggestion.target_row, suggestion.target_column, suggestion.confidence)
+            mapping = self.mapping_service.add_mapping(
+                field,
+                suggestion.target_row,
+                suggestion.target_column,
+                suggestion.confidence,
+                target_table_index=suggestion.target_table_index,
+            )
             if self.run_id:
                 self.repository.save_mapping(
                     self.run_id,
@@ -438,10 +488,14 @@ class MainWindow(QMainWindow):
                     mapping.target_column,
                     mapping.confidence,
                     mapping.region,
+                    target_table_index=mapping.target_table_index,
                 )
         self.mapping_service.apply(self.template)
         self.template_grid.update_from_template()
-        self.statusBar().showMessage(f"Applied {len(suggestions)} intelligent match suggestion(s)", 5000)
+        self.statusBar().showMessage(
+            f"Applied {len(suggestions)} intelligent match suggestion(s) across {len(self.template_tables) or 1} table(s)",
+            5000,
+        )
 
     def map_selected(self) -> None:
         if not self.template:
@@ -453,8 +507,17 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Selection required", "Select an extracted field and a destination cell.")
             return
         row, column = destination
-        mapping = self.mapping_service.add_mapping(field, row, column)
-        self.template.set_value(row, column, mapping.source_value)
+        target_table = self._active_template_table()
+        if not target_table:
+            QMessageBox.information(self, "Template required", "Upload a template first.")
+            return
+        mapping = self.mapping_service.add_mapping(
+            field,
+            row,
+            column,
+            target_table_index=target_table.table_index,
+        )
+        target_table.set_value(row, column, mapping.source_value)
         self.template_grid.update_from_template()
         if self.run_id:
             self.repository.save_mapping(
@@ -465,6 +528,7 @@ class MainWindow(QMainWindow):
                 mapping.target_column,
                 mapping.confidence,
                 mapping.region,
+                target_table_index=mapping.target_table_index,
             )
 
     def ocr_selected_region(self, x: int, y: int, width: int, height: int) -> None:
@@ -547,7 +611,13 @@ class MainWindow(QMainWindow):
                     value=item["source_value"],
                     confidence=float(item.get("confidence", 0)),
                 )
-                self.mapping_service.add_mapping(field, int(item["target_row"]), int(item["target_column"]))
+                self.mapping_service.add_mapping(
+                    field,
+                    int(item["target_row"]),
+                    int(item["target_column"]),
+                    float(item.get("confidence", 0)),
+                    target_table_index=int(item.get("target_table_index") or 0),
+                )
             self.mapping_service.apply(self.template)
             self.template_grid.update_from_template()
             self.statusBar().showMessage("Mapping template loaded", 5000)
@@ -699,6 +769,7 @@ class MainWindow(QMainWindow):
                 application.target_row,
                 application.target_column,
                 application.confidence,
+                target_table_index=application.target_table_index,
             )
             if self.run_id:
                 self.repository.save_mapping(
@@ -709,6 +780,7 @@ class MainWindow(QMainWindow):
                     mapping.target_column,
                     mapping.confidence,
                     mapping.region,
+                    target_table_index=mapping.target_table_index,
                 )
         self.mapping_service.apply(self.template)
         self.template_grid.update_from_template()
@@ -928,7 +1000,7 @@ class MainWindow(QMainWindow):
             "Update Available",
             f"IntelliFill OCR {update_info.latest_version} is available.\n"
             f"Current version: {update_info.current_version}\n\n"
-            "Download and launch the installer now?",
+            f"Download the {update_info.platform_label} now?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
@@ -936,6 +1008,10 @@ class MainWindow(QMainWindow):
 
         installer_path = self._download_update_installer(update_info.installer_asset)
         if not installer_path:
+            return
+
+        if sys.platform != "win32" or update_info.installer_asset.package_type != "windows":
+            self._show_linux_update_instructions(installer_path, update_info.installer_asset.package_type)
             return
 
         if not QProcess.startDetached(str(installer_path), []):
@@ -950,7 +1026,7 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(500, QApplication.quit)
 
     def _download_update_installer(self, asset: ReleaseAsset) -> Path | None:
-        progress = QProgressDialog("Downloading update installer...", "Cancel", 0, 100, self)
+        progress = QProgressDialog("Downloading update package...", "Cancel", 0, 100, self)
         progress.setWindowTitle("Downloading Update")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
@@ -982,12 +1058,26 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.question(
             self,
             "Update Available",
-            f"IntelliFill OCR {update_info.latest_version} is available, but no setup installer was attached.\n\n"
+            f"IntelliFill OCR {update_info.latest_version} is available, but no {update_info.platform_label} was attached.\n\n"
             "Open the release page in your browser?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if answer == QMessageBox.StandardButton.Yes and update_info.release_url:
             QDesktopServices.openUrl(QUrl(update_info.release_url))
+
+    def _show_linux_update_instructions(self, package_path: Path, package_type: str) -> None:
+        command = self.update_service.install_command(package_path, package_type)
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            clipboard.setText(command)
+        QMessageBox.information(
+            self,
+            "Update Package Downloaded",
+            "The Linux update package was downloaded.\n\n"
+            f"Package:\n{package_path}\n\n"
+            "Run this command in a terminal to install it. The command was copied to the clipboard:\n"
+            f"{command}",
+        )
 
     def _export(self, suffix: str) -> None:
         if not self.template:
@@ -1030,6 +1120,12 @@ class MainWindow(QMainWindow):
             self.viewer.scene.addText("Document preview is available in the Parsed Text tab.")
 
     def _reset_workflow_for_new_template(self) -> None:
+        self.template = None
+        self.template_tables.clear()
+        self.current_template_table_index = 0
+        self.template_path = None
+        self.template_id = None
+        self.run_id = None
         self.documents.clear()
         self.preview_documents.clear()
         self.fields.clear()
@@ -1045,6 +1141,14 @@ class MainWindow(QMainWindow):
         self.viewer.scene.clear()
         self.text_preview.clear()
         self.current_preview_document = None
+        self.template_table_selector.blockSignals(True)
+        self.template_table_selector.clear()
+        self.template_table_selector.setEnabled(False)
+        self.template_table_selector.blockSignals(False)
+        self.template_grid.template = None
+        self.template_grid.clear()
+        self.template_grid.setRowCount(0)
+        self.template_grid.setColumnCount(0)
         self._clear_table_preview("Upload a source file or template to view parsed tables.")
 
     def _add_preview_document(self, path: Path, label: str) -> None:

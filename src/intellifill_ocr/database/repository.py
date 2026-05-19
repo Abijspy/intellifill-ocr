@@ -39,22 +39,33 @@ class Repository:
         self.create_schema()
 
     def save_template(self, template: TemplateTable, source_path: Path) -> int:
-        payload = [
-            [
+        payload = {
+            "version": 2,
+            "tables": [
                 {
-                    "row": cell.row,
-                    "column": cell.column,
-                    "value": cell.value,
-                    "is_placeholder": cell.is_placeholder,
-                    "row_span": cell.row_span,
-                    "column_span": cell.column_span,
-                    "source_page": cell.source_page,
-                    "bbox": cell.bbox,
+                    "table_index": table.table_index,
+                    "label": table.label,
+                    "cells": [
+                        [
+                            {
+                                "row": cell.row,
+                                "column": cell.column,
+                                "table_index": cell.table_index,
+                                "value": cell.value,
+                                "is_placeholder": cell.is_placeholder,
+                                "row_span": cell.row_span,
+                                "column_span": cell.column_span,
+                                "source_page": cell.source_page,
+                                "bbox": cell.bbox,
+                            }
+                            for cell in row
+                        ]
+                        for row in table.cells
+                    ],
                 }
-                for cell in row
-            ]
-            for row in template.cells
-        ]
+                for table in template.all_tables()
+            ],
+        }
         with self.session_factory() as session:
             record = TemplateRecord(
                 name=template.name,
@@ -98,6 +109,7 @@ class Repository:
         target_column: int,
         confidence: float,
         region: RegionSelection | None = None,
+        target_table_index: int = 0,
     ) -> None:
         with self.session_factory() as session:
             region_json = json.dumps(region.__dict__ | {"source_path": str(region.source_path)}) if region else ""
@@ -106,6 +118,7 @@ class Repository:
                     run_id=run_id,
                     source_label=source_label,
                     source_value=source_value,
+                    target_table_index=target_table_index,
                     target_row=target_row,
                     target_column=target_column,
                     confidence=confidence,
@@ -116,18 +129,20 @@ class Repository:
 
     def save_completed_values(self, run_id: int, template: TemplateTable) -> None:
         with self.session_factory() as session:
-            for row_index, row in enumerate(template.cells):
-                for col_index, cell in enumerate(row):
-                    session.add(
-                        ExtractedValueRecord(
-                            run_id=run_id,
-                            row=row_index,
-                            column=col_index,
-                            field_name=template.value_at(row_index, 0),
-                            value=cell.value,
-                            confidence=1.0 if cell.value else 0.0,
+            for table in template.all_tables():
+                for row_index, row in enumerate(table.cells):
+                    for col_index, cell in enumerate(row):
+                        session.add(
+                            ExtractedValueRecord(
+                                run_id=run_id,
+                                table_index=table.table_index,
+                                row=row_index,
+                                column=col_index,
+                                field_name=table.value_at(row_index, 0),
+                                value=cell.value,
+                                confidence=1.0 if cell.value else 0.0,
+                            )
                         )
-                    )
             run = session.get(ExtractionRunRecord, run_id)
             if run:
                 run.status = "saved"
@@ -192,6 +207,18 @@ class Repository:
             }
             if "traceability_code" not in columns:
                 connection.exec_driver_sql("ALTER TABLE extraction_runs ADD COLUMN traceability_code VARCHAR(80) DEFAULT ''")
+            mapping_columns = {
+                row[1]
+                for row in connection.exec_driver_sql("PRAGMA table_info(mappings)").fetchall()
+            }
+            if "target_table_index" not in mapping_columns:
+                connection.exec_driver_sql("ALTER TABLE mappings ADD COLUMN target_table_index INTEGER DEFAULT 0")
+            value_columns = {
+                row[1]
+                for row in connection.exec_driver_sql("PRAGMA table_info(extracted_values)").fetchall()
+            }
+            if "table_index" not in value_columns:
+                connection.exec_driver_sql("ALTER TABLE extracted_values ADD COLUMN table_index INTEGER DEFAULT 0")
 
     @staticmethod
     def _json_loads(value: str, fallback: Any) -> Any:
