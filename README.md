@@ -4,7 +4,7 @@
 
 # IntelliFill OCR Desktop
 
-IntelliFill OCR Desktop is a fully offline Windows/Linux(Ubuntu/debian/Fedora) desktop application for OCR-driven data extraction, visual field mapping, and table/form filling.
+IntelliFill OCR Desktop is a fully offline Windows/Linux(Ubuntu/debian/Fedora/RHEL) desktop application for OCR-driven data extraction, visual field mapping, and table/form filling.
 
 It supports template upload, source document upload, region-based OCR, fuzzy field matching, editable previews, SQLite persistence, traceability barcodes, and export to CSV/Excel/PDF or the original template format where supported.
 
