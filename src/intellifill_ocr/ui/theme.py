@@ -93,32 +93,6 @@ QDockWidget::title {
     padding: 7px 44px 7px 8px;
     border: 1px solid #d9dee8;
 }
-QWidget#DockTitleBar {
-    background: #edf1f7;
-    border: 1px solid #d9dee8;
-}
-QLabel#DockTitleLabel {
-    color: #172033;
-    background: transparent;
-    font-weight: 600;
-}
-QToolButton#DockTitleButton, QToolButton#DockTitleCloseButton {
-    color: #172033;
-    background: #ffffff;
-    border: 1px solid #8fa0b7;
-    border-radius: 3px;
-    padding: 0;
-    font-weight: 800;
-}
-QToolButton#DockTitleButton:hover {
-    background: #d9e9ff;
-    border-color: #0f62fe;
-}
-QToolButton#DockTitleCloseButton:hover {
-    background: #fee2e2;
-    border-color: #ef4444;
-    color: #991b1b;
-}
 QTableWidget, QTextEdit, QListWidget, QTreeWidget, QLineEdit, QComboBox {
     background: #ffffff;
     color: #172033;
@@ -225,11 +199,6 @@ QToolButton#PrimaryActionsButton::menu-indicator { image: none; }
 QLineEdit, QComboBox { background: #1d2430; border: 1px solid #445064; padding: 5px; }
 QHeaderView::section { background: #252d3a; padding: 6px; border: 0; color: #edf2f7; }
 QDockWidget::title { background: #252d3a; color: #edf2f7; padding: 7px 44px 7px 8px; border: 1px solid #303948; }
-QWidget#DockTitleBar { background: #252d3a; border: 1px solid #303948; }
-QLabel#DockTitleLabel { color: #edf2f7; background: transparent; font-weight: 600; }
-QToolButton#DockTitleButton, QToolButton#DockTitleCloseButton { color: #0f172a; background: #f8fafc; border: 1px solid #93c5fd; border-radius: 3px; padding: 0; font-weight: 800; }
-QToolButton#DockTitleButton:hover { background: #dbeafe; border-color: #60a5fa; color: #0f172a; }
-QToolButton#DockTitleCloseButton:hover { background: #fecaca; border-color: #f87171; color: #7f1d1d; }
 QTableWidget::item:selected, QListWidget::item:selected { background: #334b70; color: #ffffff; }
 QTabBar::tab { background: #252d3a; color: #cbd5e1; padding: 8px 14px; border: 1px solid #303948; border-bottom: 0; border-top-left-radius: 5px; border-top-right-radius: 5px; }
 QTabBar::tab:selected { background: #1d2430; color: #ffffff; }

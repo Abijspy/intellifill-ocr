@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "2.3.0.0",
+    [string]$Version = "2.3.1.0",
     [string]$PackageName = "IntelliFillOCR.Desktop",
     [string]$DisplayName = "IntelliFill OCR",
     [string]$Publisher = "CN=IntelliFillOCR",

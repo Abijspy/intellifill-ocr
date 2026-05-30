@@ -38,6 +38,16 @@ class HelpGuideDialog(QDialog):
     def _guide_html(self) -> str:
         return """
         <html>
+        <head>
+        <style>
+          .shot { border: 1px solid #8fa0b7; background: #f8fafc; padding: 8px; margin: 8px 0 14px 0; }
+          .panel { border: 1px solid #c7d0dc; background: #ffffff; padding: 8px; }
+          .dark { background: #1d2430; color: #edf2f7; border-color: #445064; }
+          .accent { background: #d9e9ff; color: #0f172a; font-weight: bold; }
+          .flow { border: 1px solid #c7d0dc; background: #ffffff; padding: 7px; text-align: center; }
+          .warn { background: #fff7ed; border: 1px solid #fed7aa; padding: 8px; }
+        </style>
+        </head>
         <body>
         <h1>IntelliFill OCR User Guide</h1>
         <p>
@@ -59,6 +69,52 @@ class HelpGuideDialog(QDialog):
         <b>Shift</b> while scrolling to move sideways in wide tables. The document preview keeps
         its wheel zoom behavior so you can inspect scanned pages closely.
         </p>
+
+        <h2>Screenshot-Style UI Map</h2>
+        <p>
+        The app layout is built around four working areas. The map below mirrors the main window
+        so new users can quickly find each feature.
+        </p>
+        <div class="shot">
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td colspan="3" class="accent">Top: Actions button, logo, app title</td>
+          </tr>
+          <tr>
+            <td width="22%" class="panel"><b>Uploaded Files</b><br/>Template and source list<br/>Click a file to preview it</td>
+            <td width="52%" class="panel"><b>Center Preview Tabs</b><br/>Document Preview<br/>Parsed Text<br/>Parsed Tables</td>
+            <td width="26%" class="panel"><b>Extracted Fields</b><br/>Detected key/value rows<br/>OCR region output<br/>Confidence scores</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="panel"><b>Output Preview</b><br/>Traceability barcode, template table selector, editable destination grid</td>
+          </tr>
+        </table>
+        </div>
+
+        <h2>Workflow Flowchart</h2>
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="flow">1<br/><b>Upload Template</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">2<br/><b>Upload Sources</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">3<br/><b>Preview OCR/Text/Tables</b></td>
+          </tr>
+          <tr>
+            <td class="flow">4<br/><b>Auto Match</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">5<br/><b>Manual Map</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">6<br/><b>Validate</b></td>
+          </tr>
+          <tr>
+            <td class="flow">7<br/><b>Save SQLite</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">8<br/><b>Export</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">9<br/><b>Trace by Barcode</b></td>
+          </tr>
+        </table>
 
         <h2>Recommended Workflow</h2>
         <ol>
@@ -90,6 +146,19 @@ class HelpGuideDialog(QDialog):
         Mappings remember the selected table number, so values intended for a second approval,
         summary, or line-item table do not overwrite the first table.
         </p>
+        <div class="shot">
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="accent">Multi-table template screenshot guide</td>
+          </tr>
+          <tr>
+            <td class="panel"><b>Output Preview selector</b>: Table 1: invoice header &nbsp; | &nbsp; Table 2: line items &nbsp; | &nbsp; Table 3: approval/signature area</td>
+          </tr>
+          <tr>
+            <td class="panel"><b>How to fill another table</b>: choose the table &rarr; click the blank cell &rarr; map the selected source field &rarr; edit the filled value if OCR needs correction.</td>
+          </tr>
+        </table>
+        </div>
         <p>
         For DOCX, XLSX, and supported PDF templates, use the preserved-layout exports to keep
         headings, logos, table structure, signature areas, and existing document artwork while
@@ -118,6 +187,19 @@ class HelpGuideDialog(QDialog):
           <li><b>Parsed Tables</b>: shows detected rows/columns. Use this to confirm table structure before mapping.</li>
         </ul>
 
+        <h2>Source Preview Flowchart</h2>
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="flow"><b>File selected</b><br/>Uploaded Files panel</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>Visual preview</b><br/>Image/PDF page or document note</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>Parsed text</b><br/>Raw extracted lines</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>Parsed tables</b><br/>Rows/columns selector</td>
+          </tr>
+        </table>
+
         <h2>OCR and Region Selection</h2>
         <p>
         Image and scanned PDF content is processed offline through Tesseract, pytesseract, OpenCV,
@@ -131,6 +213,13 @@ class HelpGuideDialog(QDialog):
         preview, draw tightly around the value, review the extracted field text, then map it to the
         exact destination cell.
         </p>
+        <div class="shot">
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="panel"><b>OCR region screenshot guide</b><br/>Document Preview &rarr; drag rectangle around printed value &rarr; new "OCR Region" appears in Extracted Fields &rarr; map it to the output table.</td>
+          </tr>
+        </table>
+        </div>
 
         <h2>Manual Mapping</h2>
         <p>
@@ -150,6 +239,21 @@ class HelpGuideDialog(QDialog):
         For repeated forms, finish one clean mapping and save it as a learned template. Future
         documents of the same type can then be filled with far less manual work.
         </p>
+
+        <h2>Manual Mapping Flowchart</h2>
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="flow">Select source field</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Choose destination table</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Click destination cell</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Map Selected</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Edit value</td>
+          </tr>
+        </table>
 
         <h2>Intelligent Matching</h2>
         <p>
@@ -175,6 +279,21 @@ class HelpGuideDialog(QDialog):
           <li>Use <b>Suggest Learned Templates</b> to review options or <b>Apply Best Learned Template</b> to fill quickly.</li>
         </ol>
 
+        <h2>Template Learning Flowchart</h2>
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="flow">Map once</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Save learned template</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Upload similar source later</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Review confidence</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow">Apply mappings</td>
+          </tr>
+        </table>
+
         <h2>Validation Rules</h2>
         <p>
         Use <b>Actions &gt; Run Validation Checks</b> to find required blanks, invalid GST/GSTIN,
@@ -182,6 +301,10 @@ class HelpGuideDialog(QDialog):
         subtotal/tax/total mismatches. Validation warnings also appear before saving or exporting.
         Cells with issues are highlighted in the output preview.
         </p>
+        <div class="warn">
+        <b>Validation screenshot guide:</b> warnings appear before save/export, the Validation Results
+        window lists the table/cell, and the current Output Preview table highlights cells that need review.
+        </div>
         <p>
         Validation is a warning system, not a lock. You can still export when a warning is expected,
         but the highlighted cells show where a supervisor should review before final storage.
@@ -228,6 +351,24 @@ class HelpGuideDialog(QDialog):
         preserved-layout export when the original template branding, headings, logos, merged rows,
         signature blocks, or approval text must remain exactly where they were.
         </p>
+
+        <h2>Export Decision Flowchart</h2>
+        <table width="100%" cellspacing="6" cellpadding="6">
+          <tr>
+            <td class="flow"><b>Need exact original look?</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>Yes</b><br/>Preserved template export</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>No</b><br/>Generated CSV/Excel/Word/PDF</td>
+          </tr>
+          <tr>
+            <td class="flow"><b>Need traceability?</b></td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>PDF/Word</b><br/>Barcode in footer</td>
+            <td class="flow">&rarr;</td>
+            <td class="flow"><b>SQLite</b><br/>Traceability ID stored with run</td>
+          </tr>
+        </table>
 
         <h2>Panels</h2>
         <p>

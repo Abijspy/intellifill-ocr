@@ -60,7 +60,6 @@ from intellifill_ocr.ui.template_learning_dialog import TemplateSuggestionDialog
 from intellifill_ocr.ui.theme import apply_theme
 from intellifill_ocr.ui.validation_dialog import ValidationDialog
 from intellifill_ocr.ui.widgets.document_viewer import DocumentViewer
-from intellifill_ocr.ui.widgets.dock_title_bar import DockTitleBar
 from intellifill_ocr.ui.widgets.mapping_panel import MappingPanel
 from intellifill_ocr.ui.widgets.template_grid import TemplateGrid
 from intellifill_ocr.utils.config import AppConfig
@@ -167,7 +166,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(QLabel("Uploaded Files"))
         left_layout.addWidget(self.file_list)
         self.files_dock = QDockWidget("Uploaded Files", self)
-        self.files_dock.setTitleBarWidget(DockTitleBar(self.files_dock, "Uploaded Files"))
+        self._configure_panel_dock(self.files_dock)
         self.files_dock.setWidget(left)
         self.files_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.files_dock)
@@ -177,7 +176,7 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(QLabel("Extracted Fields"))
         right_layout.addWidget(self.mapping_panel)
         self.fields_dock = QDockWidget("Extracted Fields", self)
-        self.fields_dock.setTitleBarWidget(DockTitleBar(self.fields_dock, "Extracted Fields"))
+        self._configure_panel_dock(self.fields_dock)
         self.fields_dock.setWidget(right)
         self.fields_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.fields_dock)
@@ -194,11 +193,19 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(self.template_table_selector)
         bottom_layout.addWidget(self.template_grid)
         self.preview_dock = QDockWidget("Output Preview", self)
-        self.preview_dock.setTitleBarWidget(DockTitleBar(self.preview_dock, "Output Preview"))
+        self._configure_panel_dock(self.preview_dock)
         self.preview_dock.setWidget(bottom)
         self.preview_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.preview_dock)
         self._connect_panel_actions()
+
+    def _configure_panel_dock(self, dock: QDockWidget) -> None:
+        dock.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
+        )
+        dock.setTitleBarWidget(None)
 
     def _build_action_header(self) -> QWidget:
         header = QFrame(self)

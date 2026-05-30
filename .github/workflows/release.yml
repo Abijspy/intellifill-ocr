@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.3.0"
+        default: "2.3.1"
   push:
     tags:
       - "v*"
@@ -102,15 +102,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🗂️ Version $env:RELEASE_VERSION",
-            "- Added full multi-table template support for DOCX, XLSX/XLS, CSV, PDF, and OCR templates.",
-            "- Output Preview now lets users choose which template table to fill.",
-            "- Manual mappings, intelligent matching, learned templates, validation, SQLite storage, and exports now remember destination table numbers.",
-            "- CSV, Excel, Word, PDF, and preserved-layout exports include all template tables in one output document.",
-            "- Removed the external repository link from the in-app What's New page.",
-            "- Added GitHub Actions builds for Debian and Fedora Linux packages.",
-            "- Added Linux-aware update downloads for .deb/.rpm packages with install commands instead of launching a Windows installer.",
-            "- Added automatic Tesseract detection on Ubuntu/Debian/Fedora through PATH and common install locations.",
+            "🪟 Version $env:RELEASE_VERSION",
+            "- Replaced the custom dock-panel title buttons with Qt6 native QDockWidget close and float controls.",
+            "- Fixed panel title-bar button visibility/behavior bugs by removing the custom [] and X title widget.",
+            "- Kept Actions > Panels restore controls so closed Uploaded Files, Extracted Fields, and Output Preview panels can still be reopened.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

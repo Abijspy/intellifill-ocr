@@ -50,6 +50,13 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🪟 Version 2.3.1</h2>
+        <ul>
+          <li>Dock panels now use Qt6 native close and float controls instead of custom title-bar buttons.</li>
+          <li>Removed the custom [] and X panel buttons that could be hard to read or behave inconsistently.</li>
+          <li>Actions &gt; Panels still restores Uploaded Files, Extracted Fields, and Output Preview if a panel is closed.</li>
+        </ul>
+
         <h2>🗂️ Version 2.3.0</h2>
         <ul>
           <li>Template documents with two or more tables now load every table into the Output Preview.</li>
