@@ -50,6 +50,13 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🌗 Version 2.3.2</h2>
+        <ul>
+          <li>User Guide and Feature Help workflow diagrams are now readable in dark mode.</li>
+          <li>Screenshot-style maps, flowcharts, warning boxes, and help panels now use theme-aware colors.</li>
+          <li>The detailed help content remains the same, but contrast is improved in both dark and light themes.</li>
+        </ul>
+
         <h2>🪟 Version 2.3.1</h2>
         <ul>
           <li>Dock panels now use Qt6 native close and float controls instead of custom title-bar buttons.</li>

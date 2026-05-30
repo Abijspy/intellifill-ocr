@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices, QFont
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextBrowser, QVBoxLayout
+from PySide6.QtGui import QDesktopServices, QFont, QPalette
+from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QPushButton, QTextBrowser, QVBoxLayout
 
 from intellifill_ocr.ui.dialog_utils import keep_dialog_on_screen
 
@@ -18,6 +18,14 @@ class HelpGuideDialog(QDialog):
         guide = QTextBrowser()
         guide.setOpenExternalLinks(False)
         guide.anchorClicked.connect(QDesktopServices.openUrl)
+        colors = self._guide_colors()
+        guide.setStyleSheet(
+            "QTextBrowser {"
+            f" background: {colors['background']};"
+            f" color: {colors['text']};"
+            f" border: 1px solid {colors['border']};"
+            "}"
+        )
         guide.setHtml(self._guide_html())
 
         title_font = QFont()
@@ -35,17 +43,96 @@ class HelpGuideDialog(QDialog):
         layout.addWidget(guide)
         layout.addLayout(buttons)
 
+    def _guide_colors(self) -> dict[str, str]:
+        app = QApplication.instance()
+        style_sheet = app.styleSheet().lower() if app else ""
+        palette_is_dark = self.palette().color(QPalette.ColorRole.Window).lightness() < 128
+        dark_mode = "#151922" in style_sheet or "#1d2430" in style_sheet or palette_is_dark
+
+        if dark_mode:
+            return {
+                "background": "#151922",
+                "text": "#edf2f7",
+                "muted": "#cbd5e1",
+                "surface": "#1d2430",
+                "surface_muted": "#202838",
+                "border": "#445064",
+                "accent_background": "#60a5fa",
+                "accent_text": "#07111f",
+                "warning_background": "#3a2818",
+                "warning_text": "#fed7aa",
+                "warning_border": "#b45309",
+                "link": "#93c5fd",
+            }
+
+        return {
+            "background": "#ffffff",
+            "text": "#172033",
+            "muted": "#475569",
+            "surface": "#ffffff",
+            "surface_muted": "#f8fafc",
+            "border": "#c7d0dc",
+            "accent_background": "#d9e9ff",
+            "accent_text": "#0f172a",
+            "warning_background": "#fff7ed",
+            "warning_text": "#7c2d12",
+            "warning_border": "#fed7aa",
+            "link": "#0f62fe",
+        }
+
     def _guide_html(self) -> str:
-        return """
+        colors = self._guide_colors()
+        return f"""
         <html>
         <head>
         <style>
-          .shot { border: 1px solid #8fa0b7; background: #f8fafc; padding: 8px; margin: 8px 0 14px 0; }
-          .panel { border: 1px solid #c7d0dc; background: #ffffff; padding: 8px; }
-          .dark { background: #1d2430; color: #edf2f7; border-color: #445064; }
-          .accent { background: #d9e9ff; color: #0f172a; font-weight: bold; }
-          .flow { border: 1px solid #c7d0dc; background: #ffffff; padding: 7px; text-align: center; }
-          .warn { background: #fff7ed; border: 1px solid #fed7aa; padding: 8px; }
+          body {{
+            color: {colors['text']};
+            background: {colors['background']};
+          }}
+          a {{
+            color: {colors['link']};
+          }}
+          h1, h2, h3, b, code {{
+            color: {colors['text']};
+          }}
+          p, li {{
+            color: {colors['muted']};
+          }}
+          .shot {{
+            border: 1px solid {colors['border']};
+            background: {colors['surface_muted']};
+            color: {colors['text']};
+            padding: 8px;
+            margin: 8px 0 14px 0;
+          }}
+          .panel {{
+            border: 1px solid {colors['border']};
+            background: {colors['surface']};
+            color: {colors['text']};
+            padding: 8px;
+          }}
+          .accent {{
+            background: {colors['accent_background']};
+            color: {colors['accent_text']};
+            font-weight: bold;
+          }}
+          .flow {{
+            border: 1px solid {colors['border']};
+            background: {colors['surface']};
+            color: {colors['text']};
+            padding: 7px;
+            text-align: center;
+          }}
+          .warn {{
+            background: {colors['warning_background']};
+            color: {colors['warning_text']};
+            border: 1px solid {colors['warning_border']};
+            padding: 8px;
+          }}
+          .warn b {{
+            color: {colors['warning_text']};
+          }}
         </style>
         </head>
         <body>
