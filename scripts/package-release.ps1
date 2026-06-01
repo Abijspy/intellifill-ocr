@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.3.2",
+    [string]$Version = "2.4.0",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -43,7 +43,7 @@ How to run
 
 Notes
 - The application runs fully offline.
-- Tesseract OCR must be installed locally on the target computer for OCR features.
+- Tesseract OCR must be installed locally on the target computer for OCR features. The Windows setup installer can optionally download and launch the Tesseract OCR 5.5.0 installer when internet is available; offline machines should install Tesseract from a local/offline copy.
 - Source and template upload supports Word, Excel, CSV, images, and PDF files.
 - Exports include CSV, Excel, PDF, Word, and preserved-layout document output where supported.
 - Traceability barcodes are compact and are placed at the bottom center of PDF/Word exports.
@@ -51,9 +51,10 @@ Notes
 - Closed panels can be restored or hidden from Actions > Panels.
 - Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
 - User Guide and full scrollable changelog are available from Actions > Help.
-- Large dialogs stay inside the visible screen, and dock panel close/float buttons use custom high-contrast controls in light and dark mode.
+- Large dialogs stay inside the visible screen, and dock panel close/float buttons use Qt6 native controls.
 - PDF traceability barcodes render as clear, scannable bottom-center barcode images instead of collapsed black strips.
 - Scrollable tables, text previews, logs, help pages, and changelogs use smoother wheel scrolling and polished scrollbars.
+- User Guide workflow diagrams and feature help remain readable in dark and light mode.
 "@
 
 Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8

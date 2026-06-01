@@ -1,8 +1,10 @@
 param(
-    [string]$Version = "2.3.2",
+    [string]$Version = "2.4.0",
     [string]$DistDir = "dist",
     [string]$OutputDir = "installer\out",
-    [string]$InstallerScript = "installer\IntelliFillOCR.iss"
+    [string]$InstallerScript = "installer\IntelliFillOCR.iss",
+    [string]$SignToolName = $env:INNO_SETUP_SIGNTOOL_NAME,
+    [string]$InstallerPassword = $env:INTELLIFILL_INSTALLER_PASSWORD
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,13 +71,25 @@ if (Test-Path $InstallerFile) {
 
 $Iscc = Find-Iscc
 
-& $Iscc `
-    "/DAppVersion=$Version" `
-    "/DSourceDir=$AppDistPath" `
-    "/DOutputDir=$OutputPath" `
-    "/DPrerequisitesFile=$PrerequisitesPath" `
-    "/DIconFile=$IconPath" `
-    $ScriptPath
+$isccArguments = @(
+    "/DAppVersion=$Version",
+    "/DSourceDir=$AppDistPath",
+    "/DOutputDir=$OutputPath",
+    "/DPrerequisitesFile=$PrerequisitesPath",
+    "/DIconFile=$IconPath"
+)
+
+if ($SignToolName) {
+    $isccArguments += "/DSignToolName=$SignToolName"
+}
+
+if ($InstallerPassword) {
+    $isccArguments += "/DInstallerPassword=$InstallerPassword"
+}
+
+$isccArguments += $ScriptPath
+
+& $Iscc @isccArguments
 
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."

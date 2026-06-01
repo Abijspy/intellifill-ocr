@@ -3,7 +3,13 @@ Before installing IntelliFill OCR
 This application runs fully offline, but these local components are required for best results:
 
 1. Tesseract OCR
-   Install Tesseract OCR for Windows before OCR extraction.
+   Tesseract OCR is required for OCR extraction.
+   If Tesseract is not detected, this installer can optionally download and launch:
+   https://github.com/tesseract-ocr/tesseract/releases/download/5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe
+
+   The optional download needs internet during installation. For offline machines,
+   install Tesseract from a local/offline copy before running OCR.
+
    Recommended path:
    C:\Program Files\Tesseract-OCR\tesseract.exe
 
@@ -12,5 +18,6 @@ This application runs fully offline, but these local components are required for
    SQLite runtime support is included with the application package. No cloud database is used.
    After installation, open Settings and select or create the SQLite database file path.
 
-You can change both paths later from Settings.
-
+You can change both paths later from Settings. During installation the progress
+page shows the current operation, including file copy, optional Tesseract download,
+shortcut creation, registry entries, and finalization.

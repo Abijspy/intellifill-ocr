@@ -50,6 +50,15 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🧰 Version 2.4.0</h2>
+        <ul>
+          <li>Major installer upgrade with Full, Minimal, and Custom setup types.</li>
+          <li>The Windows setup installer now shows the current operation during install and uninstall.</li>
+          <li>If Tesseract OCR is missing, setup can optionally download, verify, and launch the Tesseract OCR 5.5.0 installer.</li>
+          <li>Installer metadata now includes registry entries and an install.ini file with version, path, and install mode.</li>
+          <li>Update checks and package downloads now use a 180-second network timeout.</li>
+        </ul>
+
         <h2>🌗 Version 2.3.2</h2>
         <ul>
           <li>User Guide and Feature Help workflow diagrams are now readable in dark mode.</li>

@@ -30,7 +30,8 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 - Smooth wheel scrolling and polished scrollbars across tables, parsed text, help, logs, database preview, and changelog pages.
 - First launch after a fresh install or update automatically shows the What's New changelog once for that installed version.
 - Check for Updates downloads the matching Windows installer or Linux `.deb`/`.rpm` package. Linux updates show the terminal install command because package installation needs local admin privileges.
-- Windows installer shortcuts and runtime app identity are configured so taskbar pins use the current application icon.
+- Windows installer supports full/minimal/custom setup types, current-user or administrator installs, complete uninstall, Start Menu/desktop shortcuts, registry and install.ini metadata, visible operation progress, optional signed/encrypted builds, and current application icon identity for taskbar pins.
+- If Tesseract OCR is not detected, the Windows setup installer can optionally download, verify, and launch the Tesseract OCR 5.5.0 installer. This optional dependency step needs internet; offline machines should use a local Tesseract installer copy.
 - SQLite storage through SQLAlchemy ORM for templates, runs, uploaded files, mappings, learned templates, extracted values, and timestamps.
 - Save/load mapping templates.
 - Export completed output to CSV, XLSX, Word, and PDF with traceability. Multi-table templates export all tables in one output document: CSV sections, Excel sheets, Word tables, or PDF table sections.
@@ -101,32 +102,32 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-2.3.2-win-x64.zip
-IntelliFillOCR-Setup-2.3.2-win-x64.exe
+IntelliFillOCR-2.4.0-win-x64.zip
+IntelliFillOCR-Setup-2.4.0-win-x64.exe
 ```
 
 It also builds Linux packages in GitHub Actions only:
 
 ```text
-IntelliFillOCR-2.3.2-linux-x64.deb
-IntelliFillOCR-2.3.2-linux-x64.rpm
+IntelliFillOCR-2.4.0-linux-x64.deb
+IntelliFillOCR-2.4.0-linux-x64.rpm
 ```
 
 and publishes all release files to a GitHub release.
 
-To publish version `2.3.2` manually:
+To publish version `2.4.0` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `2.3.2` and run it.
+5. Keep version `2.4.0` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v2.3.2
-git push origin v2.3.2
+git tag v2.4.0
+git push origin v2.4.0
 ```
 
 ## Build Windows Installer
@@ -135,14 +136,28 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 2.3.2
+.\scripts\build-installer.ps1 -Version 2.4.0
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-2.3.2-win-x64.exe
+installer\out\IntelliFillOCR-Setup-2.4.0-win-x64.exe
 ```
+
+The installer is built with Inno Setup and uses its Windows compatibility layer for Windows 11, Windows 10, Windows 8.1, Windows 8, Windows 7, and supported Windows Server releases. The app package is built as a 64-bit application and the installer is configured for 64-bit compatible Windows, including Windows on Arm where x64 applications are supported by the operating system.
+
+Installer features enabled in this project:
+
+- Full, Minimal, and Custom setup types.
+- Current-user and administrator installation modes.
+- Complete uninstall with Start Menu/desktop shortcut cleanup.
+- Visible install/uninstall progress messages showing the current operation.
+- LZMA2 compression in a single setup EXE.
+- Optional Tesseract OCR 5.5.0 download and SHA-256 verification if Tesseract is missing.
+- Registry metadata and `install.ini` metadata for installed version, path, and install mode.
+- Optional signed installer/uninstaller builds by passing `-SignToolName` or setting `INNO_SETUP_SIGNTOOL_NAME`.
+- Optional encrypted/passworded installer builds by passing `-InstallerPassword` or setting `INTELLIFILL_INSTALLER_PASSWORD`.
 
 ## Build MSIX Installer
 
@@ -163,14 +178,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_2.3.2.0_x64.msix
+msix\out\IntelliFillOCR_2.4.0.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_2.3.2.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_2.4.0.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```

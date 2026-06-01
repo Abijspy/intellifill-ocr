@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.3.2"
+        default: "2.4.0"
   push:
     tags:
       - "v*"
@@ -102,10 +102,11 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🌗 Version $env:RELEASE_VERSION",
-            "- Fixed User Guide and Feature Help workflow diagrams in dark mode.",
-            "- Made screenshot-style UI maps, flowcharts, warning boxes, and help panels use theme-aware foreground, background, and border colors.",
-            "- Kept the same detailed offline guide content while making it readable in both light and dark themes.",
+            "🧰 Version $env:RELEASE_VERSION",
+            "- Major installer upgrade with Full, Minimal, and Custom setup types.",
+            "- The Windows setup installer now shows the current operation during install/uninstall and writes registry plus install.ini metadata.",
+            "- If Tesseract OCR is missing, setup can optionally download, SHA-256 verify, and launch the Tesseract OCR 5.5.0 installer.",
+            "- Update checks and package downloads now use a 180-second network timeout.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

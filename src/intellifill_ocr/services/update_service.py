@@ -41,11 +41,12 @@ class UpdateService:
 
     LATEST_RELEASE_API = "https://api.github.com/repos/Abijspy/intellifill-ocr/releases/latest"
     USER_AGENT = "IntelliFillOCR-Updater"
+    NETWORK_TIMEOUT_SECONDS = 180
 
     def fetch_latest(self) -> UpdateInfo:
         try:
             request = Request(self.LATEST_RELEASE_API, headers={"User-Agent": self.USER_AGENT})
-            with urlopen(request, timeout=20) as response:
+            with urlopen(request, timeout=self.NETWORK_TIMEOUT_SECONDS) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except (HTTPError, URLError, TimeoutError, OSError) as exc:
             raise IntelliFillError(f"Could not check for updates: {exc}") from exc
@@ -89,7 +90,7 @@ class UpdateService:
 
         try:
             request = Request(asset.browser_download_url, headers={"User-Agent": self.USER_AGENT})
-            with urlopen(request, timeout=30) as response, temporary_destination.open("wb") as output:
+            with urlopen(request, timeout=self.NETWORK_TIMEOUT_SECONDS) as response, temporary_destination.open("wb") as output:
                 total = int(response.headers.get("Content-Length") or asset.size or 0)
                 downloaded = 0
                 while True:
