@@ -1,7 +1,7 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "2.4.1"
+#define AppVersion "2.4.2"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
@@ -117,6 +117,11 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,IntelliFill OCR
 Type: files; Name: "{app}\install.ini"
 
 [Code]
+var
+  InstallOutputHeader: TNewStaticText;
+  InstallOutputMemo: TNewMemo;
+  LastInstallerMessage: String;
+
 function IsTesseractInstalled: Boolean;
 var
   InstallDir: String;
@@ -156,20 +161,67 @@ begin
     Result := 'CurrentUser';
 end;
 
+procedure AppendInstallerOutput(Message: String);
+begin
+  if WizardSilent or (InstallOutputMemo = nil) then
+    Exit;
+
+  InstallOutputMemo.Lines.Add(Message);
+  InstallOutputMemo.SelStart := Length(InstallOutputMemo.Text);
+end;
+
 procedure ShowInstallerStatus(Message: String);
 begin
+  if Message = LastInstallerMessage then begin
+    if not WizardSilent then
+      WizardForm.StatusLabel.Caption := Message;
+    Exit;
+  end;
+
+  LastInstallerMessage := Message;
   Log(Message);
-  if not WizardSilent then
+
+  if not WizardSilent then begin
     WizardForm.StatusLabel.Caption := Message;
+    AppendInstallerOutput(Message);
+  end;
+end;
+
+procedure CreateInstallerOutputWindow();
+var
+  DetailsTop: Integer;
+begin
+  if WizardSilent then
+    Exit;
+
+  DetailsTop := WizardForm.ProgressGauge.Top + WizardForm.ProgressGauge.Height + ScaleY(12);
+
+  InstallOutputHeader := TNewStaticText.Create(WizardForm);
+  InstallOutputHeader.Parent := WizardForm.InstallingPage;
+  InstallOutputHeader.Left := WizardForm.ProgressGauge.Left;
+  InstallOutputHeader.Top := DetailsTop;
+  InstallOutputHeader.Width := WizardForm.ProgressGauge.Width;
+  InstallOutputHeader.Caption := 'Installation details';
+
+  InstallOutputMemo := TNewMemo.Create(WizardForm);
+  InstallOutputMemo.Parent := WizardForm.InstallingPage;
+  InstallOutputMemo.Left := WizardForm.ProgressGauge.Left;
+  InstallOutputMemo.Top := InstallOutputHeader.Top + InstallOutputHeader.Height + ScaleY(4);
+  InstallOutputMemo.Width := WizardForm.ProgressGauge.Width;
+  InstallOutputMemo.Height := WizardForm.InstallingPage.Height - InstallOutputMemo.Top - ScaleY(8);
+  InstallOutputMemo.ReadOnly := True;
+  InstallOutputMemo.ScrollBars := ssVertical;
+  InstallOutputMemo.WordWrap := True;
 end;
 
 procedure InitializeWizard();
 begin
-  Log('Installer initialized. Install mode: ' + GetInstallModeName(''));
+  CreateInstallerOutputWindow();
+  ShowInstallerStatus('Installer initialized. Install mode: ' + GetInstallModeName(''));
   if ShouldOfferTesseractInstall then
-    Log('Tesseract OCR was not detected. Optional Tesseract install component is available.')
+    ShowInstallerStatus('Tesseract OCR was not detected. Optional Tesseract install component is available.')
   else if IsTesseractInstalled then
-    Log('Tesseract OCR was detected. Optional Tesseract install component is hidden.');
+    ShowInstallerStatus('Tesseract OCR was detected. Optional Tesseract install component is hidden.');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

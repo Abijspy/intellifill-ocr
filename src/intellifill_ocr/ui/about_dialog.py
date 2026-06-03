@@ -50,6 +50,13 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🪟 Version 2.4.2</h2>
+        <ul>
+          <li>Added a scrolling Installation details output window below the Windows setup progress bar.</li>
+          <li>Each installer operation is appended as it runs, including app file copying, optional Tesseract setup preparation, and final metadata steps.</li>
+          <li>Repeated progress events are de-duplicated so the output stays readable during long installs.</li>
+        </ul>
+
         <h2>🛠️ Version 2.4.1</h2>
         <ul>
           <li>Fixed the Windows uninstaller runtime proc error seen during uninstall.</li>

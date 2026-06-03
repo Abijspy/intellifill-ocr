@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.4.1"
+        default: "2.4.2"
   push:
     tags:
       - "v*"
@@ -102,10 +102,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🛠️ Version $env:RELEASE_VERSION",
-            "- Fixed the Windows uninstaller runtime proc error seen during uninstall.",
-            "- Removed fragile custom uninstall progress label updates while keeping stable uninstall logging and default progress UI.",
-            "- Installer operations still show progress during installation.",
+            "🪟 Version $env:RELEASE_VERSION",
+            "- Added a scrolling Installation details output window below the Windows setup progress bar.",
+            "- Each installer operation is appended as it runs, including app file copying, optional Tesseract setup preparation, and final metadata steps.",
+            "- Repeated progress events are de-duplicated so the output stays readable during long installs.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",
