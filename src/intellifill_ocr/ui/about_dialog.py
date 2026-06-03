@@ -50,6 +50,13 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🛠️ Version 2.4.1</h2>
+        <ul>
+          <li>Fixed the Windows uninstaller runtime proc error seen during uninstall.</li>
+          <li>Removed fragile custom uninstall progress label updates while keeping stable uninstall logging and default progress UI.</li>
+          <li>Installer operations still show progress during installation.</li>
+        </ul>
+
         <h2>🧰 Version 2.4.0</h2>
         <ul>
           <li>Major installer upgrade with Full, Minimal, and Custom setup types.</li>

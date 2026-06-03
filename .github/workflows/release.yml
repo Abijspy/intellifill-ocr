@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.4.0"
+        default: "2.4.1"
   push:
     tags:
       - "v*"
@@ -102,11 +102,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🧰 Version $env:RELEASE_VERSION",
-            "- Major installer upgrade with Full, Minimal, and Custom setup types.",
-            "- The Windows setup installer now shows the current operation during install/uninstall and writes registry plus install.ini metadata.",
-            "- If Tesseract OCR is missing, setup can optionally download, SHA-256 verify, and launch the Tesseract OCR 5.5.0 installer.",
-            "- Update checks and package downloads now use a 180-second network timeout.",
+            "🛠️ Version $env:RELEASE_VERSION",
+            "- Fixed the Windows uninstaller runtime proc error seen during uninstall.",
+            "- Removed fragile custom uninstall progress label updates while keeping stable uninstall logging and default progress UI.",
+            "- Installer operations still show progress during installation.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

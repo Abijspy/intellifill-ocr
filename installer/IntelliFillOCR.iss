@@ -1,7 +1,7 @@
 #define AppName "IntelliFill OCR"
 #define AppExeName "IntelliFillOCR.exe"
 #ifndef AppVersion
-#define AppVersion "2.4.0"
+#define AppVersion "2.4.1"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
@@ -196,19 +196,12 @@ begin
     ShowInstallerStatus('Copying IntelliFill OCR files, shortcuts, registry entries, and install metadata...');
 end;
 
-procedure InitializeUninstallProgressForm();
-begin
-  UninstallProgressForm.StatusLabel.Caption := 'Preparing to remove IntelliFill OCR...';
-end;
-
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then begin
     Log('Removing IntelliFill OCR files, shortcuts, registry entries, and install metadata...');
-    UninstallProgressForm.StatusLabel.Caption := 'Removing IntelliFill OCR files, shortcuts, registry entries, and install metadata...';
   end else if CurUninstallStep = usPostUninstall then begin
     Log('Finalizing IntelliFill OCR uninstall...');
-    UninstallProgressForm.StatusLabel.Caption := 'Finalizing uninstall...';
   end else if CurUninstallStep = usDone then begin
     Log('IntelliFill OCR uninstall completed.');
   end;
