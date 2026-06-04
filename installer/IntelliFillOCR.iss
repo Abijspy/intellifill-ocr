@@ -287,3 +287,4 @@ begin
     Result := Result + Space + 'Tesseract OCR not selected; configure it later from Actions > Settings' + NewLine;
   end;
 end;
+

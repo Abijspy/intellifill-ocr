@@ -34,11 +34,11 @@ foreach ($File in $Files) {
     }
 
     $content = Get-Content -LiteralPath $File.Path -Raw
-    $updated = [regex]::Replace($content, $File.Pattern, $File.Replacement)
-    if ($updated -eq $content) {
-        throw "No version replacement was made in $($File.Path)."
+    if (-not [regex]::IsMatch($content, $File.Pattern)) {
+        throw "Version pattern was not found in $($File.Path)."
     }
 
+    $updated = [regex]::Replace($content, $File.Pattern, $File.Replacement)
     Set-Content -LiteralPath $File.Path -Value $updated -Encoding UTF8
 }
 
