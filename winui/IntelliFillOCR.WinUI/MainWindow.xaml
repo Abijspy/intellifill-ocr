@@ -76,7 +76,7 @@
                                         TextWrapping="WrapWholeWords"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                                         <Button Click="LaunchWorkspaceButton_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <FontIcon Glyph="&#xE8B7;" />
@@ -99,6 +99,12 @@
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <FontIcon Glyph="&#xE72C;" />
                                                 <TextBlock Text="Refresh status" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Row="2" Grid.ColumnSpan="2" Click="TestIpcButton_Click" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE968;" />
+                                                <TextBlock Text="Test native backend IPC" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>

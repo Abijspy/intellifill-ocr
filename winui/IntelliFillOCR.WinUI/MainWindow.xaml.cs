@@ -8,10 +8,12 @@ namespace IntelliFillOCR.WinUI;
 public sealed partial class MainWindow : Window
 {
     private readonly PythonBackendLauncher _backendLauncher = new();
+    private readonly PythonBackendIpcClient _backendIpcClient;
 
     public MainWindow()
     {
         InitializeComponent();
+        _backendIpcClient = new PythonBackendIpcClient(_backendLauncher);
         ExtendsContentIntoTitleBar = true;
         RefreshBackendStatus();
     }
@@ -51,6 +53,25 @@ public sealed partial class MainWindow : Window
     {
         RefreshBackendStatus();
         ShowStatus(InfoBarSeverity.Informational, "Status refreshed", "Backend paths were checked again.");
+    }
+
+    private async void TestIpcButton_Click(object sender, RoutedEventArgs e)
+    {
+        BusyRing.IsActive = true;
+        try
+        {
+            BackendIpcResult result = await _backendIpcClient.PingAsync();
+            ShowStatus(result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning, result.Title, result.Message);
+            RefreshBackendStatus();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(InfoBarSeverity.Error, "IPC test failed", ex.Message);
+        }
+        finally
+        {
+            BusyRing.IsActive = false;
+        }
     }
 
     private void ShellNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

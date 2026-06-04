@@ -3,6 +3,11 @@ from __future__ import annotations
 import ctypes
 import sys
 
+if "--ipc" in sys.argv:
+    from intellifill_ocr.ipc.server import main as ipc_main
+
+    raise SystemExit(ipc_main([arg for arg in sys.argv[1:] if arg != "--ipc"]))
+
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 

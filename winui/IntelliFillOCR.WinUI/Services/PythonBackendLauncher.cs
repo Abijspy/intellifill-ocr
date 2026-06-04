@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 namespace IntelliFillOCR.WinUI.Services;
 
 public sealed record BackendLaunchResult(bool Success, string Title, string Message);
+public sealed record BackendProcessStartResult(bool Success, string Message, ProcessStartInfo? StartInfo);
 
 public sealed class PythonBackendLauncher
 {
@@ -81,6 +82,50 @@ public sealed class PythonBackendLauncher
 
         StartProcess(startInfo);
         return Task.FromResult(new BackendLaunchResult(true, "OCR workspace opened", "Started the Python OCR workspace from source."));
+    }
+
+    public BackendProcessStartResult CreateIpcStartInfo()
+    {
+        if (_repositoryRoot is not null)
+        {
+            string sourceMain = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
+            if (File.Exists(sourceMain))
+            {
+                string pythonPath = File.Exists(GetVirtualEnvPythonPath()) ? GetVirtualEnvPythonPath() : "python";
+                var sourceStartInfo = new ProcessStartInfo(pythonPath)
+                {
+                    WorkingDirectory = _repositoryRoot.FullName,
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                sourceStartInfo.ArgumentList.Add("-m");
+                sourceStartInfo.ArgumentList.Add("intellifill_ocr.main");
+                sourceStartInfo.ArgumentList.Add("--ipc");
+                sourceStartInfo.Environment["PYTHONPATH"] = Path.Combine(_repositoryRoot.FullName, "src");
+                return new BackendProcessStartResult(true, "Using source Python backend IPC.", sourceStartInfo);
+            }
+        }
+
+        string exePath = GetPackagedPythonExePath();
+        if (!File.Exists(exePath))
+        {
+            return new BackendProcessStartResult(false, "Backend IPC was not found in source or package output.", null);
+        }
+
+        var packagedStartInfo = new ProcessStartInfo(exePath)
+        {
+            WorkingDirectory = Path.GetDirectoryName(exePath) ?? _applicationBaseDirectory,
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        packagedStartInfo.ArgumentList.Add("--ipc");
+        return new BackendProcessStartResult(true, "Using packaged Python backend IPC.", packagedStartInfo);
     }
 
     public BackendLaunchResult OpenRepositoryFolder()

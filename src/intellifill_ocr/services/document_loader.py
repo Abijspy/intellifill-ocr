@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import pandas as pd
@@ -66,7 +67,17 @@ class DocumentLoader:
         return ParsedDocument(path=path, text="\n".join(text_parts), tables=tables)
 
     def _parse_csv(self, path: Path) -> ParsedDocument:
-        frame = pd.read_csv(path, header=None, dtype=str).fillna("")
-        table = frame.astype(str).values.tolist()
+        rows: list[list[str]] = []
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            for row in csv.reader(handle):
+                rows.append([cell.strip() for cell in row])
+        expected_columns = len(next((row for row in rows if row), []))
+        if expected_columns == 2:
+            rows = [
+                [row[0], ", ".join(cell.strip() for cell in row[1:])] if len(row) > 2 else row
+                for row in rows
+            ]
+        max_columns = max((len(row) for row in rows), default=0)
+        table = [row + [""] * (max_columns - len(row)) for row in rows]
         text = "\n".join(" | ".join(row) for row in table)
         return ParsedDocument(path=path, text=text, tables=[table])

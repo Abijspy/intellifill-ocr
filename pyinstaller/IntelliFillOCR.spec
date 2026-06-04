@@ -12,6 +12,7 @@ ASSETS = ROOT / "assets"
 hiddenimports = []
 hiddenimports += collect_submodules("pytesseract")
 hiddenimports += collect_submodules("sqlalchemy")
+hiddenimports += collect_submodules("intellifill_ocr.ipc")
 
 a = Analysis(
     [str(SRC / "intellifill_ocr" / "main.py")],
