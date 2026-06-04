@@ -1,0 +1,118 @@
+name: WinUI Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version without the v prefix
+        required: true
+        default: "3.0.0"
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - ".github/workflows/winui-packages.yml"
+      - "assets/**"
+      - "pyinstaller/**"
+      - "requirements.txt"
+      - "scripts/build-winui.ps1"
+      - "scripts/package-winui.ps1"
+      - "src/**"
+      - "winui/**"
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  APP_NAME: IntelliFillOCR
+  PYTHON_VERSION: "3.11"
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build-winui-package:
+    name: Build WinUI package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $version = "3.0.0-dev.${{ github.run_number }}"
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.]+)?$') {
+            throw "Version must look like 3.0.0, 3.0.0-dev.12, or v3.0.0 tag-derived value. Received: $version"
+          }
+
+          "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PACKAGE_NAME=${env:APP_NAME}-WinUI-$version-win-x64.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "package=${env:APP_NAME}-WinUI-$version-win-x64.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e .
+
+      - name: Validate Python source
+        shell: pwsh
+        run: python -m compileall src
+
+      - name: Build Python backend
+        shell: pwsh
+        run: pyinstaller .\pyinstaller\IntelliFillOCR.spec --clean --noconfirm
+
+      - name: Build WinUI shell
+        shell: pwsh
+        run: .\scripts\build-winui.ps1 -Configuration Release -Platform x64
+
+      - name: Package WinUI shell with Python backend
+        shell: pwsh
+        run: .\scripts\package-winui.ps1 -Version $env:PACKAGE_VERSION
+
+      - name: Upload WinUI package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-WinUI-${{ steps.version.outputs.version }}-win-x64
+          path: release/${{ steps.version.outputs.package }}
+          if-no-files-found: error
+
+      - name: Upload WinUI package to tagged release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $asset = "release/$env:PACKAGE_NAME"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $asset --title "IntelliFill OCR $env:PACKAGE_VERSION" --notes "WinUI 3 package for IntelliFill OCR $env:PACKAGE_VERSION."
+          } else {
+            gh release upload $tag $asset --clobber
+          }

@@ -177,6 +177,8 @@ The build output is created under:
 winui\IntelliFillOCR.WinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64
 ```
 
+The repository also includes a **WinUI Packages** GitHub Actions workflow. It builds the PyInstaller backend, builds the WinUI shell, copies the backend into `Backend\`, creates `IntelliFillOCR-WinUI-<version>-win-x64.zip`, uploads it as a workflow artifact, and attaches it to tagged GitHub releases.
+
 ## Build MSIX Installer
 
 MSIX packages must be built and signed on Windows. Install the Windows 10/11 SDK first so `MakeAppx.exe` and `SignTool.exe` are available.

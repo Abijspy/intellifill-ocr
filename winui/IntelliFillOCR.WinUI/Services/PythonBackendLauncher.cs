@@ -9,27 +9,33 @@ public sealed record BackendLaunchResult(bool Success, string Title, string Mess
 
 public sealed class PythonBackendLauncher
 {
+    private readonly string _applicationBaseDirectory;
     private readonly DirectoryInfo? _repositoryRoot;
 
     public PythonBackendLauncher()
     {
-        _repositoryRoot = FindRepositoryRoot(AppContext.BaseDirectory);
+        _applicationBaseDirectory = AppContext.BaseDirectory;
+        _repositoryRoot = FindRepositoryRoot(_applicationBaseDirectory);
     }
 
     public string GetStatusSummary()
     {
-        if (_repositoryRoot is null)
-        {
-            return "Repository root was not found. Build or run from inside the IntelliFill OCR source tree.";
-        }
-
         string exePath = GetPackagedPythonExePath();
-        string modulePath = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
-        string venvPython = GetVirtualEnvPythonPath();
         string settingsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "IntelliFillOCR",
             "settings.json");
+
+        if (_repositoryRoot is null)
+        {
+            return
+                "Running from packaged WinUI shell.\n" +
+                $"Packaged backend: {(File.Exists(exePath) ? exePath : "not found")}\n" +
+                $"Settings: {settingsPath}";
+        }
+
+        string modulePath = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
+        string venvPython = GetVirtualEnvPythonPath();
 
         return
             $"Repository: {_repositoryRoot.FullName}\n" +
@@ -41,20 +47,20 @@ public sealed class PythonBackendLauncher
 
     public Task<BackendLaunchResult> LaunchAsync()
     {
-        if (_repositoryRoot is null)
-        {
-            return Task.FromResult(new BackendLaunchResult(false, "Repository not found", "Run this WinUI shell from the IntelliFill OCR source tree or packaged install folder."));
-        }
-
         string exePath = GetPackagedPythonExePath();
         if (File.Exists(exePath))
         {
             StartProcess(new ProcessStartInfo(exePath)
             {
-                WorkingDirectory = Path.GetDirectoryName(exePath) ?? _repositoryRoot.FullName,
+                WorkingDirectory = Path.GetDirectoryName(exePath) ?? _applicationBaseDirectory,
                 UseShellExecute = true
             });
             return Task.FromResult(new BackendLaunchResult(true, "OCR workspace opened", "Started the packaged Python OCR workspace."));
+        }
+
+        if (_repositoryRoot is null)
+        {
+            return Task.FromResult(new BackendLaunchResult(false, "Backend not found", "The package does not contain Backend\\IntelliFillOCR.exe, and no source repository was found."));
         }
 
         string sourceMain = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
@@ -98,18 +104,16 @@ public sealed class PythonBackendLauncher
 
     private string GetPackagedPythonExePath()
     {
-        if (_repositoryRoot is null)
+        if (_repositoryRoot is not null)
         {
-            return string.Empty;
+            string sourceDist = Path.Combine(_repositoryRoot.FullName, "dist", "IntelliFillOCR", "IntelliFillOCR.exe");
+            if (File.Exists(sourceDist))
+            {
+                return sourceDist;
+            }
         }
 
-        string sourceDist = Path.Combine(_repositoryRoot.FullName, "dist", "IntelliFillOCR", "IntelliFillOCR.exe");
-        if (File.Exists(sourceDist))
-        {
-            return sourceDist;
-        }
-
-        return Path.Combine(AppContext.BaseDirectory, "Backend", "IntelliFillOCR.exe");
+        return Path.Combine(_applicationBaseDirectory, "Backend", "IntelliFillOCR.exe");
     }
 
     private string GetVirtualEnvPythonPath()
