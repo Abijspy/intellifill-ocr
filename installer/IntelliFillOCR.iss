@@ -1,7 +1,9 @@
 #define AppName "IntelliFill OCR"
+#ifndef AppExeName
 #define AppExeName "IntelliFillOCR.exe"
+#endif
 #ifndef AppVersion
-#define AppVersion "3.0.1"
+#define AppVersion "3.1.0"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\dist\IntelliFillOCR"
@@ -284,7 +286,7 @@ begin
   end else if IsTesseractInstalled then begin
     Result := Result + Space + 'Tesseract OCR already detected; optional setup will be skipped' + NewLine;
   end else begin
-    Result := Result + Space + 'Tesseract OCR not selected; configure it later from Actions > Settings' + NewLine;
+    Result := Result + Space + 'Tesseract OCR not selected; configure it later from WinUI Settings' + NewLine;
   end;
 end;
 

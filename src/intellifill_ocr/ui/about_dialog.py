@@ -50,6 +50,14 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🪟 Version 3.1.0</h2>
+        <ul>
+          <li>The Windows installer and default Windows ZIP now open the native WinUI 3 shell.</li>
+          <li>The Python OCR engine now runs as a local JSON IPC backend for the WinUI shell.</li>
+          <li>Added native WinUI template upload with detected table preview.</li>
+          <li>Removed the old Qt workspace launch path from the WinUI user experience.</li>
+        </ul>
+
         <h2>🩹 Version 3.0.1</h2>
         <ul>
           <li>Fixed update installers that could still show the old 2.4.2 application version after install.</li>

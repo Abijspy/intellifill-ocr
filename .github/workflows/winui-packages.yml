@@ -6,7 +6,7 @@ on:
       version:
         description: Package version without the v prefix
         required: true
-        default: "3.0.1"
+        default: "3.1.0"
   push:
     branches:
       - main
@@ -50,7 +50,7 @@ jobs:
           } elseif ("${{ github.ref_type }}" -eq "tag") {
             $version = "${{ github.ref_name }}".TrimStart("v")
           } else {
-            $version = "3.0.0-dev.${{ github.run_number }}"
+            $version = "3.1.0-dev.${{ github.run_number }}"
           }
 
           if ($version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.]+)?$') {

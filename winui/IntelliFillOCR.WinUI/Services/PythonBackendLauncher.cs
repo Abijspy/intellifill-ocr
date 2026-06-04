@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace IntelliFillOCR.WinUI.Services;
 
@@ -40,48 +39,10 @@ public sealed class PythonBackendLauncher
 
         return
             $"Repository: {_repositoryRoot.FullName}\n" +
-            $"Packaged app: {(File.Exists(exePath) ? exePath : "not built yet")}\n" +
-            $"Python source: {(File.Exists(modulePath) ? modulePath : "not found")}\n" +
+            $"Packaged backend: {(File.Exists(exePath) ? exePath : "not built yet")}\n" +
+            $"Python backend source: {(File.Exists(modulePath) ? modulePath : "not found")}\n" +
             $"Virtual env: {(File.Exists(venvPython) ? venvPython : "not found")}\n" +
             $"Settings: {settingsPath}";
-    }
-
-    public Task<BackendLaunchResult> LaunchAsync()
-    {
-        string exePath = GetPackagedPythonExePath();
-        if (File.Exists(exePath))
-        {
-            StartProcess(new ProcessStartInfo(exePath)
-            {
-                WorkingDirectory = Path.GetDirectoryName(exePath) ?? _applicationBaseDirectory,
-                UseShellExecute = true
-            });
-            return Task.FromResult(new BackendLaunchResult(true, "OCR workspace opened", "Started the packaged Python OCR workspace."));
-        }
-
-        if (_repositoryRoot is null)
-        {
-            return Task.FromResult(new BackendLaunchResult(false, "Backend not found", "The package does not contain Backend\\IntelliFillOCR.exe, and no source repository was found."));
-        }
-
-        string sourceMain = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
-        if (!File.Exists(sourceMain))
-        {
-            return Task.FromResult(new BackendLaunchResult(false, "Python backend missing", "The Python source backend was not found under src/intellifill_ocr."));
-        }
-
-        string pythonPath = File.Exists(GetVirtualEnvPythonPath()) ? GetVirtualEnvPythonPath() : "python";
-        var startInfo = new ProcessStartInfo(pythonPath)
-        {
-            WorkingDirectory = _repositoryRoot.FullName,
-            UseShellExecute = false
-        };
-        startInfo.ArgumentList.Add("-m");
-        startInfo.ArgumentList.Add("intellifill_ocr.main");
-        startInfo.Environment["PYTHONPATH"] = Path.Combine(_repositoryRoot.FullName, "src");
-
-        StartProcess(startInfo);
-        return Task.FromResult(new BackendLaunchResult(true, "OCR workspace opened", "Started the Python OCR workspace from source."));
     }
 
     public BackendProcessStartResult CreateIpcStartInfo()

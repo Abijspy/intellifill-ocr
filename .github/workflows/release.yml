@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.0.1"
+        default: "3.1.0"
   push:
     tags:
       - "v*"
@@ -28,6 +28,7 @@ jobs:
     env:
       APP_NAME: IntelliFillOCR
       PYTHON_VERSION: "3.11"
+      DOTNET_VERSION: "8.0.x"
 
     steps:
       - name: Checkout
@@ -69,6 +70,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Install dependencies
         shell: pwsh
         run: |
@@ -86,10 +92,15 @@ jobs:
         run: |
           pyinstaller .\pyinstaller\IntelliFillOCR.spec --clean --noconfirm
 
-      - name: Package release zip
+      - name: Build WinUI shell
         shell: pwsh
         run: |
-          .\scripts\package-release.ps1 -Version $env:RELEASE_VERSION
+          .\scripts\build-winui.ps1 -Configuration Release -Platform x64
+
+      - name: Package default WinUI release zip
+        shell: pwsh
+        run: |
+          .\scripts\package-winui.ps1 -Version $env:RELEASE_VERSION -PackageName "$env:APP_NAME-$env:RELEASE_VERSION-win-x64"
 
       - name: Install Inno Setup compiler
         shell: pwsh
@@ -99,7 +110,8 @@ jobs:
       - name: Build Windows installer
         shell: pwsh
         run: |
-          .\scripts\build-installer.ps1 -Version $env:RELEASE_VERSION
+          $sourceDir = "release\winui-staging\$env:APP_NAME-$env:RELEASE_VERSION-win-x64"
+          .\scripts\build-installer.ps1 -Version $env:RELEASE_VERSION -SourceDir $sourceDir -AppExeName "IntelliFillOCR.WinUI.exe"
 
       - name: Write release notes
         shell: pwsh
@@ -108,9 +120,9 @@ jobs:
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
             "🩹 Version $env:RELEASE_VERSION",
-            "- Fixed update packages reporting the old 2.4.2 application version after install.",
-            "- Release builds now stamp the Python app metadata from the Git tag before PyInstaller packaging.",
-            "- The updater now selects only the installer asset matching the latest release version.",
+            "- The Windows installer and default Windows ZIP now launch the native WinUI 3 shell.",
+            "- The Python OCR engine is bundled as a local Backend process and used through JSON IPC.",
+            "- Removed the old Qt workspace as the default Windows user experience.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

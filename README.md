@@ -10,9 +10,9 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 
 ## Features
 
-- PySide6 desktop UI with dark/light themes, a single Actions workflow button, split panes, tabs, zoomable document preview, and editable table preview.
+- Native WinUI 3 Windows shell with local Python OCR backend over JSON IPC.
 - Native WinUI 3 frontend scaffold for the v3 Windows migration under `winui/IntelliFillOCR.WinUI`, built with Windows App SDK and Mica.
-- Dock panels use Qt6 native close and float controls, with Actions > Panels available to reopen closed panels.
+- Native WinUI template upload previews detected tables before source extraction and mapping.
 - Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview after those dock panels are closed.
 - Offline OCR using Tesseract, `pytesseract`, OpenCV preprocessing, deskewing, denoising, confidence scoring, and bounding boxes.
 - Template import from CSV, Excel, DOCX tables, images, and PDFs, including templates with multiple tables. The Output Preview table selector lets users fill each table separately while saving/exporting them together.
@@ -71,7 +71,7 @@ python -m intellifill_ocr.main
 
 You can also set paths inside the app:
 
-1. Open **Actions > Settings**.
+1. Open **Settings** in the WinUI shell.
 2. Select the local `tesseract.exe` path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
 3. Select or create the SQLite database path, for example `%LOCALAPPDATA%\IntelliFillOCR\intellifill.sqlite3`.
 4. Choose dark or light appearance from the same Settings window.
@@ -86,7 +86,7 @@ sudo apt install tesseract-ocr
 sudo dnf install tesseract
 ```
 
-The app UI and OCR workflow are the same PySide6 application as Windows. Windows-only scanner acquisition uses WIA drivers, so Linux users should import scanned images or PDFs as source files.
+Linux packages currently use the Python desktop frontend while Windows uses the native WinUI shell. Windows-only scanner acquisition uses WIA drivers, so Linux users should import scanned images or PDFs as source files.
 
 ## Build Standalone EXE
 
@@ -94,7 +94,7 @@ The app UI and OCR workflow are the same PySide6 application as Windows. Windows
 .\build.ps1
 ```
 
-The executable will be produced under `dist\IntelliFillOCR\IntelliFillOCR.exe`.
+The backend executable will be produced under `dist\IntelliFillOCR\IntelliFillOCR.exe`. Windows release packages place it under `Backend\` and launch the WinUI shell by default.
 
 ## GitHub Release Pipeline
 
@@ -103,32 +103,32 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-3.0.1-win-x64.zip
-IntelliFillOCR-Setup-3.0.1-win-x64.exe
+IntelliFillOCR-3.1.0-win-x64.zip
+IntelliFillOCR-Setup-3.1.0-win-x64.exe
 ```
 
 It also builds Linux packages in GitHub Actions only:
 
 ```text
-IntelliFillOCR-3.0.1-linux-x64.deb
-IntelliFillOCR-3.0.1-linux-x64.rpm
+IntelliFillOCR-3.1.0-linux-x64.deb
+IntelliFillOCR-3.1.0-linux-x64.rpm
 ```
 
 and publishes all release files to a GitHub release.
 
-To publish version `3.0.1` manually:
+To publish version `3.1.0` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `3.0.1` and run it.
+5. Keep version `3.1.0` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v3.0.1
-git push origin v3.0.1
+git tag v3.1.0
+git push origin v3.1.0
 ```
 
 ## Build Windows Installer
@@ -137,13 +137,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 3.0.1
+.\scripts\build-installer.ps1 -Version 3.1.0
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-3.0.1-win-x64.exe
+installer\out\IntelliFillOCR-Setup-3.1.0-win-x64.exe
 ```
 
 The installer is built with Inno Setup and uses its Windows compatibility layer for Windows 11, Windows 10, Windows 8.1, Windows 8, Windows 7, and supported Windows Server releases. The app package is built as a 64-bit application and the installer is configured for 64-bit compatible Windows, including Windows on Arm where x64 applications are supported by the operating system.
@@ -162,8 +162,8 @@ Installer features enabled in this project:
 
 ## Build WinUI 3 Frontend
 
-The v3 Windows migration starts with a native WinUI 3 shell in `winui\IntelliFillOCR.WinUI`.
-It keeps the current Python OCR workspace available while native WinUI pages are migrated.
+The v3 Windows migration uses a native WinUI 3 shell in `winui\IntelliFillOCR.WinUI`.
+The Python OCR engine runs as a local backend process through JSON IPC.
 
 Install the Windows App SDK/WinUI tooling, then run:
 
@@ -177,7 +177,7 @@ The build output is created under:
 winui\IntelliFillOCR.WinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64
 ```
 
-The repository also includes a **WinUI Packages** GitHub Actions workflow. It builds the PyInstaller backend, builds the WinUI shell, copies the backend into `Backend\`, creates `IntelliFillOCR-WinUI-<version>-win-x64.zip`, uploads it as a workflow artifact, and attaches it to tagged GitHub releases.
+The repository also includes a **WinUI Packages** GitHub Actions workflow. It builds the PyInstaller backend, builds the WinUI shell, copies the backend into `Backend\`, creates `IntelliFillOCR-WinUI-<version>-win-x64.zip`, uploads it as a workflow artifact, and attaches it to tagged GitHub releases. The main Windows installer and default Windows ZIP now use the same WinUI shell as the launch target.
 
 The v3 WinUI migration uses a JSON-lines IPC backend so native WinUI pages can call the existing Python OCR, template, source, mapping, validation, database, and export services without rewriting those services. Run `IntelliFillOCR.exe --ipc` or `python -m intellifill_ocr.main --ipc` to start the backend protocol.
 
@@ -200,14 +200,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_3.0.1.0_x64.msix
+msix\out\IntelliFillOCR_3.1.0.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_3.0.1.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_3.1.0.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```
@@ -222,7 +222,7 @@ For production distribution, sign the MSIX with a certificate whose subject matc
   -CertificatePassword "YourPfxPassword"
 ```
 
-The MSIX includes the PyInstaller output and remains fully offline. Tesseract OCR still needs to be installed locally on the target Windows machine unless you choose to bundle a Tesseract distribution into the PyInstaller build. After install, open **Actions > Settings** to point the app to the offline machine's local `tesseract.exe` and SQLite database path.
+The MSIX includes the PyInstaller backend output and remains fully offline. Tesseract OCR still needs to be installed locally on the target Windows machine unless you choose to bundle a Tesseract distribution into the PyInstaller build. After install, open **Settings** in the WinUI shell to point the app to the offline machine's local `tesseract.exe` and SQLite database path.
 
 This repository contains everything needed to build the MSIX, but the package itself must be produced on a Windows machine with Python and the Windows SDK installed. `MakeAppx.exe` creates the package and `SignTool.exe` signs it; both are part of the Windows SDK.
 

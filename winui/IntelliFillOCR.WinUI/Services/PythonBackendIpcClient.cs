@@ -74,7 +74,7 @@ public sealed class PythonBackendIpcClient
         }
     }
 
-    private static BackendIpcResult ParseResponse(string responseLine)
+    public static BackendIpcResult ParseResponse(string responseLine)
     {
         using JsonDocument document = JsonDocument.Parse(responseLine);
         JsonElement root = document.RootElement;

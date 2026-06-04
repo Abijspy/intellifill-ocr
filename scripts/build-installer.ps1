@@ -1,6 +1,8 @@
 param(
-    [string]$Version = "3.0.1",
+    [string]$Version = "3.1.0",
     [string]$DistDir = "dist",
+    [string]$SourceDir = "",
+    [string]$AppExeName = "IntelliFillOCR.exe",
     [string]$OutputDir = "installer\out",
     [string]$InstallerScript = "installer\IntelliFillOCR.iss",
     [string]$SignToolName = $env:INNO_SETUP_SIGNTOOL_NAME,
@@ -12,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $AppName = "IntelliFillOCR"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $DistPath = Join-Path $Root $DistDir
-$AppDistPath = Join-Path $DistPath $AppName
+$AppDistPath = if ($SourceDir) { Join-Path $Root $SourceDir } else { Join-Path $DistPath $AppName }
 $OutputPath = Join-Path $Root $OutputDir
 $ScriptPath = Join-Path $Root $InstallerScript
 $PrerequisitesPath = Join-Path (Split-Path -Parent $ScriptPath) "prerequisites.txt"
@@ -74,6 +76,7 @@ $Iscc = Find-Iscc
 $isccArguments = @(
     "/DAppVersion=$Version",
     "/DSourceDir=$AppDistPath",
+    "/DAppExeName=$AppExeName",
     "/DOutputDir=$OutputPath",
     "/DPrerequisitesFile=$PrerequisitesPath",
     "/DIconFile=$IconPath"

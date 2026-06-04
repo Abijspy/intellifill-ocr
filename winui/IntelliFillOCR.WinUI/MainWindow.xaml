@@ -21,12 +21,13 @@
             SelectionChanged="ShellNavigation_SelectionChanged">
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Workspace" Icon="Home" Tag="workspace" IsSelected="True" />
+                <NavigationViewItem Content="Template" Icon="Page" Tag="template" />
                 <NavigationViewItem Content="Extraction" Icon="Document" Tag="extraction" />
                 <NavigationViewItem Content="Database" Icon="Library" Tag="database" />
                 <NavigationViewItem Content="Settings" Icon="Setting" Tag="settings" />
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="About v3.0.1" Icon="Help" Tag="about" />
+                <NavigationViewItem Content="About v3.1.0" Icon="Help" Tag="about" />
             </NavigationView.FooterMenuItems>
 
             <Grid RowDefinitions="Auto,*" Padding="28,22,28,24" RowSpacing="18">
@@ -38,7 +39,7 @@
 
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Spacing="18">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
                             <Image
                                 Source="/Assets/StoreLogo.png"
                                 Width="72"
@@ -51,15 +52,6 @@
                                     Style="{ThemeResource BodyTextBlockStyle}"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                            <Button
-                                Grid.Column="2"
-                                VerticalAlignment="Center"
-                                Click="LaunchWorkspaceButton_Click">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE8A7;" />
-                                    <TextBlock Text="Open OCR Workspace" />
-                                </StackPanel>
-                            </Button>
                         </Grid>
 
                         <Grid ColumnDefinitions="2*,*" ColumnSpacing="18">
@@ -72,15 +64,15 @@
                                 <StackPanel Spacing="16">
                                     <TextBlock Text="v3 Native Shell" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                     <TextBlock
-                                        Text="This WinUI 3 frontend is the new Windows platform shell. The current Python OCR engine, document processing, SQLite storage, and exports remain available while the native screens are migrated."
+                                        Text="This WinUI 3 frontend is now the default Windows experience. OCR, parsing, SQLite, validation, and export work through the local Python backend."
                                         TextWrapping="WrapWholeWords"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                                        <Button Click="LaunchWorkspaceButton_Click" HorizontalAlignment="Stretch">
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+                                        <Button Click="TestIpcButton_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE8B7;" />
-                                                <TextBlock Text="Launch full OCR workflow" />
+                                                <FontIcon Glyph="&#xE968;" />
+                                                <TextBlock Text="Check backend" />
                                             </StackPanel>
                                         </Button>
                                         <Button Grid.Column="1" Click="OpenRepositoryButton_Click" HorizontalAlignment="Stretch">
@@ -101,12 +93,6 @@
                                                 <TextBlock Text="Refresh status" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Row="2" Grid.ColumnSpan="2" Click="TestIpcButton_Click" HorizontalAlignment="Stretch">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE968;" />
-                                                <TextBlock Text="Test native backend IPC" />
-                                            </StackPanel>
-                                        </Button>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -125,6 +111,66 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+
+                        <Border
+                            x:Name="TemplatePanel"
+                            Padding="20"
+                            BorderBrush="{ThemeResource CardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Template Upload" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                        <TextBlock
+                                            Text="Load CSV, Excel, Word, image, or PDF templates and preview detected tables in WinUI."
+                                            TextWrapping="WrapWholeWords"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Click="UploadTemplateButton_Click" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE8E5;" />
+                                            <TextBlock Text="Upload Template" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <TextBox
+                                    x:Name="TemplatePathTextBox"
+                                    Header="Selected template"
+                                    IsReadOnly="True"
+                                    PlaceholderText="No template loaded" />
+
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <ComboBox
+                                        x:Name="TemplateTableSelector"
+                                        Header="Detected table"
+                                        SelectionChanged="TemplateTableSelector_SelectionChanged"
+                                        HorizontalAlignment="Stretch" />
+                                    <ProgressRing
+                                        x:Name="TemplateProgressRing"
+                                        Grid.Column="1"
+                                        Width="32"
+                                        Height="32"
+                                        IsActive="False"
+                                        VerticalAlignment="Bottom" />
+                                </Grid>
+
+                                <TextBlock
+                                    x:Name="TemplateSummaryText"
+                                    Text="Upload a template to see its tables."
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="WrapWholeWords" />
+
+                                <ScrollViewer
+                                    HorizontalScrollBarVisibility="Auto"
+                                    VerticalScrollBarVisibility="Auto"
+                                    MaxHeight="360">
+                                    <Grid x:Name="TemplatePreviewGrid" />
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
 
                         <Border
                             Padding="20"

@@ -3,7 +3,7 @@ IntelliFill OCR Offline Install Package
 
 This package includes:
 
-- IntelliFillOCR_3.0.1.0_x64.msix
+- IntelliFillOCR_3.1.0.0_x64.msix
 - IntelliFillOCR_SigningCert.pfx
 - IntelliFillOCR_SigningCert.cer
 - install-msix.ps1
@@ -17,7 +17,7 @@ Recommended install
 3. Run:
 
    powershell.exe -ExecutionPolicy Bypass -File .\install-msix.ps1 `
-     -MsixPath .\IntelliFillOCR_3.0.1.0_x64.msix `
+     -MsixPath .\IntelliFillOCR_3.1.0.0_x64.msix `
      -CertificatePath .\IntelliFillOCR_SigningCert.pfx `
      -CertificatePassword "ChangeThisPassword" `
      -TrustMachineStore
@@ -33,7 +33,7 @@ OCR dependency
 --------------
 
 Tesseract OCR must be installed on the target machine, or the app must be pointed
-to a local tesseract.exe from Actions > Settings.
+to a local tesseract.exe from WinUI Settings.
 
 Recommended Tesseract path:
 
@@ -42,7 +42,7 @@ Recommended Tesseract path:
 After install
 -------------
 
-Open Actions > Settings in the app to choose:
+Open Settings in the app to choose:
 
 - Tesseract OCR executable
 - SQLite database path

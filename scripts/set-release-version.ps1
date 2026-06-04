@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ($Version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
-    throw "Version must use semantic format like 3.0.1 or hotfix format like 2.2.2.1. Received: $Version"
+    throw "Version must use semantic format like 3.1.0 or hotfix format like 2.2.2.1. Received: $Version"
 }
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
