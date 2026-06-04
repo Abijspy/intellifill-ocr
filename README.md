@@ -103,32 +103,32 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-2.4.2-win-x64.zip
-IntelliFillOCR-Setup-2.4.2-win-x64.exe
+IntelliFillOCR-3.0.1-win-x64.zip
+IntelliFillOCR-Setup-3.0.1-win-x64.exe
 ```
 
 It also builds Linux packages in GitHub Actions only:
 
 ```text
-IntelliFillOCR-2.4.2-linux-x64.deb
-IntelliFillOCR-2.4.2-linux-x64.rpm
+IntelliFillOCR-3.0.1-linux-x64.deb
+IntelliFillOCR-3.0.1-linux-x64.rpm
 ```
 
 and publishes all release files to a GitHub release.
 
-To publish version `2.4.2` manually:
+To publish version `3.0.1` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `2.4.2` and run it.
+5. Keep version `3.0.1` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v2.4.2
-git push origin v2.4.2
+git tag v3.0.1
+git push origin v3.0.1
 ```
 
 ## Build Windows Installer
@@ -137,13 +137,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 2.4.2
+.\scripts\build-installer.ps1 -Version 3.0.1
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-2.4.2-win-x64.exe
+installer\out\IntelliFillOCR-Setup-3.0.1-win-x64.exe
 ```
 
 The installer is built with Inno Setup and uses its Windows compatibility layer for Windows 11, Windows 10, Windows 8.1, Windows 8, Windows 7, and supported Windows Server releases. The app package is built as a 64-bit application and the installer is configured for 64-bit compatible Windows, including Windows on Arm where x64 applications are supported by the operating system.
@@ -198,14 +198,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_2.4.2.0_x64.msix
+msix\out\IntelliFillOCR_3.0.1.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_2.4.2.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_3.0.1.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```

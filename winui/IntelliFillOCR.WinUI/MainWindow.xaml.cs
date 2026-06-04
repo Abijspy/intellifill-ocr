@@ -66,7 +66,7 @@ public sealed partial class MainWindow : Window
             "extraction" => "Native extraction screens are being migrated. Use Open OCR Workspace for the full current workflow.",
             "database" => "SQLite preview remains available in the Python workspace during the native migration.",
             "settings" => "Tesseract and SQLite settings remain available in the Python workspace during the native migration.",
-            "about" => "IntelliFill OCR v3.0.0 native WinUI 3 shell.",
+            "about" => "IntelliFill OCR v3.0.1 native WinUI 3 shell.",
             _ => "Ready."
         };
         ShowStatus(InfoBarSeverity.Informational, item.Content?.ToString() ?? "IntelliFill OCR", message);

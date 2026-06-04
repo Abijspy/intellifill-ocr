@@ -63,7 +63,7 @@ class UpdateService:
             )
             for asset in payload.get("assets", [])
         ]
-        installer_asset = self._select_installer_asset(assets)
+        installer_asset = self._select_installer_asset(assets, latest_version)
 
         return UpdateInfo(
             current_version=__version__,
@@ -112,14 +112,23 @@ class UpdateService:
         return destination
 
     @classmethod
-    def _select_installer_asset(cls, assets: list[ReleaseAsset]) -> ReleaseAsset | None:
+    def _select_installer_asset(cls, assets: list[ReleaseAsset], latest_version: str) -> ReleaseAsset | None:
         platform_package = cls.platform_package_type()
         candidates = [
             ReleaseAsset(asset.name, asset.browser_download_url, asset.size, platform_package)
             for asset in assets
             if cls._asset_matches_platform(asset.name, platform_package)
         ]
-        return candidates[0] if candidates else None
+        versioned_candidates = [
+            asset for asset in candidates if cls._asset_matches_version(asset.name, latest_version)
+        ]
+        return cls._preferred_asset(versioned_candidates) if versioned_candidates else None
+
+    @staticmethod
+    def _preferred_asset(assets: list[ReleaseAsset]) -> ReleaseAsset | None:
+        if not assets:
+            return None
+        return sorted(assets, key=lambda asset: (0 if "setup" in asset.name.lower() else 1, asset.name.lower()))[0]
 
     @classmethod
     def _asset_matches_platform(cls, name: str, platform_package: str) -> bool:
@@ -131,6 +140,13 @@ class UpdateService:
         if platform_package == "fedora":
             return lower_name.endswith(".rpm")
         return False
+
+    @staticmethod
+    def _asset_matches_version(name: str, latest_version: str) -> bool:
+        version = latest_version.strip().lstrip("v")
+        if not version:
+            return False
+        return bool(re.search(rf"(^|[-_])v?{re.escape(version)}($|[-_.])", name, flags=re.IGNORECASE))
 
     @classmethod
     def platform_package_type(cls) -> str:

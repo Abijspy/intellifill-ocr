@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "2.4.2"
+        default: "3.0.1"
   push:
     tags:
       - "v*"
@@ -58,6 +58,11 @@ jobs:
           "package=${env:APP_NAME}-$version-win-x64.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "installer=${env:APP_NAME}-Setup-$version-win-x64.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
+      - name: Stamp application version
+        shell: pwsh
+        run: |
+          .\scripts\set-release-version.ps1 -Version $env:RELEASE_VERSION
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -102,10 +107,10 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🪟 Version $env:RELEASE_VERSION",
-            "- Added a scrolling Installation details output window below the Windows setup progress bar.",
-            "- Each installer operation is appended as it runs, including app file copying, optional Tesseract setup preparation, and final metadata steps.",
-            "- Repeated progress events are de-duplicated so the output stays readable during long installs.",
+            "🩹 Version $env:RELEASE_VERSION",
+            "- Fixed update packages reporting the old 2.4.2 application version after install.",
+            "- Release builds now stamp the Python app metadata from the Git tag before PyInstaller packaging.",
+            "- The updater now selects only the installer asset matching the latest release version.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

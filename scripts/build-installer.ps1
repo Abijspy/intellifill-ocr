@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.4.2",
+    [string]$Version = "3.0.1",
     [string]$DistDir = "dist",
     [string]$OutputDir = "installer\out",
     [string]$InstallerScript = "installer\IntelliFillOCR.iss",

@@ -50,6 +50,20 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🩹 Version 3.0.1</h2>
+        <ul>
+          <li>Fixed update installers that could still show the old 2.4.2 application version after install.</li>
+          <li>Release builds now stamp the app version from the GitHub release tag before packaging.</li>
+          <li>The updater now downloads only the installer asset that matches the latest release version.</li>
+        </ul>
+
+        <h2>🪟 Version 3.0.0</h2>
+        <ul>
+          <li>Added the first native WinUI 3 shell package for IntelliFill OCR.</li>
+          <li>Added a GitHub workflow that builds the WinUI shell, PyInstaller backend, and combined WinUI package.</li>
+          <li>Published Windows, WinUI, Debian, and Fedora package assets from the release pipeline.</li>
+        </ul>
+
         <h2>🪟 Version 2.4.2</h2>
         <ul>
           <li>Added a scrolling Installation details output window below the Windows setup progress bar.</li>
