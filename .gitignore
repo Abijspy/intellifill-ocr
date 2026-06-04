@@ -23,6 +23,8 @@ dist-final/
 release/
 installer/out/
 *.spec.log
+bin/
+obj/
 
 # Packaged installer outputs
 offline-dist/

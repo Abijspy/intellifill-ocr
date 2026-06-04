@@ -11,6 +11,7 @@ It supports template upload, source document upload, region-based OCR, fuzzy fie
 ## Features
 
 - PySide6 desktop UI with dark/light themes, a single Actions workflow button, split panes, tabs, zoomable document preview, and editable table preview.
+- Native WinUI 3 frontend scaffold for the v3 Windows migration under `winui/IntelliFillOCR.WinUI`, built with Windows App SDK and Mica.
 - Dock panels use Qt6 native close and float controls, with Actions > Panels available to reopen closed panels.
 - Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview after those dock panels are closed.
 - Offline OCR using Tesseract, `pytesseract`, OpenCV preprocessing, deskewing, denoising, confidence scoring, and bounding boxes.
@@ -158,6 +159,23 @@ Installer features enabled in this project:
 - Registry metadata and `install.ini` metadata for installed version, path, and install mode.
 - Optional signed installer/uninstaller builds by passing `-SignToolName` or setting `INNO_SETUP_SIGNTOOL_NAME`.
 - Optional encrypted/passworded installer builds by passing `-InstallerPassword` or setting `INTELLIFILL_INSTALLER_PASSWORD`.
+
+## Build WinUI 3 Frontend
+
+The v3 Windows migration starts with a native WinUI 3 shell in `winui\IntelliFillOCR.WinUI`.
+It keeps the current Python OCR workspace available while native WinUI pages are migrated.
+
+Install the Windows App SDK/WinUI tooling, then run:
+
+```powershell
+.\scripts\build-winui.ps1
+```
+
+The build output is created under:
+
+```text
+winui\IntelliFillOCR.WinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64
+```
 
 ## Build MSIX Installer
 
