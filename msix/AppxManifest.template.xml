@@ -31,7 +31,7 @@
   <Applications>
     <Application
       Id="IntelliFillOCR"
-      Executable="IntelliFillOCR\IntelliFillOCR.exe"
+      Executable="IntelliFillOCR.exe"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="{{DISPLAY_NAME}}"

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -15,70 +15,33 @@ namespace IntelliFillOCR.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly PythonBackendLauncher _backendLauncher = new();
-    private readonly PythonBackendIpcSession _backendIpcSession;
-    private readonly List<TemplatePreviewTable> _templateTables = new();
+    private readonly NativeTemplateLoader _loader = new();
+    private readonly List<NativeDocumentTable> _templateTables = new();
+    private readonly List<NativeDocumentPreview> _sourcePreviews = new();
 
     public MainWindow()
     {
         InitializeComponent();
-        _backendIpcSession = new PythonBackendIpcSession(_backendLauncher);
-        ExtendsContentIntoTitleBar = true;
-        Closed += (_, _) => _backendIpcSession.Dispose();
-        RefreshBackendStatus();
+        PackageStatusText.Text = PackageStatus();
     }
 
-    private void OpenRepositoryButton_Click(object sender, RoutedEventArgs e)
+    private void OpenAppDataButton_Click(object sender, RoutedEventArgs e)
     {
-        BackendLaunchResult result = _backendLauncher.OpenRepositoryFolder();
-        ShowStatus(result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning, result.Title, result.Message);
-    }
-
-    private void OpenPythonSettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        BackendLaunchResult result = _backendLauncher.OpenAppDataFolder();
-        ShowStatus(result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning, result.Title, result.Message);
+        string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IntelliFillOCR");
+        Directory.CreateDirectory(appData);
+        Process.Start(new ProcessStartInfo("explorer.exe", appData) { UseShellExecute = true });
+        ShowStatus(InfoBarSeverity.Success, "App data opened", appData);
     }
 
     private void RefreshStatusButton_Click(object sender, RoutedEventArgs e)
     {
-        RefreshBackendStatus();
-        ShowStatus(InfoBarSeverity.Informational, "Status refreshed", "Backend paths were checked again.");
-    }
-
-    private async void TestIpcButton_Click(object sender, RoutedEventArgs e)
-    {
-        BusyRing.IsActive = true;
-        try
-        {
-            BackendIpcResult result = await _backendIpcSession.PingAsync();
-            ShowStatus(result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning, result.Title, result.Message);
-            RefreshBackendStatus();
-        }
-        catch (Exception ex)
-        {
-            ShowStatus(InfoBarSeverity.Error, "IPC test failed", ex.Message);
-        }
-        finally
-        {
-            BusyRing.IsActive = false;
-        }
+        PackageStatusText.Text = PackageStatus();
+        ShowStatus(InfoBarSeverity.Informational, "Status refreshed", "Package paths were checked again.");
     }
 
     private async void UploadTemplateButton_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker
-        {
-            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
-        };
-        foreach (string extension in new[] { ".csv", ".xlsx", ".xls", ".docx", ".pdf", ".png", ".jpg", ".jpeg" })
-        {
-            picker.FileTypeFilter.Add(extension);
-        }
-
-        nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-
+        FileOpenPicker picker = CreateDocumentPicker();
         Windows.Storage.StorageFile? file = await picker.PickSingleFileAsync();
         if (file is null)
         {
@@ -89,17 +52,9 @@ public sealed partial class MainWindow : Window
         BusyRing.IsActive = true;
         try
         {
+            NativeDocumentPreview preview = _loader.Load(file.Path);
             TemplatePathTextBox.Text = file.Path;
-            BackendIpcResult result = await _backendIpcSession.InvokeAsync(
-                "template.upload",
-                new Dictionary<string, object?> { ["path"] = file.Path });
-            if (!result.Success)
-            {
-                ShowStatus(InfoBarSeverity.Error, result.Title, result.Message);
-                return;
-            }
-
-            LoadTemplatePreview(result.ResponseJson, file.Path);
+            LoadTemplatePreview(preview);
             ShowStatus(InfoBarSeverity.Success, "Template loaded", Path.GetFileName(file.Path));
         }
         catch (Exception ex)
@@ -109,6 +64,42 @@ public sealed partial class MainWindow : Window
         finally
         {
             TemplateProgressRing.IsActive = false;
+            BusyRing.IsActive = false;
+        }
+    }
+
+    private async void UploadSourcesButton_Click(object sender, RoutedEventArgs e)
+    {
+        FileOpenPicker picker = CreateDocumentPicker();
+        IReadOnlyList<Windows.Storage.StorageFile> files = await picker.PickMultipleFilesAsync();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        BusyRing.IsActive = true;
+        try
+        {
+            _sourcePreviews.Clear();
+            SourcesListView.Items.Clear();
+            foreach (Windows.Storage.StorageFile file in files.Take(5))
+            {
+                NativeDocumentPreview preview = _loader.LoadManyText(file.Path);
+                _sourcePreviews.Add(preview);
+                SourcesListView.Items.Add($"{Path.GetFileName(file.Path)}  -  {preview.Tables.Count} table(s)");
+            }
+
+            ParsedTextBox.Text = string.Join(
+                Environment.NewLine + Environment.NewLine,
+                _sourcePreviews.Select(preview => $"[{preview.Name}]{Environment.NewLine}{preview.ParsedText}"));
+            ShowStatus(InfoBarSeverity.Success, "Sources loaded", $"{_sourcePreviews.Count} source file(s) parsed natively.");
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(InfoBarSeverity.Error, "Source upload failed", ex.Message);
+        }
+        finally
+        {
             BusyRing.IsActive = false;
         }
     }
@@ -127,20 +118,31 @@ public sealed partial class MainWindow : Window
 
         string message = tag switch
         {
-            "workspace" => "Workspace commands are ready.",
-            "template" => "Native template upload and preview are available in this WinUI shell.",
-            "extraction" => "Native source upload, OCR region selection, and mapping screens are next.",
-            "database" => "Native SQLite preview will be migrated after extraction and mapping.",
-            "settings" => "Native Tesseract and SQLite settings are planned for the WinUI shell.",
-            "about" => "IntelliFill OCR v3.1.1 native WinUI 3 shell.",
+            "workspace" => "Native WinUI package is ready.",
+            "template" => "Upload and preview template tables directly in WinUI.",
+            "extraction" => "Upload source files and review parsed text.",
+            "database" => "SQLite storage will be implemented inside the native WinUI engine next.",
+            "settings" => "Tesseract and export settings will be native WinUI settings.",
+            "about" => "IntelliFill OCR v3.2.0 native WinUI package.",
             _ => "Ready."
         };
         ShowStatus(InfoBarSeverity.Informational, item.Content?.ToString() ?? "IntelliFill OCR", message);
     }
 
-    private void RefreshBackendStatus()
+    private FileOpenPicker CreateDocumentPicker()
     {
-        BackendStatusText.Text = _backendLauncher.GetStatusSummary();
+        var picker = new FileOpenPicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+        };
+        foreach (string extension in new[] { ".csv", ".txt", ".xlsx", ".xls", ".docx", ".pdf", ".png", ".jpg", ".jpeg" })
+        {
+            picker.FileTypeFilter.Add(extension);
+        }
+
+        nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        return picker;
     }
 
     private void ShowStatus(InfoBarSeverity severity, string title, string message)
@@ -151,42 +153,17 @@ public sealed partial class MainWindow : Window
         StatusInfoBar.IsOpen = true;
     }
 
-    private void LoadTemplatePreview(string responseJson, string selectedPath)
+    private void LoadTemplatePreview(NativeDocumentPreview preview)
     {
-        using JsonDocument document = JsonDocument.Parse(responseJson);
-        JsonElement template = document.RootElement.GetProperty("result").GetProperty("template");
-        string templateName = template.TryGetProperty("name", out JsonElement nameElement)
-            ? nameElement.GetString() ?? Path.GetFileNameWithoutExtension(selectedPath)
-            : Path.GetFileNameWithoutExtension(selectedPath);
-
         _templateTables.Clear();
         TemplateTableSelector.Items.Clear();
-
-        foreach (JsonElement tableElement in template.GetProperty("tables").EnumerateArray())
+        foreach (NativeDocumentTable table in preview.Tables)
         {
-            string label = tableElement.TryGetProperty("label", out JsonElement labelElement)
-                ? labelElement.GetString() ?? "Table"
-                : "Table";
-            int rowCount = tableElement.TryGetProperty("row_count", out JsonElement rowCountElement)
-                ? rowCountElement.GetInt32()
-                : 0;
-            int columnCount = tableElement.TryGetProperty("column_count", out JsonElement columnCountElement)
-                ? columnCountElement.GetInt32()
-                : 0;
-            var rows = new List<List<string>>();
-            foreach (JsonElement rowElement in tableElement.GetProperty("cells").EnumerateArray())
-            {
-                rows.Add(rowElement.EnumerateArray()
-                    .Select(cell => cell.TryGetProperty("value", out JsonElement valueElement) ? valueElement.GetString() ?? "" : "")
-                    .ToList());
-            }
-
-            var table = new TemplatePreviewTable(label, rowCount, columnCount, rows);
             _templateTables.Add(table);
-            TemplateTableSelector.Items.Add($"{label} ({rowCount} x {columnCount})");
+            TemplateTableSelector.Items.Add($"{table.Label} ({table.RowCount} x {table.ColumnCount})");
         }
 
-        TemplateSummaryText.Text = $"{templateName}: {_templateTables.Count} table(s) detected from {Path.GetFileName(selectedPath)}.";
+        TemplateSummaryText.Text = $"{preview.Name}: {_templateTables.Count} table(s) detected from {Path.GetFileName(preview.Path)}.";
         if (_templateTables.Count > 0)
         {
             TemplateTableSelector.SelectedIndex = 0;
@@ -211,9 +188,9 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        TemplatePreviewTable table = _templateTables[selectedIndex];
-        int rowCount = Math.Max(table.Cells.Count, table.RowCount);
-        int columnCount = Math.Max(table.ColumnCount, table.Cells.Select(row => row.Count).DefaultIfEmpty(0).Max());
+        NativeDocumentTable table = _templateTables[selectedIndex];
+        int rowCount = table.RowCount;
+        int columnCount = table.ColumnCount;
         if (rowCount == 0 || columnCount == 0)
         {
             TemplateSummaryText.Text = $"{table.Label}: no cells detected.";
@@ -235,9 +212,10 @@ public sealed partial class MainWindow : Window
         var emptyBrush = new SolidColorBrush(ColorHelper.FromArgb(20, 220, 38, 38));
         for (int row = 0; row < rowCount; row++)
         {
+            IReadOnlyList<string> values = table.Rows[row];
             for (int column = 0; column < columnCount; column++)
             {
-                string value = row < table.Cells.Count && column < table.Cells[row].Count ? table.Cells[row][column] : "";
+                string value = column < values.Count ? values[column] : "";
                 var text = new TextBlock
                 {
                     Text = string.IsNullOrWhiteSpace(value) ? " " : value,
@@ -263,5 +241,11 @@ public sealed partial class MainWindow : Window
         TemplateSummaryText.Text = $"{table.Label}: {rowCount} rows and {columnCount} columns.";
     }
 
-    private sealed record TemplatePreviewTable(string Label, int RowCount, int ColumnCount, List<List<string>> Cells);
+    private static string PackageStatus()
+    {
+        string appBase = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+        string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IntelliFillOCR");
+        string installTarget = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "IntelliFill OCR");
+        return $"Version: 3.2.0{Environment.NewLine}App folder: {appBase}{Environment.NewLine}Install/update target: {installTarget}{Environment.NewLine}App data: {appData}";
+    }
 }

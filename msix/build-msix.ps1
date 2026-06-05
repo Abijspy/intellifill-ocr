@@ -1,32 +1,33 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "3.1.1.0",
-    [string]$PackageName = "IntelliFillOCR.Desktop",
+    [string]$Version = "3.2.0.0",
+    [string]$PackageName = "IntelliFillOCR.WinUI",
     [string]$DisplayName = "IntelliFill OCR",
     [string]$Publisher = "CN=IntelliFillOCR",
     [string]$PublisherDisplayName = "IntelliFill OCR",
     [ValidateSet("x64", "x86", "arm64", "neutral")]
     [string]$Architecture = "x64",
+    [string]$Configuration = "Release",
+    [string]$RuntimeIdentifier = "win-x64",
     [string]$OutputDir = "msix\out",
-    [string]$DistAppPath = "",
+    [string]$WinUiPublishDir = "",
     [string]$CertificatePath = "",
-    [string]$CertificatePassword = "",
-    [switch]$SkipExeBuild,
-    [switch]$CreateSelfSignedCertificate
+    [string]$CertificatePassword = "IntelliFillOCR",
+    [switch]$SkipWinUiBuild,
+    [switch]$CreateSelfSignedCertificate = $true
 )
 
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$DistApp = if ($DistAppPath) { (Resolve-Path $DistAppPath).Path } else { Join-Path $RepoRoot "dist\IntelliFillOCR" }
-$StagingRoot = Join-Path $RepoRoot "msix\staging"
-$PackageRoot = Join-Path $StagingRoot "Package"
-$AssetsDir = Join-Path $PackageRoot "Assets"
 $OutputRoot = Join-Path $RepoRoot $OutputDir
-$LogoSource = Join-Path $RepoRoot "assets\logo.png"
+$StagingRoot = Join-Path $RepoRoot "msix\staging"
+$PackageRoot = Join-Path $StagingRoot "WinUIPackage"
+$AssetsDir = Join-Path $PackageRoot "Assets"
+$LogoSource = Join-Path $RepoRoot "assets\logo_512.png"
 $MsixPath = Join-Path $OutputRoot "IntelliFillOCR_${Version}_${Architecture}.msix"
-$CertOutPath = Join-Path $OutputRoot "IntelliFillOCR_SigningCert.pfx"
-$CertPublicPath = Join-Path $OutputRoot "IntelliFillOCR_SigningCert.cer"
+$CertOutPath = Join-Path $OutputRoot "IntelliFillOCR_MSIX_SigningCert.pfx"
+$CertPublicPath = Join-Path $OutputRoot "IntelliFillOCR_MSIX_SigningCert.cer"
 
 function Find-WindowsSdkTool {
     param([Parameter(Mandatory = $true)][string]$ToolName)
@@ -45,6 +46,25 @@ function Find-WindowsSdkTool {
         throw "$ToolName was not found under $kitsRoot. Install the Windows SDK packaging tools."
     }
     return $candidate.FullName
+}
+
+function Resolve-WinUiPublishDir {
+    if ($WinUiPublishDir) {
+        return (Resolve-Path $WinUiPublishDir).Path
+    }
+
+    $projectDir = Join-Path $RepoRoot "winui\IntelliFillOCR.WinUI"
+    $candidates = @(
+        (Join-Path $projectDir "bin\$Architecture\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier\publish"),
+        (Join-Path $projectDir "bin\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier\publish")
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path (Join-Path $candidate "IntelliFillOCR.exe")) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+    throw "WinUI publish output was not found. Run scripts\build-winui.ps1 first or omit -SkipWinUiBuild."
 }
 
 function New-TileAsset {
@@ -114,44 +134,57 @@ function Expand-ManifestTemplate {
     Set-Content -Path $manifestPath -Value $content -Encoding UTF8
 }
 
-function Remove-InvalidMsixPayloadFiles {
-    $docxTemplates = Join-Path $PackageRoot "IntelliFillOCR\_internal\docx\templates"
-    if (Test-Path $docxTemplates) {
-        Write-Warning "Removing python-docx template payloads that are incompatible with MSIX packaging."
-        Remove-Item -LiteralPath $docxTemplates -Recurse -Force
-    }
+function Write-InstallHelpers {
+    $installPs1 = Join-Path $OutputRoot "Install-IntelliFillOCR-MSIX.ps1"
+    $installCmd = Join-Path $OutputRoot "Install-IntelliFillOCR-MSIX.cmd"
+    $msixName = Split-Path $MsixPath -Leaf
+    $certName = Split-Path $CertPublicPath -Leaf
 
-    $invalidFiles = Get-ChildItem -Path $PackageRoot -Recurse -File |
-        Where-Object {
-            $relative = $_.FullName.Substring($PackageRoot.Length + 1)
-            $_.Name.Contains("[") -or
-            $_.Name.Contains("]") -or
-            $_.Name.Contains("+") -or
-            $relative.Contains(" ")
-        }
+    @"
+`$ErrorActionPreference = "Stop"
+`$Root = Split-Path -Parent `$MyInvocation.MyCommand.Path
+`$Msix = Join-Path `$Root "$msixName"
+`$Cert = Join-Path `$Root "$certName"
 
-    foreach ($file in $invalidFiles) {
-        Write-Warning "Removing MSIX-incompatible payload file: $($file.FullName.Substring($PackageRoot.Length + 1))"
-        Remove-Item -LiteralPath $file.FullName -Force
-    }
+if (-not (Test-Path `$Msix)) { throw "MSIX file was not found: `$Msix" }
+if (-not (Test-Path `$Cert)) { throw "Certificate file was not found: `$Cert" }
+
+Write-Host "Trusting IntelliFill OCR MSIX certificate for CurrentUser..."
+Import-Certificate -FilePath `$Cert -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
+Import-Certificate -FilePath `$Cert -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
+
+Write-Host "Installing IntelliFill OCR MSIX..."
+Add-AppxPackage -Path `$Msix -ForceUpdateFromAnyVersion
+Write-Host "Install/update complete."
+"@ | Set-Content -Path $installPs1 -Encoding UTF8
+
+    @"
+@echo off
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-IntelliFillOCR-MSIX.ps1"
+pause
+"@ | Set-Content -Path $installCmd -Encoding ASCII
 }
 
-if (-not $SkipExeBuild) {
-    & (Join-Path $RepoRoot "build.ps1")
+if (-not $SkipWinUiBuild) {
+    & (Join-Path $RepoRoot "scripts\build-winui.ps1") -Configuration $Configuration -Platform $Architecture -RuntimeIdentifier $RuntimeIdentifier
 }
 
-if (-not (Test-Path (Join-Path $DistApp "IntelliFillOCR.exe"))) {
-    throw "PyInstaller output was not found at $DistApp. Run .\build.ps1 first or omit -SkipExeBuild."
+$publishDir = Resolve-WinUiPublishDir
+if (-not (Test-Path (Join-Path $publishDir "IntelliFillOCR.exe"))) {
+    throw "WinUI executable was not found in $publishDir."
 }
 
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 if (Test-Path $StagingRoot) {
     Remove-Item -LiteralPath $StagingRoot -Recurse -Force
 }
+if (Test-Path $MsixPath) {
+    Remove-Item -LiteralPath $MsixPath -Force
+}
 New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $AssetsDir -Force | Out-Null
 
-Copy-Item -Path $DistApp -Destination (Join-Path $PackageRoot "IntelliFillOCR") -Recurse
+Copy-Item -Path (Join-Path $publishDir "*") -Destination $PackageRoot -Recurse -Force
 New-TileAsset -Path (Join-Path $AssetsDir "StoreLogo.png") -Width 50 -Height 50 -LogoPath $LogoSource
 New-TileAsset -Path (Join-Path $AssetsDir "Square44x44Logo.png") -Width 44 -Height 44 -LogoPath $LogoSource
 New-TileAsset -Path (Join-Path $AssetsDir "Square71x71Logo.png") -Width 71 -Height 71 -LogoPath $LogoSource
@@ -159,7 +192,6 @@ New-TileAsset -Path (Join-Path $AssetsDir "Square150x150Logo.png") -Width 150 -H
 New-TileAsset -Path (Join-Path $AssetsDir "Square310x310Logo.png") -Width 310 -Height 310 -LogoPath $LogoSource
 New-TileAsset -Path (Join-Path $AssetsDir "Wide310x150Logo.png") -Width 310 -Height 150 -LogoPath $LogoSource
 Expand-ManifestTemplate
-Remove-InvalidMsixPayloadFiles
 
 $makeAppx = Find-WindowsSdkTool "MakeAppx.exe"
 & $makeAppx pack /d $PackageRoot /p $MsixPath /o /nv
@@ -170,8 +202,8 @@ if (-not (Test-Path $MsixPath)) {
     throw "MakeAppx finished but the MSIX file was not found at $MsixPath."
 }
 
-if ($CreateSelfSignedCertificate) {
-    $securePassword = ConvertTo-SecureString -String $(if ($CertificatePassword) { $CertificatePassword } else { "IntelliFillOCR" }) -Force -AsPlainText
+if ($CreateSelfSignedCertificate -and -not $CertificatePath) {
+    $securePassword = ConvertTo-SecureString -String $CertificatePassword -Force -AsPlainText
     $cert = New-SelfSignedCertificate `
         -Type Custom `
         -Subject $Publisher `
@@ -185,27 +217,25 @@ if ($CreateSelfSignedCertificate) {
     Export-PfxCertificate -Cert $cert -FilePath $CertOutPath -Password $securePassword | Out-Null
     Export-Certificate -Cert $cert -FilePath $CertPublicPath | Out-Null
     $CertificatePath = $CertOutPath
-    if (-not $CertificatePassword) {
-        $CertificatePassword = "IntelliFillOCR"
-    }
     Write-Host "Created signing certificate: $CertOutPath"
     Write-Host "Created public certificate: $CertPublicPath"
 }
 
-if ($CertificatePath) {
-    $signTool = Find-WindowsSdkTool "SignTool.exe"
-    $signArgs = @("sign", "/fd", "SHA256", "/f", $CertificatePath)
-    if ($CertificatePassword) {
-        $signArgs += @("/p", $CertificatePassword)
-    }
-    $signArgs += $MsixPath
-    & $signTool @signArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "SignTool failed with exit code $LASTEXITCODE. The MSIX exists but is not signed correctly: $MsixPath"
-    }
-    Write-Host "Signed MSIX: $MsixPath"
-} else {
-    Write-Warning "MSIX created but not signed. Windows requires MSIX packages to be signed before install."
+if (-not $CertificatePath) {
+    throw "MSIX packages must be signed. Pass -CertificatePath or use -CreateSelfSignedCertificate."
 }
 
-Write-Host "MSIX package: $MsixPath"
+$signTool = Find-WindowsSdkTool "SignTool.exe"
+$signArgs = @("sign", "/fd", "SHA256", "/f", $CertificatePath)
+if ($CertificatePassword) {
+    $signArgs += @("/p", $CertificatePassword)
+}
+$signArgs += $MsixPath
+& $signTool @signArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "SignTool failed with exit code $LASTEXITCODE. The MSIX exists but is not signed correctly: $MsixPath"
+}
+
+Write-InstallHelpers
+Write-Host "Signed MSIX: $MsixPath"
+Write-Host "Certificate: $CertPublicPath"

@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "3.1.1",
+    [string]$Version = "3.2.0",
     [string]$DistDir = "dist",
     [string]$SourceDir = "",
     [string]$AppExeName = "IntelliFillOCR.exe",

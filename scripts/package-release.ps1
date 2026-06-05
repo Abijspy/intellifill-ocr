@@ -1,68 +1,93 @@
 param(
-    [string]$Version = "3.1.1",
-    [string]$DistDir = "dist",
-    [string]$OutputDir = "release"
+    [string]$Version = "3.2.0",
+    [string]$Configuration = "Release",
+    [string]$Platform = "x64",
+    [string]$RuntimeIdentifier = "win-x64",
+    [string]$OutputDir = "release",
+    [switch]$SkipWinUiBuild
 )
 
 $ErrorActionPreference = "Stop"
 
 $AppName = "IntelliFillOCR"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$DistPath = Join-Path $Root $DistDir
-$AppDistPath = Join-Path $DistPath $AppName
 $OutputPath = Join-Path $Root $OutputDir
-$PackageName = "$AppName-$Version-win-x64"
-$PackagePath = Join-Path $OutputPath $PackageName
-$ZipPath = Join-Path $OutputPath "$PackageName.zip"
+$PortableName = "$AppName-$Version-portable-win-x64"
+$PortableRoot = Join-Path $OutputPath "winui-staging\$PortableName"
+$BundleName = "$AppName-$Version-windows-x64-package"
+$BundleRoot = Join-Path $OutputPath "bundle\$BundleName"
+$ArchivePath = Join-Path $OutputPath "$BundleName.zip"
 
-if (-not (Test-Path $AppDistPath)) {
-    throw "PyInstaller output was not found at $AppDistPath. Run the build first."
+if (-not $SkipWinUiBuild) {
+    & (Join-Path $Root "scripts\build-winui.ps1") `
+        -Configuration $Configuration `
+        -Platform $Platform `
+        -RuntimeIdentifier $RuntimeIdentifier
 }
 
-if (-not (Test-Path $OutputPath)) {
-    New-Item -ItemType Directory -Path $OutputPath | Out-Null
+& (Join-Path $Root "scripts\package-winui.ps1") `
+    -Version $Version `
+    -Configuration $Configuration `
+    -Platform $Platform `
+    -RuntimeIdentifier $RuntimeIdentifier `
+    -PackageName $PortableName
+
+$MsixVersion = "$Version.0"
+if ($Version -match '^\d+\.\d+\.\d+\.\d+$') {
+    $MsixVersion = $Version
 }
 
-if (Test-Path $PackagePath) {
-    Remove-Item -LiteralPath $PackagePath -Recurse -Force
+& (Join-Path $Root "msix\build-msix.ps1") `
+    -Version $MsixVersion `
+    -Architecture $Platform `
+    -Configuration $Configuration `
+    -RuntimeIdentifier $RuntimeIdentifier `
+    -SkipWinUiBuild `
+    -CreateSelfSignedCertificate
+
+$MsixFile = Get-ChildItem -LiteralPath (Join-Path $Root "msix\out") -Filter "IntelliFillOCR_${MsixVersion}_${Platform}.msix" |
+    Select-Object -First 1
+$CertFile = Get-ChildItem -LiteralPath (Join-Path $Root "msix\out") -Filter "IntelliFillOCR_MSIX_SigningCert.cer" |
+    Select-Object -First 1
+
+if (-not (Test-Path (Join-Path $PortableRoot "IntelliFillOCR.exe"))) {
+    throw "Portable WinUI package was not found at $PortableRoot."
+}
+if (-not $MsixFile) {
+    throw "Signed MSIX was not found in msix\out."
+}
+if (-not $CertFile) {
+    throw "MSIX public certificate was not found in msix\out."
 }
 
-New-Item -ItemType Directory -Path $PackagePath | Out-Null
-Copy-Item -Path (Join-Path $AppDistPath "*") -Destination $PackagePath -Recurse -Force
-
-$InstallNotes = @"
-IntelliFill OCR Desktop $Version
-
-Offline Windows package
-
-How to run
-1. Extract this zip on a Windows 10/11 machine.
-2. Run IntelliFillOCR.exe when packaging from the WinUI staging folder.
-3. Open Settings and select the local Tesseract OCR executable path if it is not detected automatically.
-4. Choose or create the SQLite database path from Settings.
-
-Notes
-- The application runs fully offline.
-- Tesseract OCR must be installed locally on the target computer for OCR features. The Windows setup installer can optionally download and launch the Tesseract OCR 5.5.0 installer when internet is available; offline machines should install Tesseract from a local/offline copy.
-- Source and template upload supports Word, Excel, CSV, images, and PDF files.
-- Exports include CSV, Excel, PDF, Word, and preserved-layout document output where supported.
-- Traceability barcodes are compact and are placed at the bottom center of PDF/Word exports.
-- Taskbar pins use the new application icon after installing 2.0.1 and re-pinning from the updated shortcut.
-- Closed panels can be restored or hidden from Actions > Panels.
-- Learned templates, validation checks, signature/stamp detection, and Windows scanner import are available from Actions.
-- User Guide and full scrollable changelog are available from Actions > Help.
-- Native WinUI release packages use the Python executable as a backend process through local JSON IPC.
-- PDF traceability barcodes render as clear, scannable bottom-center barcode images instead of collapsed black strips.
-- Scrollable tables, text previews, logs, help pages, and changelogs use smoother wheel scrolling and polished scrollbars.
-- User Guide workflow diagrams and feature help remain readable in dark and light mode.
-"@
-
-Set-Content -Path (Join-Path $PackagePath "INSTALL.txt") -Value $InstallNotes -Encoding UTF8
-
-if (Test-Path $ZipPath) {
-    Remove-Item -LiteralPath $ZipPath -Force
+if (Test-Path $BundleRoot) {
+    Remove-Item -LiteralPath $BundleRoot -Recurse -Force
+}
+if (Test-Path $ArchivePath) {
+    Remove-Item -LiteralPath $ArchivePath -Force
 }
 
-Compress-Archive -Path (Join-Path $PackagePath "*") -DestinationPath $ZipPath -Force
+New-Item -ItemType Directory -Path (Join-Path $BundleRoot "Portable") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $BundleRoot "MSIX") -Force | Out-Null
 
-Write-Host "Release package created: $ZipPath"
+Copy-Item -Path (Join-Path $PortableRoot "*") -Destination (Join-Path $BundleRoot "Portable") -Recurse -Force
+Copy-Item -LiteralPath $MsixFile.FullName -Destination (Join-Path $BundleRoot "MSIX") -Force
+Copy-Item -LiteralPath $CertFile.FullName -Destination (Join-Path $BundleRoot "MSIX") -Force
+Copy-Item -LiteralPath (Join-Path $Root "msix\out\Install-IntelliFillOCR-MSIX.ps1") -Destination (Join-Path $BundleRoot "MSIX") -Force
+Copy-Item -LiteralPath (Join-Path $Root "msix\out\Install-IntelliFillOCR-MSIX.cmd") -Destination (Join-Path $BundleRoot "MSIX") -Force
+
+@(
+    "IntelliFill OCR $Version Windows package",
+    "",
+    "Portable:",
+    "- Open Portable\IntelliFillOCR.exe directly, or run Portable\InstallOrUpdate.cmd to install/update for the current user.",
+    "",
+    "MSIX:",
+    "- Open MSIX\Install-IntelliFillOCR-MSIX.cmd to trust the included signing certificate and install/update the signed MSIX.",
+    "- The MSIX is signed with the included IntelliFillOCR_MSIX_SigningCert.cer certificate.",
+    "",
+    "This package contains the native WinUI app only. It does not include the old Qt UI, Python IPC backend, or Inno installer."
+) | Set-Content -Path (Join-Path $BundleRoot "README.txt") -Encoding UTF8
+
+Compress-Archive -Path $BundleRoot -DestinationPath $ArchivePath -CompressionLevel Optimal
+Write-Host "Single Windows package created: $ArchivePath"

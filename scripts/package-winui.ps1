@@ -1,12 +1,10 @@
 param(
-    [string]$Version = "3.1.1",
+    [string]$Version = "3.2.0",
     [string]$Configuration = "Release",
     [string]$Platform = "x64",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$WinUiProjectDir = "winui\IntelliFillOCR.WinUI",
-    [string]$BackendDistDir = "dist\IntelliFillOCRBackend",
     [string]$WinUiExeName = "IntelliFillOCR.exe",
-    [string]$BackendExeName = "IntelliFillOCRBackend.exe",
     [string]$OutputDir = "release",
     [string]$PackageName = ""
 )
@@ -21,10 +19,9 @@ $WinUiOutputCandidates = @(
     (Join-Path $Root "$WinUiProjectDir\bin\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier")
 )
 $WinUiOutput = $WinUiOutputCandidates | Where-Object { Test-Path (Join-Path $_ $WinUiExeName) } | Select-Object -First 1
-$BackendDist = Join-Path $Root $BackendDistDir
 $ResolvedOutput = Join-Path $Root $OutputDir
 if (-not $PackageName) {
-    $PackageName = "IntelliFillOCR-WinUI-$Version-win-x64"
+    $PackageName = "IntelliFillOCR-$Version-winui-win-x64"
 }
 $StagingRoot = Join-Path $ResolvedOutput "winui-staging"
 $PackageRoot = Join-Path $StagingRoot $PackageName
@@ -38,14 +35,6 @@ if (-not (Test-Path (Join-Path $WinUiOutput $WinUiExeName))) {
     throw "WinUI executable was not found in $WinUiOutput."
 }
 
-if (-not (Test-Path $BackendDist)) {
-    throw "Python backend dist was not found at $BackendDist. Run the PyInstaller build first."
-}
-
-if (-not (Test-Path (Join-Path $BackendDist $BackendExeName))) {
-    throw "Python backend executable was not found in $BackendDist."
-}
-
 New-Item -ItemType Directory -Path $ResolvedOutput -Force | Out-Null
 if (Test-Path $StagingRoot) {
     Remove-Item -LiteralPath $StagingRoot -Recurse -Force
@@ -56,22 +45,42 @@ if (Test-Path $ArchivePath) {
 
 New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
 Copy-Item -Path (Join-Path $WinUiOutput "*") -Destination $PackageRoot -Recurse -Force
-$compatLauncher = Join-Path $PackageRoot "IntelliFillOCR.WinUI.exe"
-if (-not (Test-Path $compatLauncher)) {
-    Copy-Item -LiteralPath (Join-Path $PackageRoot $WinUiExeName) -Destination $compatLauncher -Force
-}
+@"
+param()
+`$ErrorActionPreference = "Stop"
+`$source = Split-Path -Parent `$MyInvocation.MyCommand.Path
+`$target = Join-Path `$env:LOCALAPPDATA "Programs\IntelliFill OCR"
+`$shortcutDir = Join-Path `$env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+`$shortcutPath = Join-Path `$shortcutDir "IntelliFill OCR.lnk"
 
-$BackendTarget = Join-Path $PackageRoot "Backend"
-New-Item -ItemType Directory -Path $BackendTarget -Force | Out-Null
-Copy-Item -Path (Join-Path $BackendDist "*") -Destination $BackendTarget -Recurse -Force
+Get-Process IntelliFillOCR -ErrorAction SilentlyContinue | Stop-Process -Force
+if (Test-Path `$target) {
+    Remove-Item -LiteralPath `$target -Recurse -Force
+}
+New-Item -ItemType Directory -Path `$target -Force | Out-Null
+Copy-Item -Path (Join-Path `$source "*") -Destination `$target -Recurse -Force -Exclude "InstallOrUpdate-IntelliFillOCR.ps1","InstallOrUpdate.cmd"
+
+`$shell = New-Object -ComObject WScript.Shell
+`$shortcut = `$shell.CreateShortcut(`$shortcutPath)
+`$shortcut.TargetPath = Join-Path `$target "IntelliFillOCR.exe"
+`$shortcut.WorkingDirectory = `$target
+`$shortcut.IconLocation = Join-Path `$target "IntelliFillOCR.exe"
+`$shortcut.Save()
+Write-Host "Installed/updated IntelliFill OCR at `$target"
+"@ | Set-Content -Path (Join-Path $PackageRoot "InstallOrUpdate-IntelliFillOCR.ps1") -Encoding UTF8
+
+@"
+@echo off
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0InstallOrUpdate-IntelliFillOCR.ps1"
+pause
+"@ | Set-Content -Path (Join-Path $PackageRoot "InstallOrUpdate.cmd") -Encoding ASCII
 
 @(
     "IntelliFill OCR WinUI package $Version",
     "",
     "Run IntelliFillOCR.exe to open the native WinUI 3 shell.",
-    "IntelliFillOCR.WinUI.exe is included only as a compatibility launcher for older v3.1.0 shortcuts.",
-    "The Python OCR engine is bundled in the Backend folder as a local JSON IPC service.",
-    "Tesseract OCR must still be installed locally or configured in the application settings."
+    "Run InstallOrUpdate.cmd to install or update the portable package for the current user.",
+    "This Windows package is native WinUI only and does not bundle or launch a Python IPC backend."
 ) | Set-Content -Path (Join-Path $PackageRoot "README.txt") -Encoding UTF8
 
 Compress-Archive -Path $PackageRoot -DestinationPath $ArchivePath -CompressionLevel Optimal

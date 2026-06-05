@@ -1,11 +1,8 @@
 # IntelliFill OCR WinUI 3 Frontend
 
-This folder contains the native Windows App SDK / WinUI 3 frontend for the v3 migration.
+This folder contains the native Windows App SDK / WinUI 3 frontend.
 
-The native WinUI shell is the default Windows frontend. The installed application launches from the top-level `IntelliFillOCR.exe`; `IntelliFillOCR.WinUI.exe` is kept as a compatibility copy for v3.1.0 shortcuts. The existing Python OCR, parsing, SQLite, validation, and export services run as a local JSON IPC backend from either:
-
-- `Backend/IntelliFillOCRBackend.exe` in packaged builds.
-- `.venv/Scripts/python.exe -m intellifill_ocr.backend_main` during source development.
+The Windows package is native WinUI-only. It launches from `IntelliFillOCR.exe` and does not use the old Qt UI, Python IPC backend, or Inno installer.
 
 ## Build
 
@@ -19,58 +16,28 @@ The WinUI project uses:
 - Microsoft Windows App SDK 2.1.
 - Mica backdrop and WinUI NavigationView shell.
 
-## Migration Plan
+## Package
 
-1. Keep the Python OCR, parsing, database, export, and validation services stable.
-2. Add a JSON/IPC backend boundary for template upload, source upload, OCR extraction, mapping, validation, and export commands. ✅
-3. Replace the remaining workflow screens with native WinUI pages one workflow at a time. Template upload is now native.
-4. Move the Windows installer to package the WinUI shell plus Python backend. ✅
-
-## JSON IPC Backend
-
-The Python backend supports a native backend mode:
+Create the portable WinUI package:
 
 ```powershell
-python -m intellifill_ocr.backend_main
+.\scripts\package-winui.ps1 -Version 3.2.0
 ```
 
-The packaged backend runs the same protocol:
+Build and sign the MSIX:
 
 ```powershell
-Backend\IntelliFillOCRBackend.exe
+.\msix\build-msix.ps1 -Version 3.2.0.0
 ```
 
-IPC uses newline-delimited JSON over stdin/stdout. Each request is:
+The GitHub release workflow builds one ZIP asset containing:
 
-```json
-{"id":"1","command":"system.ping","params":{}}
-```
+- `Portable\IntelliFillOCR.exe`
+- `Portable\InstallOrUpdate.cmd`
+- `MSIX\IntelliFillOCR_3.2.0.0_x64.msix`
+- `MSIX\IntelliFillOCR_MSIX_SigningCert.cer`
+- `MSIX\Install-IntelliFillOCR-MSIX.cmd`
 
-Each response is:
+## Native Preview Support
 
-```json
-{"id":"1","ok":true,"result":{}}
-```
-
-Errors return:
-
-```json
-{"id":"1","ok":false,"error":{"type":"ValueError","message":"Upload a template first."}}
-```
-
-Current commands:
-
-- `system.ping`: returns version, Tesseract path, SQLite path, language, and backend capabilities.
-- `state.get`: returns the current template, sources, fields, mappings, run id, and traceability code.
-- `state.reset`: clears the current in-memory workflow.
-- `template.upload`: params `{ "path": "C:\\path\\template.docx" }`.
-- `template.set_cell`: params `{ "table_index": 0, "row": 1, "column": 2, "value": "Filled value" }`.
-- `source.upload`: params `{ "paths": ["C:\\path\\source.pdf"] }`, up to five source files.
-- `ocr.extract`: params `{ "source_id": 0, "region": { "x": 10, "y": 20, "width": 220, "height": 80 } }`.
-- `mapping.suggest`: returns fuzzy/keyword mapping suggestions.
-- `mapping.apply`: applies mappings into the template preview.
-- `validation.run`: returns validation issues for required, regex/date/amount, duplicate, and total mismatch rules.
-- `database.save`: saves completed values to SQLite.
-- `export.create`: params `{ "format": "pdf", "output_path": "C:\\out\\filled.pdf" }`.
-
-The WinUI shell includes a **Check backend** button that starts the Python backend IPC process, sends `system.ping`, and shows the connection result. Template upload also runs natively through this IPC session.
+The WinUI shell currently parses CSV, TXT, XLSX, and DOCX tables directly in C# for template/source preview. PDF and image files are accepted as imported documents while native OCR/PDF table extraction is migrated into the WinUI engine.
