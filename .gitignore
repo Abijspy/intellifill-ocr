@@ -36,6 +36,7 @@ msix/probe-base/
 *.msix
 *.pfx
 *.cer
+packaging/PortableInstaller/Payload/*.zip
 
 # Local app data
 *.sqlite

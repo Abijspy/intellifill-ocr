@@ -1,4 +1,4 @@
-name: WinUI Release Package
+name: Portable EXE Release
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.2.0"
+        default: "3.3.0"
   push:
     tags:
       - "v*"
@@ -21,7 +21,7 @@ env:
 
 jobs:
   build-and-publish:
-    name: Build one signed WinUI package
+    name: Build single portable updater EXE
     runs-on: windows-latest
 
     steps:
@@ -41,15 +41,15 @@ jobs:
           }
 
           if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
-            throw "Version must use semantic format like 3.2.0 or hotfix format like 2.2.2.1. Received: $version"
+            throw "Version must use semantic format like 3.3.0 or hotfix format like 3.3.0.1. Received: $version"
           }
 
           "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "RELEASE_TAG=v$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_PACKAGE=${env:APP_NAME}-$version-windows-x64-package.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_ASSET=${env:APP_NAME}-$version-portable-win-x64.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "package=${env:APP_NAME}-$version-windows-x64-package.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "asset=${env:APP_NAME}-$version-portable-win-x64.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Stamp application version
         shell: pwsh
@@ -61,82 +61,23 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build native WinUI app
+      - name: Build single portable updater EXE
         shell: pwsh
         run: |
-          .\scripts\build-winui.ps1 -Configuration Release -Platform x64 -RuntimeIdentifier win-x64
+          .\scripts\package-portable-exe.ps1 -Version $env:RELEASE_VERSION -Configuration Release -Platform x64 -RuntimeIdentifier win-x64
 
-      - name: Package portable WinUI app
+      - name: Validate release asset
         shell: pwsh
         run: |
-          .\scripts\package-winui.ps1 -Version $env:RELEASE_VERSION -PackageName "$env:APP_NAME-$env:RELEASE_VERSION-portable-win-x64"
-
-      - name: Build signed WinUI MSIX
-        shell: pwsh
-        run: |
-          $msixVersion = "$env:RELEASE_VERSION.0"
-          if ($env:RELEASE_VERSION -match '^\d+\.\d+\.\d+\.\d+$') {
-            $msixVersion = $env:RELEASE_VERSION
+          $asset = "release\$env:RELEASE_ASSET"
+          if (-not (Test-Path $asset)) {
+            throw "Release asset was not created: $asset"
           }
-          .\msix\build-msix.ps1 -Version $msixVersion -Architecture x64 -Configuration Release -RuntimeIdentifier win-x64 -SkipWinUiBuild -CreateSelfSignedCertificate
-
-      - name: Assemble single release ZIP
-        shell: pwsh
-        run: |
-          $bundleRoot = "release\bundle\$env:APP_NAME-$env:RELEASE_VERSION-windows-x64-package"
-          $portableRoot = "release\winui-staging\$env:APP_NAME-$env:RELEASE_VERSION-portable-win-x64"
-          $msixFile = Get-ChildItem -LiteralPath "msix\out" -Filter "IntelliFillOCR_*.msix" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          $certFile = Get-ChildItem -LiteralPath "msix\out" -Filter "IntelliFillOCR_MSIX_SigningCert.cer" | Select-Object -First 1
-
-          if (-not (Test-Path (Join-Path $portableRoot "IntelliFillOCR.exe"))) {
-            throw "Portable WinUI package was not found at $portableRoot"
+          $item = Get-Item $asset
+          if ($item.Length -lt 100MB) {
+            throw "Portable EXE is unexpectedly small: $($item.Length) bytes"
           }
-          if (-not $msixFile) {
-            throw "Signed MSIX was not found."
-          }
-          if (-not $certFile) {
-            throw "MSIX public certificate was not found."
-          }
-
-          if (Test-Path $bundleRoot) {
-            Remove-Item -LiteralPath $bundleRoot -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path "$bundleRoot\Portable" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$bundleRoot\MSIX" -Force | Out-Null
-
-          Copy-Item -Path (Join-Path $portableRoot "*") -Destination "$bundleRoot\Portable" -Recurse -Force
-          Copy-Item -LiteralPath $msixFile.FullName -Destination "$bundleRoot\MSIX" -Force
-          Copy-Item -LiteralPath $certFile.FullName -Destination "$bundleRoot\MSIX" -Force
-          Copy-Item -LiteralPath "msix\out\Install-IntelliFillOCR-MSIX.ps1" -Destination "$bundleRoot\MSIX" -Force
-          Copy-Item -LiteralPath "msix\out\Install-IntelliFillOCR-MSIX.cmd" -Destination "$bundleRoot\MSIX" -Force
-
-          @(
-            "IntelliFill OCR $env:RELEASE_VERSION Windows package",
-            "",
-            "Portable:",
-            "- Open Portable\IntelliFillOCR.exe directly, or run Portable\InstallOrUpdate.cmd to install/update for the current user.",
-            "",
-            "MSIX:",
-            "- Open MSIX\Install-IntelliFillOCR-MSIX.cmd to trust the included signing certificate and install/update the signed MSIX.",
-            "- The MSIX is signed with the included IntelliFillOCR_MSIX_SigningCert.cer certificate.",
-            "",
-            "This package contains the native WinUI app only. It does not include the old Qt UI, Python IPC backend, or Inno installer."
-          ) | Set-Content -Path "$bundleRoot\README.txt" -Encoding UTF8
-
-          $archive = "release\$env:RELEASE_PACKAGE"
-          if (Test-Path $archive) {
-            Remove-Item -LiteralPath $archive -Force
-          }
-          Compress-Archive -Path $bundleRoot -DestinationPath $archive -CompressionLevel Optimal
-
-      - name: Validate single package contents
-        shell: pwsh
-        run: |
-          $archive = "release\$env:RELEASE_PACKAGE"
-          if (-not (Test-Path $archive)) {
-            throw "Release package was not created: $archive"
-          }
-          tar -tf $archive | Select-String -Pattern "Portable/IntelliFillOCR.exe|MSIX/IntelliFillOCR_.*\.msix|MSIX/IntelliFillOCR_MSIX_SigningCert\.cer|MSIX/Install-IntelliFillOCR-MSIX\.cmd|README.txt"
+          Write-Host "Validated release asset: $($item.FullName) ($($item.Length) bytes)"
 
       - name: Write release notes
         shell: pwsh
@@ -144,21 +85,22 @@ jobs:
           @(
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
-            "🪟 Version $env:RELEASE_VERSION",
-            "- Rebuilt the Windows package as a native WinUI-only app.",
-            "- Removed the Python IPC backend from the Windows package.",
-            "- Added a signed WinUI MSIX with certificate/install helper.",
-            "- GitHub release now attaches one Windows ZIP package only.",
+            "Version $env:RELEASE_VERSION",
+            "- Restored the full Actions workflow in the native WinUI app.",
+            "- Added a single portable updater EXE release asset.",
+            "- The portable EXE installs or updates IntelliFill OCR under the current user profile and launches the app.",
+            "- The in-app update checker now downloads and runs the same portable updater EXE.",
+            "- Cleaned the GitHub release pipeline so only one Windows asset is attached.",
             "",
             "Asset:",
-            "- IntelliFillOCR-$env:RELEASE_VERSION-windows-x64-package.zip"
+            "- $env:RELEASE_ASSET"
           ) | Set-Content -Path release-notes.md -Encoding UTF8
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_NAME }}-${{ steps.version.outputs.version }}-windows-x64-package
-          path: release/${{ steps.version.outputs.package }}
+          name: ${{ env.APP_NAME }}-${{ steps.version.outputs.version }}-portable-win-x64
+          path: release/${{ steps.version.outputs.asset }}
           if-no-files-found: error
 
       - name: Create or update GitHub release
@@ -166,7 +108,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $asset = "release/$env:RELEASE_PACKAGE"
+          $asset = "release/$env:RELEASE_ASSET"
 
           gh release view $env:RELEASE_TAG *> $null
           if ($LASTEXITCODE -eq 0) {

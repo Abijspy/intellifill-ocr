@@ -12,7 +12,7 @@
         <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <NavigationView
             x:Name="ShellNavigation"
             IsBackButtonVisible="Collapsed"
@@ -22,12 +22,14 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Workspace" Icon="Home" Tag="workspace" IsSelected="True" />
                 <NavigationViewItem Content="Template" Icon="Page" Tag="template" />
-                <NavigationViewItem Content="Extraction" Icon="Document" Tag="extraction" />
+                <NavigationViewItem Content="Sources" Icon="Document" Tag="sources" />
+                <NavigationViewItem Content="Mapping" Icon="Edit" Tag="mapping" />
+                <NavigationViewItem Content="Output" Icon="Save" Tag="output" />
                 <NavigationViewItem Content="Database" Icon="Library" Tag="database" />
                 <NavigationViewItem Content="Settings" Icon="Setting" Tag="settings" />
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="About v3.2.0" Icon="Help" Tag="about" />
+                <NavigationViewItem Content="Help / About" Icon="Help" Tag="about" />
             </NavigationView.FooterMenuItems>
 
             <Grid RowDefinitions="Auto,*" Padding="28,22,28,24" RowSpacing="18">
@@ -37,9 +39,9 @@
                     Severity="Informational"
                     IsClosable="True" />
 
-                <ScrollViewer Grid.Row="1">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="18">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
                             <Image
                                 Source="/Assets/StoreLogo.png"
                                 Width="72"
@@ -48,10 +50,68 @@
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
                                 <TextBlock Text="IntelliFill OCR" Style="{ThemeResource TitleTextBlockStyle}" />
                                 <TextBlock
-                                    Text="Native WinUI 3 shell for offline OCR extraction and table filling"
+                                    Text="Offline OCR extraction, mapping, validation, SQLite storage, and traceable exports"
                                     Style="{ThemeResource BodyTextBlockStyle}"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
+
+                            <Button Grid.Column="2" x:Name="ActionsButton" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE712;" />
+                                    <TextBlock Text="Actions" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Upload Template" Click="UploadTemplateButton_Click" />
+                                        <MenuFlyoutItem Text="Upload Source Files" Click="UploadSourcesButton_Click" />
+                                        <MenuFlyoutItem Text="Scan Source Document" Click="ScanSourceDocument_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Select OCR Region" Click="SelectOcrRegion_Click" />
+                                        <MenuFlyoutItem Text="Auto Fill Matching Fields" Click="AutoFillButton_Click" />
+                                        <MenuFlyoutItem Text="Map Selected Field to Destination Cell" Click="MapSelectedButton_Click" />
+                                        <MenuFlyoutSubItem Text="Saved Mapping Templates">
+                                            <MenuFlyoutItem Text="Save Current Field Mapping" Click="SaveMappingTemplate_Click" />
+                                            <MenuFlyoutItem Text="Load Saved Field Mapping" Click="LoadMappingTemplate_Click" />
+                                        </MenuFlyoutSubItem>
+                                        <MenuFlyoutSubItem Text="Template Learning">
+                                            <MenuFlyoutItem Text="Save Current Mapping as Learned Template" Click="SaveLearnedTemplate_Click" />
+                                            <MenuFlyoutItem Text="Suggest Learned Templates" Click="SuggestLearnedTemplates_Click" />
+                                            <MenuFlyoutItem Text="Apply Best Learned Template" Click="ApplyBestLearnedTemplate_Click" />
+                                        </MenuFlyoutSubItem>
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Run Validation Checks" Click="RunValidationChecks_Click" />
+                                        <MenuFlyoutItem Text="Save Filled Output to SQLite" Click="SaveToDatabase_Click" />
+                                        <MenuFlyoutSubItem Text="Export Filled Output">
+                                            <MenuFlyoutItem Text="Export CSV" Click="ExportCsv_Click" />
+                                            <MenuFlyoutItem Text="Export Excel Workbook" Click="ExportExcel_Click" />
+                                            <MenuFlyoutItem Text="Export Word Document" Click="ExportWord_Click" />
+                                            <MenuFlyoutItem Text="Export PDF with Traceability Barcode" Click="ExportPdf_Click" />
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Export Filled Template - Preserve Original Layout" Click="ExportOriginalLayout_Click" />
+                                            <MenuFlyoutItem Text="Export Filled Template PDF - Preserve Original Layout" Click="ExportPreservedPdf_Click" />
+                                        </MenuFlyoutSubItem>
+                                        <MenuFlyoutSubItem Text="Tools">
+                                            <MenuFlyoutItem Text="Detect Signatures and Stamps" Click="DetectSignaturesAndStamps_Click" />
+                                            <MenuFlyoutItem Text="Preview SQLite Database" Click="PreviewDatabase_Click" />
+                                            <MenuFlyoutItem Text="View Application Logs" Click="ViewLogs_Click" />
+                                        </MenuFlyoutSubItem>
+                                        <MenuFlyoutSubItem Text="Panels">
+                                            <MenuFlyoutItem Text="Restore All Panels" Click="RestoreAllPanels_Click" />
+                                            <MenuFlyoutItem Text="Show / Hide Uploaded Files Panel" Click="ToggleUploadedFilesPanel_Click" />
+                                            <MenuFlyoutItem Text="Show / Hide Extracted Fields Panel" Click="ToggleExtractedFieldsPanel_Click" />
+                                            <MenuFlyoutItem Text="Show / Hide Output Preview Panel" Click="ToggleOutputPreviewPanel_Click" />
+                                        </MenuFlyoutSubItem>
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Settings" Click="ShowSettings_Click" />
+                                        <MenuFlyoutSubItem Text="Help">
+                                            <MenuFlyoutItem Text="User Guide and Feature Help" Click="OpenHelpGuide_Click" />
+                                            <MenuFlyoutItem Text="Check for Updates" Click="CheckForUpdates_Click" />
+                                            <MenuFlyoutItem Text="What's New" Click="OpenWhatsNew_Click" />
+                                            <MenuFlyoutItem Text="About IntelliFill OCR" Click="OpenAbout_Click" />
+                                        </MenuFlyoutSubItem>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
                         </Grid>
 
                         <Grid ColumnDefinitions="2*,*" ColumnSpacing="18">
@@ -62,35 +122,59 @@
                                 CornerRadius="8"
                                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
                                 <StackPanel Spacing="16">
-                                    <TextBlock Text="v3 Native Shell" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="Workflow" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                     <TextBlock
-                                        Text="This Windows package is a native WinUI 3 experience. Template and source previews are handled directly in the app with no Python IPC process."
+                                        Text="Use the Actions button for the same upload, mapping, learning, validation, export, tools, panel, settings, and help commands that existed in the Qt version."
                                         TextWrapping="WrapWholeWords"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+                                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="10">
                                         <Button Click="UploadTemplateButton_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <FontIcon Glyph="&#xE8E5;" />
-                                                <TextBlock Text="Upload template" />
+                                                <TextBlock Text="Template" />
                                             </StackPanel>
                                         </Button>
                                         <Button Grid.Column="1" Click="UploadSourcesButton_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <FontIcon Glyph="&#xE8E5;" />
-                                                <TextBlock Text="Upload sources" />
+                                                <TextBlock Text="Sources" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Row="1" Click="OpenAppDataButton_Click" HorizontalAlignment="Stretch">
+                                        <Button Grid.Column="2" Click="AutoFillButton_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE713;" />
-                                                <TextBlock Text="Open app data" />
+                                                <FontIcon Glyph="&#xE8EF;" />
+                                                <TextBlock Text="Auto Fill" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Row="1" Grid.Column="1" Click="RefreshStatusButton_Click" HorizontalAlignment="Stretch">
+                                        <Button Grid.Column="3" Click="RunValidationChecks_Click" HorizontalAlignment="Stretch">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE72C;" />
-                                                <TextBlock Text="Refresh status" />
+                                                <FontIcon Glyph="&#xE73E;" />
+                                                <TextBlock Text="Validate" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Row="1" Click="SaveToDatabase_Click" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE74E;" />
+                                                <TextBlock Text="SQLite" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Row="1" Grid.Column="1" Click="ExportPdf_Click" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE8A5;" />
+                                                <TextBlock Text="PDF" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Row="1" Grid.Column="2" Click="OpenHelpGuide_Click" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE897;" />
+                                                <TextBlock Text="Help" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Row="1" Grid.Column="3" Click="OpenAppDataButton_Click" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE838;" />
+                                                <TextBlock Text="App Data" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
@@ -107,6 +191,7 @@
                                 <StackPanel Spacing="12">
                                     <TextBlock Text="Package Status" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                     <TextBlock x:Name="PackageStatusText" TextWrapping="WrapWholeWords" />
+                                    <TextBlock x:Name="TraceabilityText" TextWrapping="WrapWholeWords" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <ProgressRing x:Name="BusyRing" IsActive="False" Width="32" Height="32" />
                                 </StackPanel>
                             </Border>
@@ -124,7 +209,7 @@
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="Template Upload" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                         <TextBlock
-                                            Text="Load CSV, Excel, Word, image, or PDF templates and preview detected tables in WinUI."
+                                            Text="Load CSV, Excel, Word, image, or PDF templates. Every detected table is available from the selector."
                                             TextWrapping="WrapWholeWords"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
@@ -145,7 +230,7 @@
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                     <ComboBox
                                         x:Name="TemplateTableSelector"
-                                        Header="Detected table"
+                                        Header="Detected template table"
                                         SelectionChanged="TemplateTableSelector_SelectionChanged"
                                         HorizontalAlignment="Stretch" />
                                     <ProgressRing
@@ -159,21 +244,21 @@
 
                                 <TextBlock
                                     x:Name="TemplateSummaryText"
-                                            Text="Upload a template to see its tables."
+                                    Text="Upload a template to see its tables."
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     TextWrapping="WrapWholeWords" />
 
                                 <ScrollViewer
                                     HorizontalScrollBarVisibility="Auto"
                                     VerticalScrollBarVisibility="Auto"
-                                    MaxHeight="360">
+                                    MaxHeight="320">
                                     <Grid x:Name="TemplatePreviewGrid" />
                                 </ScrollViewer>
                             </StackPanel>
                         </Border>
 
                         <Border
-                            x:Name="SourcesPanel"
+                            x:Name="UploadedFilesPanel"
                             Padding="20"
                             BorderBrush="{ThemeResource CardStrokeBrush}"
                             BorderThickness="1"
@@ -182,9 +267,9 @@
                             <StackPanel Spacing="14">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Source Files" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                        <TextBlock Text="Uploaded Files and Parsed Text" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                         <TextBlock
-                                            Text="Upload up to five source files and review parsed text before mapping."
+                                            Text="Upload up to five source files, preview parsed text, and generate extracted fields for mapping."
                                             TextWrapping="WrapWholeWords"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
@@ -195,7 +280,7 @@
                                         </StackPanel>
                                     </Button>
                                 </Grid>
-                                <ListView x:Name="SourcesListView" MaxHeight="160" />
+                                <ListView x:Name="SourcesListView" MaxHeight="150" />
                                 <TextBox
                                     x:Name="ParsedTextBox"
                                     Header="Parsed text"
@@ -206,27 +291,155 @@
                             </StackPanel>
                         </Border>
 
-                        <Border
-                            Padding="20"
-                            BorderBrush="{ThemeResource CardStrokeBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="Template First" FontWeight="SemiBold" />
-                                    <TextBlock Text="Upload templates, preserve multi-table layouts, and fill blank cells." TextWrapping="WrapWholeWords" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                            <Border
+                                x:Name="ExtractedFieldsPanel"
+                                Padding="20"
+                                BorderBrush="{ThemeResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="14">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Extracted Fields" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                            <TextBlock
+                                                Text="Select a source field, then select a destination cell in Output Preview and choose Map Selected."
+                                                TextWrapping="WrapWholeWords"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Click="AutoFillButton_Click" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE8EF;" />
+                                                <TextBlock Text="Auto Fill" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <ListView
+                                        x:Name="ExtractedFieldsListView"
+                                        SelectionChanged="ExtractedFieldsListView_SelectionChanged"
+                                        MinHeight="230" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Spacing="6">
-                                    <TextBlock Text="Offline OCR" FontWeight="SemiBold" />
-                                    <TextBlock Text="Tesseract, OpenCV preprocessing, parsed text, and region selection stay local." TextWrapping="WrapWholeWords" />
+                            </Border>
+
+                            <Border
+                                x:Name="OutputPreviewPanel"
+                                Grid.Column="1"
+                                Padding="20"
+                                BorderBrush="{ThemeResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="14">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Output Preview" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                            <TextBlock
+                                                x:Name="OutputSelectionText"
+                                                Text="Select a destination cell to map fields manually."
+                                                TextWrapping="WrapWholeWords"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Click="MapSelectedButton_Click" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE70F;" />
+                                                <TextBlock Text="Map Selected" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Column="2" Click="RunValidationChecks_Click" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE73E;" />
+                                                <TextBlock Text="Validate" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <ComboBox
+                                        x:Name="OutputTableSelector"
+                                        Header="Output table"
+                                        SelectionChanged="OutputTableSelector_SelectionChanged"
+                                        HorizontalAlignment="Stretch" />
+                                    <ScrollViewer
+                                        HorizontalScrollBarVisibility="Auto"
+                                        VerticalScrollBarVisibility="Auto"
+                                        MaxHeight="360">
+                                        <Grid x:Name="OutputPreviewGrid" />
+                                    </ScrollViewer>
+                                    <TextBox
+                                        x:Name="ValidationResultsBox"
+                                        Header="Validation and matching results"
+                                        AcceptsReturn="True"
+                                        IsReadOnly="True"
+                                        TextWrapping="Wrap"
+                                        MinHeight="90" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Spacing="6">
-                                    <TextBlock Text="Traceable Exports" FontWeight="SemiBold" />
-                                    <TextBlock Text="SQLite storage, barcode traceability, Word/PDF/Excel exports, and validation." TextWrapping="WrapWholeWords" />
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                            <Border
+                                x:Name="DatabasePanel"
+                                Padding="20"
+                                BorderBrush="{ThemeResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="14">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="SQLite Database Preview" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                            <TextBlock
+                                                Text="Save filled output and preview recent run records from the configured SQLite path."
+                                                TextWrapping="WrapWholeWords"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Click="SaveToDatabase_Click" VerticalAlignment="Center">
+                                            <TextBlock Text="Save" />
+                                        </Button>
+                                        <Button Grid.Column="2" Click="PreviewDatabase_Click" VerticalAlignment="Center">
+                                            <TextBlock Text="Preview" />
+                                        </Button>
+                                    </Grid>
+                                    <TextBox
+                                        x:Name="DatabasePreviewBox"
+                                        AcceptsReturn="True"
+                                        IsReadOnly="True"
+                                        TextWrapping="Wrap"
+                                        MinHeight="170" />
                                 </StackPanel>
-                            </Grid>
-                        </Border>
+                            </Border>
+
+                            <Border
+                                x:Name="SettingsPanel"
+                                Grid.Column="1"
+                                Padding="20"
+                                BorderBrush="{ThemeResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="14">
+                                    <TextBlock Text="Settings" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBox x:Name="TesseractPathBox" Header="Tesseract OCR executable path" PlaceholderText="C:\Program Files\Tesseract-OCR\tesseract.exe" />
+                                    <Button Click="BrowseTesseractPath_Click" HorizontalAlignment="Left">
+                                        <TextBlock Text="Browse Tesseract" />
+                                    </Button>
+                                    <TextBox x:Name="DatabasePathBox" Header="SQLite database path" PlaceholderText="%LOCALAPPDATA%\IntelliFillOCR\intellifill.sqlite3" />
+                                    <Button Click="BrowseDatabasePath_Click" HorizontalAlignment="Left">
+                                        <TextBlock Text="Browse SQLite Path" />
+                                    </Button>
+                                    <ComboBox x:Name="ThemeComboBox" Header="Appearance" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Use Windows setting" />
+                                        <ComboBoxItem Content="Light" />
+                                        <ComboBoxItem Content="Dark" />
+                                    </ComboBox>
+                                    <Button Click="SaveSettings_Click" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE74E;" />
+                                            <TextBlock Text="Save Settings" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

@@ -1,11 +1,9 @@
+param(
+    [string]$Version = "3.3.0"
+)
+
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path ".venv")) {
-    python -m venv .venv
-}
+.\scripts\package-portable-exe.ps1 -Version $Version
 
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\pyinstaller.exe .\pyinstaller\IntelliFillOCR.spec --clean --noconfirm
-
-Write-Host "Built dist\IntelliFillOCR\IntelliFillOCR.exe"
+Write-Host "Built release\IntelliFillOCR-$Version-portable-win-x64.exe"
