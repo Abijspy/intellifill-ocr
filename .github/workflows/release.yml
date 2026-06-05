@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.1.0"
+        default: "3.1.1"
   push:
     tags:
       - "v*"
@@ -87,10 +87,19 @@ jobs:
         run: |
           python -m compileall src
 
-      - name: Build standalone EXE
+      - name: Build Python IPC backend
         shell: pwsh
         run: |
-          pyinstaller .\pyinstaller\IntelliFillOCR.spec --clean --noconfirm
+          pyinstaller .\pyinstaller\IntelliFillOCRBackend.spec --clean --noconfirm
+
+      - name: Validate backend IPC
+        shell: pwsh
+        run: |
+          $response = '{"id":"ping","command":"system.ping","params":{}}' | .\dist\IntelliFillOCRBackend\IntelliFillOCRBackend.exe
+          Write-Host $response
+          if ($response -notmatch '"ok":\s*true') {
+            throw "Backend IPC ping failed."
+          }
 
       - name: Build WinUI shell
         shell: pwsh
@@ -102,6 +111,24 @@ jobs:
         run: |
           .\scripts\package-winui.ps1 -Version $env:RELEASE_VERSION -PackageName "$env:APP_NAME-$env:RELEASE_VERSION-win-x64"
 
+      - name: Validate Windows package layout
+        shell: pwsh
+        run: |
+          $packageRoot = "release\winui-staging\$($env:RELEASE_PACKAGE -replace '\.zip$','')"
+          $required = @(
+            "IntelliFillOCR.exe",
+            "IntelliFillOCR.WinUI.exe",
+            "Backend\IntelliFillOCRBackend.exe",
+            "README.txt"
+          )
+          foreach ($relativePath in $required) {
+            $path = Join-Path $packageRoot $relativePath
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Required package file missing: $path"
+            }
+          }
+          Get-ChildItem -LiteralPath $packageRoot | Select-Object Name, Length | Format-Table
+
       - name: Install Inno Setup compiler
         shell: pwsh
         run: |
@@ -111,7 +138,7 @@ jobs:
         shell: pwsh
         run: |
           $sourceDir = "release\winui-staging\$env:APP_NAME-$env:RELEASE_VERSION-win-x64"
-          .\scripts\build-installer.ps1 -Version $env:RELEASE_VERSION -SourceDir $sourceDir -AppExeName "IntelliFillOCR.WinUI.exe"
+          .\scripts\build-installer.ps1 -Version $env:RELEASE_VERSION -SourceDir $sourceDir -AppExeName "IntelliFillOCR.exe"
 
       - name: Write release notes
         shell: pwsh
@@ -120,9 +147,10 @@ jobs:
             "# What's New in IntelliFill OCR $env:RELEASE_VERSION",
             "",
             "🩹 Version $env:RELEASE_VERSION",
-            "- The Windows installer and default Windows ZIP now launch the native WinUI 3 shell.",
-            "- The Python OCR engine is bundled as a local Backend process and used through JSON IPC.",
-            "- Removed the old Qt workspace as the default Windows user experience.",
+            "- Fixed update installs where old shortcuts could point to a missing executable after moving to WinUI.",
+            "- The native WinUI 3 shell is now the top-level IntelliFillOCR.exe application.",
+            "- IntelliFillOCR.WinUI.exe is included as a compatibility launcher for v3.1.0 shortcuts.",
+            "- The Python OCR engine is bundled as a Qt-free local Backend IPC process.",
             "",
             "Assets:",
             "- IntelliFillOCR-Setup-$env:RELEASE_VERSION-win-x64.exe",

@@ -34,7 +34,7 @@ public sealed class PythonBackendLauncher
                 $"Settings: {settingsPath}";
         }
 
-        string modulePath = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
+        string modulePath = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "backend_main.py");
         string venvPython = GetVirtualEnvPythonPath();
 
         return
@@ -49,7 +49,7 @@ public sealed class PythonBackendLauncher
     {
         if (_repositoryRoot is not null)
         {
-            string sourceMain = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "main.py");
+            string sourceMain = Path.Combine(_repositoryRoot.FullName, "src", "intellifill_ocr", "backend_main.py");
             if (File.Exists(sourceMain))
             {
                 string pythonPath = File.Exists(GetVirtualEnvPythonPath()) ? GetVirtualEnvPythonPath() : "python";
@@ -63,8 +63,7 @@ public sealed class PythonBackendLauncher
                     CreateNoWindow = true
                 };
                 sourceStartInfo.ArgumentList.Add("-m");
-                sourceStartInfo.ArgumentList.Add("intellifill_ocr.main");
-                sourceStartInfo.ArgumentList.Add("--ipc");
+                sourceStartInfo.ArgumentList.Add("intellifill_ocr.backend_main");
                 sourceStartInfo.Environment["PYTHONPATH"] = Path.Combine(_repositoryRoot.FullName, "src");
                 return new BackendProcessStartResult(true, "Using source Python backend IPC.", sourceStartInfo);
             }
@@ -85,7 +84,10 @@ public sealed class PythonBackendLauncher
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        packagedStartInfo.ArgumentList.Add("--ipc");
+        if (Path.GetFileName(exePath).Equals("IntelliFillOCR.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            packagedStartInfo.ArgumentList.Add("--ipc");
+        }
         return new BackendProcessStartResult(true, "Using packaged Python backend IPC.", packagedStartInfo);
     }
 
@@ -112,11 +114,23 @@ public sealed class PythonBackendLauncher
     {
         if (_repositoryRoot is not null)
         {
-            string sourceDist = Path.Combine(_repositoryRoot.FullName, "dist", "IntelliFillOCR", "IntelliFillOCR.exe");
+            string sourceDist = Path.Combine(_repositoryRoot.FullName, "dist", "IntelliFillOCRBackend", "IntelliFillOCRBackend.exe");
             if (File.Exists(sourceDist))
             {
                 return sourceDist;
             }
+
+            sourceDist = Path.Combine(_repositoryRoot.FullName, "dist", "IntelliFillOCR", "IntelliFillOCR.exe");
+            if (File.Exists(sourceDist))
+            {
+                return sourceDist;
+            }
+        }
+
+        string backendExe = Path.Combine(_applicationBaseDirectory, "Backend", "IntelliFillOCRBackend.exe");
+        if (File.Exists(backendExe))
+        {
+            return backendExe;
         }
 
         return Path.Combine(_applicationBaseDirectory, "Backend", "IntelliFillOCR.exe");

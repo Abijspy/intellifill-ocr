@@ -50,6 +50,14 @@ class AboutReleaseDialog(QDialog):
         return """
         <html>
         <body>
+        <h2>🩹 Version 3.1.1</h2>
+        <ul>
+          <li>Fixed update installs where old shortcuts could point to a missing executable after the WinUI shell became default.</li>
+          <li>The native WinUI shell now launches as the top-level IntelliFillOCR.exe application.</li>
+          <li>Included IntelliFillOCR.WinUI.exe as a compatibility launcher for v3.1.0 shortcuts.</li>
+          <li>The Windows package now bundles a Qt-free Python Backend IPC process.</li>
+        </ul>
+
         <h2>🪟 Version 3.1.0</h2>
         <ul>
           <li>The Windows installer and default Windows ZIP now open the native WinUI 3 shell.</li>

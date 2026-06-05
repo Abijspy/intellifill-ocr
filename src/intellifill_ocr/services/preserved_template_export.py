@@ -12,7 +12,7 @@ from openpyxl.drawing.image import Image as ExcelImage
 
 from intellifill_ocr.models.template import TemplateCell
 from intellifill_ocr.models.template import TemplateTable
-from intellifill_ocr.ui.barcode import barcode_png_bytes
+from intellifill_ocr.utils.barcode import barcode_png_bytes
 from intellifill_ocr.utils.placeholders import is_placeholder_text
 
 

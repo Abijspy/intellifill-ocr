@@ -94,7 +94,7 @@ Linux packages currently use the Python desktop frontend while Windows uses the 
 .\build.ps1
 ```
 
-The backend executable will be produced under `dist\IntelliFillOCR\IntelliFillOCR.exe`. Windows release packages place it under `Backend\` and launch the WinUI shell by default.
+The Windows backend executable is produced under `dist\IntelliFillOCRBackend\IntelliFillOCRBackend.exe` by `pyinstaller\IntelliFillOCRBackend.spec`. Windows release packages place it under `Backend\` and launch the native WinUI shell as the top-level `IntelliFillOCR.exe` app. `IntelliFillOCR.WinUI.exe` is included only so shortcuts created by v3.1.0 continue to open.
 
 ## GitHub Release Pipeline
 
@@ -103,32 +103,32 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 It builds the Windows x64 PyInstaller executable, packages it as:
 
 ```text
-IntelliFillOCR-3.1.0-win-x64.zip
-IntelliFillOCR-Setup-3.1.0-win-x64.exe
+IntelliFillOCR-3.1.1-win-x64.zip
+IntelliFillOCR-Setup-3.1.1-win-x64.exe
 ```
 
 It also builds Linux packages in GitHub Actions only:
 
 ```text
-IntelliFillOCR-3.1.0-linux-x64.deb
-IntelliFillOCR-3.1.0-linux-x64.rpm
+IntelliFillOCR-3.1.1-linux-x64.deb
+IntelliFillOCR-3.1.1-linux-x64.rpm
 ```
 
 and publishes all release files to a GitHub release.
 
-To publish version `3.1.0` manually:
+To publish version `3.1.1` manually:
 
 1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **CI/CD Release**.
 4. Click **Run workflow**.
-5. Keep version `3.1.0` and run it.
+5. Keep version `3.1.1` and run it.
 
 You can also publish by pushing a tag:
 
 ```powershell
-git tag v3.1.0
-git push origin v3.1.0
+git tag v3.1.1
+git push origin v3.1.1
 ```
 
 ## Build Windows Installer
@@ -137,13 +137,13 @@ The project includes an Inno Setup installer definition at `installer\IntelliFil
 Install Inno Setup 6 locally, build the PyInstaller exe, then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 3.1.0
+.\scripts\build-installer.ps1 -Version 3.1.1
 ```
 
 The installer is produced at:
 
 ```text
-installer\out\IntelliFillOCR-Setup-3.1.0-win-x64.exe
+installer\out\IntelliFillOCR-Setup-3.1.1-win-x64.exe
 ```
 
 The installer is built with Inno Setup and uses its Windows compatibility layer for Windows 11, Windows 10, Windows 8.1, Windows 8, Windows 7, and supported Windows Server releases. The app package is built as a 64-bit application and the installer is configured for 64-bit compatible Windows, including Windows on Arm where x64 applications are supported by the operating system.
@@ -174,12 +174,12 @@ Install the Windows App SDK/WinUI tooling, then run:
 The build output is created under:
 
 ```text
-winui\IntelliFillOCR.WinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64
+winui\IntelliFillOCR.WinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\publish
 ```
 
-The repository also includes a **WinUI Packages** GitHub Actions workflow. It builds the PyInstaller backend, builds the WinUI shell, copies the backend into `Backend\`, creates `IntelliFillOCR-WinUI-<version>-win-x64.zip`, uploads it as a workflow artifact, and attaches it to tagged GitHub releases. The main Windows installer and default Windows ZIP now use the same WinUI shell as the launch target.
+The repository also includes a **WinUI Packages** GitHub Actions workflow. It builds the Qt-free PyInstaller backend, publishes the WinUI shell, copies the backend into `Backend\`, creates `IntelliFillOCR-WinUI-<version>-win-x64.zip`, uploads it as a workflow artifact, and attaches it to tagged GitHub releases. The main Windows installer and default Windows ZIP now use the same WinUI shell as the launch target.
 
-The v3 WinUI migration uses a JSON-lines IPC backend so native WinUI pages can call the existing Python OCR, template, source, mapping, validation, database, and export services without rewriting those services. Run `IntelliFillOCR.exe --ipc` or `python -m intellifill_ocr.main --ipc` to start the backend protocol.
+The v3 WinUI migration uses a JSON-lines IPC backend so native WinUI pages can call the existing Python OCR, template, source, mapping, validation, database, and export services without rewriting those services. Run `Backend\IntelliFillOCRBackend.exe` or `python -m intellifill_ocr.backend_main` to start the backend protocol.
 
 ## Build MSIX Installer
 
@@ -200,14 +200,14 @@ Build and sign with a local self-signed certificate:
 The package is created at:
 
 ```text
-msix\out\IntelliFillOCR_3.1.0.0_x64.msix
+msix\out\IntelliFillOCR_3.1.1.0_x64.msix
 ```
 
 For local installation of a self-signed package, trust the generated certificate and install the MSIX:
 
 ```powershell
 .\msix\install-msix.ps1 `
-  -MsixPath .\msix\out\IntelliFillOCR_3.1.0.0_x64.msix `
+  -MsixPath .\msix\out\IntelliFillOCR_3.1.1.0_x64.msix `
   -CertificatePath .\msix\out\IntelliFillOCR_SigningCert.pfx `
   -CertificatePassword "ChangeThisPassword"
 ```
@@ -248,7 +248,8 @@ src/intellifill_ocr/
   models/         App dataclasses
   ocr/            Tesseract, OpenCV, PDF OCR, table detection
   services/       Document parsing, templates, matching, mapping, export
-  ui/             PySide6 windows and widgets
+  ui/             Legacy PySide6 screens kept for non-Windows and migration reference
+  winui/          Native Windows App SDK / WinUI 3 shell
   utils/          Paths, config, exceptions, logging
 demo/             Small offline demo fixtures
 ```

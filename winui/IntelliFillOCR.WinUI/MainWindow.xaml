@@ -27,7 +27,7 @@
                 <NavigationViewItem Content="Settings" Icon="Setting" Tag="settings" />
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="About v3.1.0" Icon="Help" Tag="about" />
+                <NavigationViewItem Content="About v3.1.1" Icon="Help" Tag="about" />
             </NavigationView.FooterMenuItems>
 
             <Grid RowDefinitions="Auto,*" Padding="28,22,28,24" RowSpacing="18">

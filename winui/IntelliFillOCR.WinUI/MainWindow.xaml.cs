@@ -132,7 +132,7 @@ public sealed partial class MainWindow : Window
             "extraction" => "Native source upload, OCR region selection, and mapping screens are next.",
             "database" => "Native SQLite preview will be migrated after extraction and mapping.",
             "settings" => "Native Tesseract and SQLite settings are planned for the WinUI shell.",
-            "about" => "IntelliFill OCR v3.1.0 native WinUI 3 shell.",
+            "about" => "IntelliFill OCR v3.1.1 native WinUI 3 shell.",
             _ => "Ready."
         };
         ShowStatus(InfoBarSeverity.Informational, item.Content?.ToString() ?? "IntelliFill OCR", message);

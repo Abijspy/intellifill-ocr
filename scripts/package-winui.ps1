@@ -1,10 +1,12 @@
 param(
-    [string]$Version = "3.1.0",
+    [string]$Version = "3.1.1",
     [string]$Configuration = "Release",
     [string]$Platform = "x64",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$WinUiProjectDir = "winui\IntelliFillOCR.WinUI",
-    [string]$BackendDistDir = "dist\IntelliFillOCR",
+    [string]$BackendDistDir = "dist\IntelliFillOCRBackend",
+    [string]$WinUiExeName = "IntelliFillOCR.exe",
+    [string]$BackendExeName = "IntelliFillOCRBackend.exe",
     [string]$OutputDir = "release",
     [string]$PackageName = ""
 )
@@ -12,7 +14,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$WinUiOutput = Join-Path $Root "$WinUiProjectDir\bin\$Platform\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier"
+$WinUiOutputCandidates = @(
+    (Join-Path $Root "$WinUiProjectDir\bin\$Platform\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier\publish"),
+    (Join-Path $Root "$WinUiProjectDir\bin\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier\publish"),
+    (Join-Path $Root "$WinUiProjectDir\bin\$Platform\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier"),
+    (Join-Path $Root "$WinUiProjectDir\bin\$Configuration\net8.0-windows10.0.19041.0\$RuntimeIdentifier")
+)
+$WinUiOutput = $WinUiOutputCandidates | Where-Object { Test-Path (Join-Path $_ $WinUiExeName) } | Select-Object -First 1
 $BackendDist = Join-Path $Root $BackendDistDir
 $ResolvedOutput = Join-Path $Root $OutputDir
 if (-not $PackageName) {
@@ -22,11 +30,11 @@ $StagingRoot = Join-Path $ResolvedOutput "winui-staging"
 $PackageRoot = Join-Path $StagingRoot $PackageName
 $ArchivePath = Join-Path $ResolvedOutput "$PackageName.zip"
 
-if (-not (Test-Path $WinUiOutput)) {
+if (-not $WinUiOutput -or -not (Test-Path -LiteralPath $WinUiOutput)) {
     throw "WinUI output was not found at $WinUiOutput. Run scripts\build-winui.ps1 first."
 }
 
-if (-not (Test-Path (Join-Path $WinUiOutput "IntelliFillOCR.WinUI.exe"))) {
+if (-not (Test-Path (Join-Path $WinUiOutput $WinUiExeName))) {
     throw "WinUI executable was not found in $WinUiOutput."
 }
 
@@ -34,7 +42,7 @@ if (-not (Test-Path $BackendDist)) {
     throw "Python backend dist was not found at $BackendDist. Run the PyInstaller build first."
 }
 
-if (-not (Test-Path (Join-Path $BackendDist "IntelliFillOCR.exe"))) {
+if (-not (Test-Path (Join-Path $BackendDist $BackendExeName))) {
     throw "Python backend executable was not found in $BackendDist."
 }
 
@@ -48,6 +56,10 @@ if (Test-Path $ArchivePath) {
 
 New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
 Copy-Item -Path (Join-Path $WinUiOutput "*") -Destination $PackageRoot -Recurse -Force
+$compatLauncher = Join-Path $PackageRoot "IntelliFillOCR.WinUI.exe"
+if (-not (Test-Path $compatLauncher)) {
+    Copy-Item -LiteralPath (Join-Path $PackageRoot $WinUiExeName) -Destination $compatLauncher -Force
+}
 
 $BackendTarget = Join-Path $PackageRoot "Backend"
 New-Item -ItemType Directory -Path $BackendTarget -Force | Out-Null
@@ -56,8 +68,9 @@ Copy-Item -Path (Join-Path $BackendDist "*") -Destination $BackendTarget -Recurs
 @(
     "IntelliFill OCR WinUI package $Version",
     "",
-    "Run IntelliFillOCR.WinUI.exe to open the native WinUI 3 shell.",
-    "The Python OCR engine is bundled in the Backend folder and is used through local JSON IPC.",
+    "Run IntelliFillOCR.exe to open the native WinUI 3 shell.",
+    "IntelliFillOCR.WinUI.exe is included only as a compatibility launcher for older v3.1.0 shortcuts.",
+    "The Python OCR engine is bundled in the Backend folder as a local JSON IPC service.",
     "Tesseract OCR must still be installed locally or configured in the application settings."
 ) | Set-Content -Path (Join-Path $PackageRoot "README.txt") -Encoding UTF8
 

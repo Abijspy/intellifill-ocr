@@ -2,10 +2,10 @@
 
 This folder contains the native Windows App SDK / WinUI 3 frontend for the v3 migration.
 
-The native WinUI shell is the default Windows frontend. The existing Python OCR, parsing, SQLite, validation, and export services run as a local JSON IPC backend from either:
+The native WinUI shell is the default Windows frontend. The installed application launches from the top-level `IntelliFillOCR.exe`; `IntelliFillOCR.WinUI.exe` is kept as a compatibility copy for v3.1.0 shortcuts. The existing Python OCR, parsing, SQLite, validation, and export services run as a local JSON IPC backend from either:
 
-- `Backend/IntelliFillOCR.exe --ipc` in packaged builds.
-- `.venv/Scripts/python.exe -m intellifill_ocr.main --ipc` during source development.
+- `Backend/IntelliFillOCRBackend.exe` in packaged builds.
+- `.venv/Scripts/python.exe -m intellifill_ocr.backend_main` during source development.
 
 ## Build
 
@@ -28,16 +28,16 @@ The WinUI project uses:
 
 ## JSON IPC Backend
 
-The Python executable supports a native backend mode:
+The Python backend supports a native backend mode:
 
 ```powershell
-python -m intellifill_ocr.main --ipc
+python -m intellifill_ocr.backend_main
 ```
 
-The packaged backend supports the same flag:
+The packaged backend runs the same protocol:
 
 ```powershell
-IntelliFillOCR.exe --ipc
+Backend\IntelliFillOCRBackend.exe
 ```
 
 IPC uses newline-delimited JSON over stdin/stdout. Each request is:
@@ -73,4 +73,4 @@ Current commands:
 - `database.save`: saves completed values to SQLite.
 - `export.create`: params `{ "format": "pdf", "output_path": "C:\\out\\filled.pdf" }`.
 
-The WinUI shell includes a **Check backend** button that starts the Python backend in `--ipc` mode, sends `system.ping`, and shows the connection result. Template upload also runs natively through this IPC session.
+The WinUI shell includes a **Check backend** button that starts the Python backend IPC process, sends `system.ping`, and shows the connection result. Template upload also runs natively through this IPC session.

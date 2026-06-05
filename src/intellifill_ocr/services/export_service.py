@@ -9,12 +9,10 @@ import pypdfium2 as pdfium
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
-from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPdfWriter
-from PySide6.QtGui import QPageSize
+from PIL import Image, ImageDraw, ImageFont
 
 from intellifill_ocr.models.template import TemplateTable
-from intellifill_ocr.ui.barcode import barcode_png_bytes, barcode_qimage
+from intellifill_ocr.utils.barcode import barcode_png_bytes
 
 
 class ExportService:
@@ -62,50 +60,48 @@ class ExportService:
         document.save(path)
 
     def export_pdf(self, template: TemplateTable, path: Path, traceability_code: str = "") -> None:
-        writer = QPdfWriter(str(path))
-        writer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
-        writer.setResolution(96)
-        painter = QPainter(writer)
-        try:
-            painter.setFont(QFont("Segoe UI", 9))
-            x, y = 40, 45
-            if traceability_code:
-                self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
-            row_height = 24
-            reserved_footer = 96 if traceability_code else 60
-            for table_index, template_table in enumerate(template.all_tables()):
-                if table_index:
-                    y += 26
-                if y > writer.height() - reserved_footer - 50:
-                    writer.newPage()
+        pages: list[Image.Image] = []
+        page = self._new_pdf_page()
+        draw = ImageDraw.Draw(page)
+        body_font = self._font(11)
+        header_font = self._font(13, bold=True)
+        y = 45
+        row_height = 28
+        reserved_footer = 104 if traceability_code else 45
+
+        for table_index, template_table in enumerate(template.all_tables()):
+            if table_index:
+                y += 28
+            if y > page.height - reserved_footer - 60:
+                self._draw_traceability_footer(page, traceability_code)
+                pages.append(page)
+                page = self._new_pdf_page()
+                draw = ImageDraw.Draw(page)
+                y = 45
+
+            if template.table_count > 1:
+                draw.text((40, y), template_table.label, fill="#111827", font=header_font)
+                y += 28
+
+            col_width = max(90, int((page.width - 80) / max(template_table.column_count, 1)))
+            for row in template_table.cells:
+                x = 40
+                for cell in row:
+                    rect = (x, y, x + col_width, y + row_height)
+                    draw.rectangle(rect, outline="#111827", width=1)
+                    self._draw_text_in_rect(draw, cell.value, rect, body_font)
+                    x += col_width
+                y += row_height
+                if y > page.height - reserved_footer:
+                    self._draw_traceability_footer(page, traceability_code)
+                    pages.append(page)
+                    page = self._new_pdf_page()
+                    draw = ImageDraw.Draw(page)
                     y = 45
-                    if traceability_code:
-                        self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
-                if template.table_count > 1:
-                    painter.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-                    painter.drawText(QRect(40, y, writer.width() - 80, 20), Qt.AlignmentFlag.AlignLeft, template_table.label)
-                    y += 26
-                    painter.setFont(QFont("Segoe UI", 9))
-                col_width = max(90, int((writer.width() - 80) / max(template_table.column_count, 1)))
-                for row in template_table.cells:
-                    x = 40
-                    for cell in row:
-                        rect = QRect(x, y, col_width, row_height)
-                        painter.drawRect(rect)
-                        painter.drawText(
-                            rect.adjusted(4, 2, -4, -2),
-                            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                            cell.value,
-                        )
-                        x += col_width
-                    y += row_height
-                    if y > writer.height() - reserved_footer:
-                        writer.newPage()
-                        y = 45
-                        if traceability_code:
-                            self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
-        finally:
-            painter.end()
+
+        self._draw_traceability_footer(page, traceability_code)
+        pages.append(page)
+        self._save_pdf_pages(pages, path)
 
     def export_preserved_pdf(
         self,
@@ -118,99 +114,64 @@ class ExportService:
             self.export_pdf(template, path, traceability_code)
             return
 
-        writer = QPdfWriter(str(path))
-        writer.setResolution(96)
-        painter = QPainter(writer)
+        pages: list[Image.Image] = []
         overlays = 0
-        try:
-            rendered_pdf = pdfium.PdfDocument(str(template_path))
-            with pdfplumber.open(template_path) as source_pdf, tempfile.TemporaryDirectory(prefix="intellifill_pdf_export_") as temp_dir:
-                for page_index, page in enumerate(source_pdf.pages):
-                    if page_index > 0:
-                        writer.newPage()
+        rendered_pdf = pdfium.PdfDocument(str(template_path))
+        with pdfplumber.open(template_path) as source_pdf, tempfile.TemporaryDirectory(prefix="intellifill_pdf_export_") as temp_dir:
+            for page_index, source_page in enumerate(source_pdf.pages):
+                bitmap = rendered_pdf[page_index].render(scale=2.0).to_pil().convert("RGB")
+                image_path = Path(temp_dir) / f"page_{page_index + 1}.png"
+                bitmap.save(image_path)
+                image = Image.open(image_path).convert("RGB")
+                draw = ImageDraw.Draw(image)
+                font = self._font(18)
 
-                    bitmap = rendered_pdf[page_index].render(scale=2.0).to_pil()
-                    image_path = Path(temp_dir) / f"page_{page_index + 1}.png"
-                    bitmap.save(image_path)
-                    image = QImage(str(image_path))
-                    painter.drawImage(QRect(0, 0, writer.width(), writer.height()), image)
+                if page_index == 0:
+                    self._draw_traceability_footer(image, traceability_code)
 
-                    if page_index == 0 and traceability_code:
-                        self._draw_traceability_footer(painter, writer.width(), writer.height(), traceability_code)
-
-                    scale_x = writer.width() / max(float(page.width), 1.0)
-                    scale_y = writer.height() / max(float(page.height), 1.0)
-                    painter.setFont(QFont("Segoe UI", 9))
-                    painter.setPen(QColor("#111827"))
-                    for table in template.all_tables():
-                        for row in table.cells:
-                            for cell in row:
-                                if not cell.is_placeholder or not cell.value.strip() or cell.source_page != page_index or not cell.bbox:
-                                    continue
-                                x0, top, x1, bottom = cell.bbox
-                                rect = QRect(
-                                    int(x0 * scale_x) + 3,
-                                    int(top * scale_y) + 2,
-                                    max(8, int((x1 - x0) * scale_x) - 6),
-                                    max(8, int((bottom - top) * scale_y) - 4),
-                                )
-                                painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, cell.value)
-                                overlays += 1
-        finally:
-            painter.end()
+                scale_x = image.width / max(float(source_page.width), 1.0)
+                scale_y = image.height / max(float(source_page.height), 1.0)
+                for table in template.all_tables():
+                    for row in table.cells:
+                        for cell in row:
+                            if not cell.is_placeholder or not cell.value.strip() or cell.source_page != page_index or not cell.bbox:
+                                continue
+                            x0, top, x1, bottom = cell.bbox
+                            rect = (
+                                int(x0 * scale_x) + 6,
+                                int(top * scale_y) + 4,
+                                int(x1 * scale_x) - 6,
+                                int(bottom * scale_y) - 4,
+                            )
+                            self._draw_text_in_rect(draw, cell.value, rect, font)
+                            overlays += 1
+                pages.append(image)
 
         if overlays == 0:
             self.export_pdf(template, path, traceability_code)
+            return
 
-    def _draw_traceability_block(
-        self,
-        painter: QPainter,
-        x: int,
-        y: int,
-        block_width: int,
-        traceability_code: str,
-        barcode_image: QImage,
-        barcode_width: int,
-        barcode_height: int,
-    ) -> int:
-        block_height = 22 + barcode_height + 8
-        barcode_x = x + max(0, int((block_width - barcode_width) / 2))
-        barcode_y = y + 20
-        painter.save()
-        painter.fillRect(QRect(x - 6, y - 6, block_width + 12, block_height + 12), QColor("#ffffff"))
-        painter.setPen(QColor("#111827"))
-        painter.setFont(QFont("Segoe UI", 8))
-        painter.drawText(
-            QRect(x, y, block_width, 16),
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
-            f"Traceability ID: {traceability_code}",
-        )
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
-        painter.drawImage(QRect(barcode_x, barcode_y, barcode_width, barcode_height), barcode_image)
-        painter.restore()
-        return block_height
+        self._save_pdf_pages(pages, path)
 
-    def _draw_traceability_footer(self, painter: QPainter, page_width: int, page_height: int, traceability_code: str) -> None:
-        barcode_image = barcode_qimage(traceability_code, narrow=2, bar_height=34, show_text=False, quiet_zone=8)
-        raw_width = max(1, barcode_image.width())
-        raw_height = max(1, barcode_image.height())
-        max_block_width = max(160, page_width - 80)
-        block_width = min(max_block_width, max(340, raw_width + 24))
-        barcode_width = min(raw_width, max(120, block_width - 16))
-        barcode_height = max(24, int(raw_height * (barcode_width / raw_width)))
-        block_height = 22 + barcode_height + 8
-        x = max(4, int((page_width - block_width) / 2))
-        y = max(4, page_height - block_height - 12)
-        self._draw_traceability_block(
-            painter,
-            x,
-            y,
-            block_width,
-            traceability_code,
-            barcode_image,
-            barcode_width,
-            barcode_height,
-        )
+    def _draw_traceability_footer(self, page: Image.Image, traceability_code: str) -> None:
+        if not traceability_code:
+            return
+        draw = ImageDraw.Draw(page)
+        barcode = Image.open(barcode_png_bytes(traceability_code, narrow=2, bar_height=34, show_text=False, quiet_zone=8)).convert("RGB")
+        max_block_width = max(220, page.width - 80)
+        barcode_width = min(barcode.width, max_block_width - 32)
+        barcode_height = max(28, int(barcode.height * (barcode_width / max(barcode.width, 1))))
+        barcode = barcode.resize((barcode_width, barcode_height), Image.Resampling.NEAREST)
+        block_width = barcode_width + 32
+        block_height = 22 + barcode_height + 16
+        x = int((page.width - block_width) / 2)
+        y = page.height - block_height - 12
+        draw.rectangle((x - 6, y - 6, x + block_width + 6, y + block_height + 6), fill="white")
+        label = f"Traceability ID: {traceability_code}"
+        label_font = self._font(10)
+        label_width = int(draw.textlength(label, font=label_font))
+        draw.text((x + int((block_width - label_width) / 2), y), label, fill="#111827", font=label_font)
+        page.paste(barcode, (x + 16, y + 22))
 
     def _append_word_traceability(self, document: Document, traceability_code: str) -> None:
         if not traceability_code:
@@ -232,3 +193,56 @@ class ExportService:
         cleaned = "".join("_" if char in "[]:*?/\\" else char for char in label).strip()
         cleaned = cleaned or f"Table {table_index + 1}"
         return cleaned[:31]
+
+    @staticmethod
+    def _new_pdf_page() -> Image.Image:
+        return Image.new("RGB", (794, 1123), "white")
+
+    @staticmethod
+    def _font(size: int, bold: bool = False) -> ImageFont.ImageFont:
+        font_names = ["arialbd.ttf" if bold else "arial.ttf", "seguisb.ttf" if bold else "segoeui.ttf"]
+        for font_name in font_names:
+            try:
+                return ImageFont.truetype(font_name, size)
+            except OSError:
+                continue
+        return ImageFont.load_default()
+
+    @staticmethod
+    def _draw_text_in_rect(
+        draw: ImageDraw.ImageDraw,
+        text: str,
+        rect: tuple[int, int, int, int],
+        font: ImageFont.ImageFont,
+    ) -> None:
+        x0, y0, x1, y1 = rect
+        words = str(text or "").split()
+        if not words:
+            return
+        lines: list[str] = []
+        current = ""
+        max_width = max(8, x1 - x0 - 8)
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if draw.textlength(candidate, font=font) <= max_width or not current:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        line_height = max(12, int(font.size * 1.25) if hasattr(font, "size") else 14)
+        y = y0 + 4
+        for line in lines:
+            if y + line_height > y1:
+                break
+            draw.text((x0 + 4, y), line, fill="#111827", font=font)
+            y += line_height
+
+    @staticmethod
+    def _save_pdf_pages(pages: list[Image.Image], path: Path) -> None:
+        if not pages:
+            pages = [ExportService._new_pdf_page()]
+        output_pages = [page.convert("RGB") for page in pages]
+        first, rest = output_pages[0], output_pages[1:]
+        first.save(path, "PDF", resolution=96.0, save_all=bool(rest), append_images=rest)

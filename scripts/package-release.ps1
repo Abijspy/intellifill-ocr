@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "3.1.0",
+    [string]$Version = "3.1.1",
     [string]$DistDir = "dist",
     [string]$OutputDir = "release"
 )
@@ -37,7 +37,7 @@ Offline Windows package
 
 How to run
 1. Extract this zip on a Windows 10/11 machine.
-2. Run IntelliFillOCR.WinUI.exe when packaging from the WinUI staging folder.
+2. Run IntelliFillOCR.exe when packaging from the WinUI staging folder.
 3. Open Settings and select the local Tesseract OCR executable path if it is not detected automatically.
 4. Choose or create the SQLite database path from Settings.
 
