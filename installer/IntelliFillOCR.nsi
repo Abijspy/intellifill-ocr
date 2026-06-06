@@ -59,8 +59,10 @@ Section "${APP_NAME} application" SecApp
 
   DetailPrint "Creating shortcuts..."
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-  CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
-  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
+  Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
+  Delete "$DESKTOP\${APP_NAME}.lnk"
+  CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\Assets\app.ico" 0
+  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\Assets\app.ico" 0
 
   DetailPrint "Registering uninstaller..."
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -68,7 +70,7 @@ Section "${APP_NAME} application" SecApp
   WriteRegStr HKCU "${APP_REG_KEY}" "DisplayVersion" "${APP_VERSION}"
   WriteRegStr HKCU "${APP_REG_KEY}" "Publisher" "${APP_PUBLISHER}"
   WriteRegStr HKCU "${APP_REG_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "${APP_REG_KEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
+  WriteRegStr HKCU "${APP_REG_KEY}" "DisplayIcon" "$INSTDIR\Assets\app.ico"
   WriteRegStr HKCU "${APP_REG_KEY}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKCU "${APP_REG_KEY}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
   WriteRegDWORD HKCU "${APP_REG_KEY}" "NoModify" 1

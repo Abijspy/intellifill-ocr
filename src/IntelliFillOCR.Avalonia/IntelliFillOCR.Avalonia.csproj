@@ -11,10 +11,13 @@
     <Version>3.4.0</Version>
     <AssemblyVersion>3.4.0.0</AssemblyVersion>
     <FileVersion>3.4.0.0</FileVersion>
+    <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="..\..\assets\logo_512.png" Link="Assets\logo_512.png" />
+    <AvaloniaResource Include="..\..\assets\app.ico" Link="Assets\app.ico" />
+    <None Include="..\..\assets\app.ico" Link="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

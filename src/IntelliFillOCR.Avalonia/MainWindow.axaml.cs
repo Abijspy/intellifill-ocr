@@ -346,6 +346,48 @@ public sealed partial class MainWindow : Window
         SetStatus("Settings saved.");
     }
 
+    private async void BrowseTesseract_Click(object? sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select Tesseract executable",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Tesseract executable") { Patterns = OperatingSystem.IsWindows() ? new[] { "*.exe" } : new[] { "*" } },
+                FilePickerFileTypes.All
+            }
+        });
+
+        string? path = files.FirstOrDefault()?.Path.LocalPath;
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            TesseractPathBox.Text = path;
+            SetStatus("Tesseract path selected. Save Settings to keep it.");
+        }
+    }
+
+    private async void BrowseDatabase_Click(object? sender, RoutedEventArgs e)
+    {
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Select SQLite database",
+            SuggestedFileName = "intellifill.sqlite3",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("SQLite database") { Patterns = new[] { "*.sqlite3", "*.sqlite", "*.db" } },
+                FilePickerFileTypes.All
+            }
+        });
+
+        string? path = file?.Path.LocalPath;
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            DatabasePathBox.Text = path;
+            SetStatus("SQLite database path selected. Save Settings to keep it.");
+        }
+    }
+
     private void DocumentsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         int index = DocumentsListBox.SelectedIndex;
@@ -1275,7 +1317,7 @@ public sealed partial class MainWindow : Window
         Export CSV, Excel, Word, or PDF. PDF includes one traceability barcode/code at the bottom center.
 
         9. Settings
-        Enter the Tesseract executable path and SQLite path, choose theme, then Apply Theme.
+        Open the Settings page to choose the Tesseract executable, SQLite database path, theme, logs, updates, and database preview tools.
         """;
     }
 
