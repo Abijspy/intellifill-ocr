@@ -14,6 +14,11 @@ $PublishDir = Join-Path $OutputPath "avalonia-$RuntimeIdentifier\publish"
 $InstallerOutDir = Join-Path $Root "installer\out"
 $Installer = Join-Path $InstallerOutDir "IntelliFillOCR-$Version-setup-$RuntimeIdentifier.exe"
 $NsiScript = Join-Path $Root "installer\IntelliFillOCR.nsi"
+$VersionParts = @($Version.Split("."))
+if ($VersionParts.Count -gt 4 -or ($VersionParts | Where-Object { $_ -notmatch "^\d+$" })) {
+    throw "Version must contain one to four numeric parts. Received: $Version"
+}
+$AppFileVersion = @($VersionParts + @("0", "0", "0", "0"))[0..3] -join "."
 
 if (-not $SkipAvaloniaBuild) {
     & (Join-Path $Root "scripts\build-avalonia.ps1") `
@@ -56,6 +61,7 @@ if (-not $Makensis -or -not (Test-Path $Makensis)) {
 
 & $Makensis `
     "/DAPP_VERSION=$Version" `
+    "/DAPP_FILE_VERSION=$AppFileVersion" `
     "/DPUBLISH_DIR=$PublishDir" `
     "/DOUTPUT_EXE=$Installer" `
     $NsiScript

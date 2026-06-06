@@ -139,23 +139,6 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
-        <Style Selector="TabControl">
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="TabItem">
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="18,10" />
-            <Setter Property="Margin" Value="0,0,8,0" />
-            <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
-        <Style Selector="TabItem:selected">
-            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
         <Style Selector="TextBox.mono">
             <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
         </Style>
@@ -173,7 +156,7 @@
                             </StackPanel>
                         </Grid>
                         <Border Classes="darkCard" Padding="10,8">
-                            <TextBlock Text="v3.5.1" Classes="darkMuted" FontWeight="SemiBold" />
+                            <TextBlock Text="v3.5.3" Classes="darkMuted" FontWeight="SemiBold" />
                         </Border>
                     </StackPanel>
 
@@ -209,7 +192,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="darkCard" MinHeight="190">
+                            <Border Classes="darkCard" MinHeight="160" MaxHeight="260">
                                 <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                     <TextBlock Text="STATUS" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
                                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -243,7 +226,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="1" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock Text="v3.5.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock Text="v3.5.3" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -301,7 +284,7 @@
                         </ScrollViewer>
 
                         <ScrollViewer x:Name="SourcesPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="780">
+                            <StackPanel Spacing="14" Margin="0,14,8,8">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                                         <StackPanel Spacing="4">
@@ -315,66 +298,66 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="220,2*,320" ColumnSpacing="14">
+                                <Grid ColumnDefinitions="260,*" ColumnSpacing="14">
                                     <Border Classes="softPanel">
-                                        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                        <Grid RowDefinitions="Auto,360" RowSpacing="10">
                                             <TextBlock Text="Files" Classes="sectionTitle" />
                                             <ListBox x:Name="DocumentsListBox" Grid.Row="1" SelectionChanged="DocumentsListBox_SelectionChanged" />
                                         </Grid>
                                     </Border>
 
-                                    <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
+                                    <StackPanel Grid.Column="1" Spacing="12">
                                         <Border Classes="softPanel">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <StackPanel Spacing="10">
                                                 <ComboBox x:Name="SourceTableSelector" SelectionChanged="SourceTableSelector_SelectionChanged" />
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                                    <Button Click="ZoomOut_Click" Content="-" ToolTip.Tip="Zoom out" />
-                                                    <Button Click="ZoomIn_Click" Content="+" ToolTip.Tip="Zoom in" />
-                                                    <Button Click="ResetPreview_Click" Content="Reset" />
-                                                    <Button Click="RotateLeft_Click" Content="Left" />
-                                                    <Button Click="RotateRight_Click" Content="Right" />
-                                                    <Button Classes="primary" Click="EnableRegionSelection_Click" Content="Select Region" />
-                                                    <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" Foreground="{DynamicResource BodyTextBrush}" />
-                                                </StackPanel>
-                                            </Grid>
+                                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <Button Click="ZoomOut_Click" Content="-" ToolTip.Tip="Zoom out" />
+                                                        <Button Click="ZoomIn_Click" Content="+" ToolTip.Tip="Zoom in" />
+                                                        <Button Click="ResetPreview_Click" Content="Reset" />
+                                                        <Button Click="RotateLeft_Click" Content="Left" />
+                                                        <Button Click="RotateRight_Click" Content="Right" />
+                                                        <Button Classes="primary" Click="EnableRegionSelection_Click" Content="Select Region" />
+                                                        <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" Foreground="{DynamicResource BodyTextBrush}" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </StackPanel>
                                         </Border>
 
-                                        <Border Grid.Row="1" Classes="previewPanel">
+                                        <Border Classes="previewPanel">
                                             <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                                 <Grid ColumnDefinitions="*,Auto">
                                                     <TextBlock Text="Large Visual Preview" Classes="sectionTitle" />
                                                     <TextBlock x:Name="RegionSelectionText" Grid.Column="1" Text="No region selected" Classes="muted" VerticalAlignment="Center" />
                                                 </Grid>
                                                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                    <Canvas x:Name="PreviewCanvas" Width="980" Height="680" Background="{DynamicResource PreviewCanvasBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
-                                                        <Image x:Name="PreviewImage" Width="980" Height="680" Stretch="Uniform" IsVisible="False" />
-                                                        <TextBlock x:Name="PreviewMessage" Width="920" Canvas.Left="30" Canvas.Top="315" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="{DynamicResource MutedTextBrush}" />
+                                                    <Canvas x:Name="PreviewCanvas" Width="860" Height="560" Background="{DynamicResource PreviewCanvasBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
+                                                        <Image x:Name="PreviewImage" Width="860" Height="560" Stretch="Uniform" IsVisible="False" />
+                                                        <TextBlock x:Name="PreviewMessage" Width="800" Canvas.Left="30" Canvas.Top="255" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="{DynamicResource MutedTextBrush}" />
                                                         <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="{DynamicResource SelectionStrokeBrush}" StrokeThickness="2" Fill="{DynamicResource SelectionFillBrush}" />
                                                     </Canvas>
                                                 </ScrollViewer>
                                             </Grid>
                                         </Border>
-                                    </Grid>
 
-                                    <Grid Grid.Column="2" RowDefinitions="*,260" RowSpacing="14">
                                         <Border Classes="softPanel">
                                             <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                                 <TextBlock Text="Detected Source Table" Classes="sectionTitle" />
-                                                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                <ScrollViewer Grid.Row="1" MinHeight="220" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                                                     <Grid x:Name="SourceTablePreviewGrid" />
                                                 </ScrollViewer>
                                             </Grid>
                                         </Border>
 
-                                        <Border Grid.Row="1" Classes="softPanel">
+                                        <Border Classes="softPanel">
                                             <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                                 <TextBlock Text="Parsed Text" Classes="sectionTitle" />
-                                                <TextBox x:Name="ParsedTextBox" Grid.Row="1" PlaceholderText="Parsed text from selected document" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                                <TextBox x:Name="ParsedTextBox" Grid.Row="1" MinHeight="220" PlaceholderText="Parsed text from selected document" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
                                             </Grid>
                                         </Border>
-                                    </Grid>
+                                    </StackPanel>
                                 </Grid>
-                            </Grid>
+                            </StackPanel>
                         </ScrollViewer>
 
                         <ScrollViewer x:Name="MappingPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -445,7 +428,7 @@
                         </ScrollViewer>
 
                         <ScrollViewer x:Name="SettingsPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                            <StackPanel Spacing="14" Margin="0,14,8,8">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                                         <StackPanel>
@@ -456,60 +439,54 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="360,*" ColumnSpacing="14">
-                                    <StackPanel Spacing="14">
-                                        <Border Classes="softPanel">
-                                            <StackPanel Spacing="12">
-                                                <TextBlock Text="Local Paths" Classes="sectionTitle" />
-                                                <TextBlock Text="Tesseract OCR" Classes="kicker" />
-                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                    <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
-                                                    <Button Grid.Column="1" Click="BrowseTesseract_Click" Content="Browse" />
-                                                </Grid>
-                                                <TextBlock Text="SQLite Database" Classes="kicker" />
-                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                    <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
-                                                    <Button Grid.Column="1" Click="BrowseDatabase_Click" Content="Browse" />
-                                                </Grid>
-                                                <TextBlock Text="Theme" Classes="kicker" />
-                                                <ComboBox x:Name="ThemeComboBox" SelectedIndex="0">
-                                                    <ComboBoxItem Content="Use system theme" />
-                                                    <ComboBoxItem Content="Light" />
-                                                    <ComboBoxItem Content="Dark" />
-                                                </ComboBox>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Classes="softPanel">
-                                            <StackPanel Spacing="8">
-                                                <TextBlock Text="Maintenance" Classes="sectionTitle" />
-                                                <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
-                                                <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
-                                                <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
-                                                <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
-                                                <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
-                                            </StackPanel>
-                                        </Border>
+                                <Border Classes="softPanel">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Local Paths" Classes="sectionTitle" />
+                                        <TextBlock Text="Tesseract OCR" Classes="kicker" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
+                                            <Button Grid.Column="1" Click="BrowseTesseract_Click" Content="Browse" />
+                                        </Grid>
+                                        <TextBlock Text="SQLite Database" Classes="kicker" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
+                                            <Button Grid.Column="1" Click="BrowseDatabase_Click" Content="Browse" />
+                                        </Grid>
+                                        <TextBlock Text="Theme" Classes="kicker" />
+                                        <ComboBox x:Name="ThemeComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left">
+                                            <ComboBoxItem Content="Use system theme" />
+                                            <ComboBoxItem Content="Light" />
+                                            <ComboBoxItem Content="Dark" />
+                                        </ComboBox>
                                     </StackPanel>
+                                </Border>
 
-                                    <Grid Grid.Column="1" RowDefinitions="*,*" RowSpacing="14">
-                                        <Border Classes="previewPanel">
-                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                                <TextBlock Text="SQLite Database Preview" Classes="sectionTitle" />
-                                                <TextBox x:Name="DatabasePreviewBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
-                                            </Grid>
-                                        </Border>
-                                        <Border Grid.Row="1" Classes="softPanel">
-                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                                <TextBlock Text="Application Status" Classes="sectionTitle" />
-                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                    <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" />
-                                                </ScrollViewer>
-                                            </Grid>
-                                        </Border>
+                                <Border Classes="previewPanel">
+                                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                        <TextBlock Text="SQLite Database Preview" Classes="sectionTitle" />
+                                        <TextBox x:Name="DatabasePreviewBox" Grid.Row="1" MinHeight="240" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
                                     </Grid>
+                                </Border>
+
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                                    <Border Classes="softPanel">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Maintenance" Classes="sectionTitle" />
+                                            <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
+                                            <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
+                                            <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                            <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
+                                            <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1" Classes="softPanel">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Application Status" Classes="sectionTitle" />
+                                            <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" />
+                                        </StackPanel>
+                                    </Border>
                                 </Grid>
-                            </Grid>
+                            </StackPanel>
                         </ScrollViewer>
                     </Grid>
                 </Grid>

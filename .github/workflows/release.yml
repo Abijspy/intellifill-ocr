@@ -160,6 +160,11 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Write asset checksums
+        shell: bash
+        run: |
+          (cd release-assets && sha256sum * > SHA256SUMS.txt)
+
       - name: Write release notes
         shell: bash
         run: |
@@ -167,10 +172,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Removed duplicate workflow actions from the top command area and left icon rail.
-          - Fixed light mode so the left sidebar uses the same light palette as the workspace.
-          - Replaced the old tab strip with rounded page-switcher buttons for Template, Sources, Mapping, Review, and Settings.
-          - Improved responsive sizing for sidebar, settings, source preview, mapping, and review layouts.
+          - Fixed clipped buttons and hidden elements by making Sources and Settings use scroll-safe stacked layouts.
+          - Improved image/PDF preview sizing so zoom, rotate, region selection, detected tables, and parsed text remain reachable.
+          - Fixed automatic update downloads to save in the app update cache, launch the installer reliably, and report download progress.
+          - Added installer metadata, release checksums, and update-package cleanup after install to reduce false positives and stale files.
           NOTES
 
       - name: Create or update GitHub release

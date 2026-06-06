@@ -40,8 +40,8 @@ $Files = @(
     },
     @{
         Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/Package.appxmanifest"
-        Pattern = 'Version="[^"]+"'
-        Replacement = "Version=`"$AssemblyVersion`""
+        Pattern = '(<Identity\b[^>]*\bVersion=")[^"]+(")'
+        Replacement = "`${1}$AssemblyVersion`${2}"
     },
     @{
         Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/app.manifest"
@@ -80,13 +80,15 @@ foreach ($File in $Files) {
         throw "Version file was not found: $($File.Path)"
     }
 
-    $content = Get-Content -LiteralPath $File.Path -Raw
+    $resolvedPath = (Resolve-Path -LiteralPath $File.Path).Path
+    $content = [System.IO.File]::ReadAllText($resolvedPath)
     if (-not [regex]::IsMatch($content, $File.Pattern)) {
         throw "Version pattern was not found in $($File.Path)."
     }
 
     $updated = [regex]::Replace($content, $File.Pattern, $File.Replacement)
-    Set-Content -LiteralPath $File.Path -Value $updated -Encoding UTF8
+    $updated = $updated.TrimEnd("`r", "`n") + "`r`n"
+    [System.IO.File]::WriteAllText($resolvedPath, $updated, [System.Text.UTF8Encoding]::new($false))
 }
 
 Write-Host "Stamped IntelliFill OCR source version: $Version"

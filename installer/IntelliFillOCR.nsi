@@ -5,6 +5,10 @@
   !define APP_VERSION "0.0.0"
 !endif
 
+!ifndef APP_FILE_VERSION
+  !define APP_FILE_VERSION "0.0.0.0"
+!endif
+
 !ifndef PUBLISH_DIR
   !define PUBLISH_DIR "..\release\avalonia-win-x64\publish"
 !endif
@@ -28,6 +32,15 @@ Unicode true
 SetCompressor /SOLID lzma
 ShowInstDetails show
 ShowUninstDetails show
+
+VIProductVersion "${APP_FILE_VERSION}"
+VIAddVersionKey "ProductName" "${APP_NAME}"
+VIAddVersionKey "CompanyName" "${APP_PUBLISHER}"
+VIAddVersionKey "FileDescription" "${APP_NAME} Setup"
+VIAddVersionKey "FileVersion" "${APP_VERSION}"
+VIAddVersionKey "ProductVersion" "${APP_VERSION}"
+VIAddVersionKey "OriginalFilename" "IntelliFillOCR-${APP_VERSION}-setup-win-x64.exe"
+VIAddVersionKey "LegalCopyright" "Copyright 2026 IntelliFill OCR"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON "..\assets\app.ico"
@@ -75,6 +88,16 @@ Section "${APP_NAME} application" SecApp
   WriteRegStr HKCU "${APP_REG_KEY}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
   WriteRegDWORD HKCU "${APP_REG_KEY}" "NoModify" 1
   WriteRegDWORD HKCU "${APP_REG_KEY}" "NoRepair" 1
+
+  DetailPrint "Cleaning downloaded update packages..."
+  Delete "$LOCALAPPDATA\IntelliFillOCR\Updates\IntelliFillOCR-*-setup-win-x64.exe"
+  StrCpy $0 "$LOCALAPPDATA\IntelliFillOCR\Updates"
+  StrLen $1 $0
+  StrCpy $2 "$EXEPATH" $1
+  ${If} $2 == $0
+    Delete /REBOOTOK "$EXEPATH"
+    RMDir "$LOCALAPPDATA\IntelliFillOCR\Updates"
+  ${EndIf}
 SectionEnd
 
 Section /o "Install Tesseract OCR 5.5.0" SecTesseract

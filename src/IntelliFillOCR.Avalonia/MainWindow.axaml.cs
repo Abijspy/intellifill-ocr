@@ -19,9 +19,9 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.2";
-    private const double PreviewBaseWidth = 980;
-    private const double PreviewBaseHeight = 680;
+    private const string AppVersion = "3.5.3";
+    private const double PreviewBaseWidth = 860;
+    private const double PreviewBaseHeight = 560;
     private const double PreviewMinZoom = 0.5;
     private const double PreviewMaxZoom = 3.0;
     private const double PreviewZoomStep = 0.25;
@@ -560,8 +560,7 @@ public sealed partial class MainWindow : Window
         string tag = root.GetProperty("tag_name").GetString() ?? "v0.0.0";
         string version = tag.TrimStart('v');
         string releaseUrl = root.TryGetProperty("html_url", out JsonElement htmlUrl) ? htmlUrl.GetString() ?? string.Empty : string.Empty;
-        string assetName = string.Empty;
-        string downloadUrl = string.Empty;
+        var candidates = new List<ReleaseUpdate>();
 
         if (root.TryGetProperty("assets", out JsonElement assets))
         {
@@ -573,13 +572,26 @@ public sealed partial class MainWindow : Window
                     continue;
                 }
 
-                assetName = name;
-                downloadUrl = asset.TryGetProperty("browser_download_url", out JsonElement urlElement) ? urlElement.GetString() ?? string.Empty : string.Empty;
-                break;
+                string downloadUrl = asset.TryGetProperty("browser_download_url", out JsonElement urlElement) ? urlElement.GetString() ?? string.Empty : string.Empty;
+                candidates.Add(new ReleaseUpdate(version, tag, releaseUrl, name, downloadUrl));
             }
         }
 
-        return new ReleaseUpdate(version, tag, releaseUrl, assetName, downloadUrl);
+        ReleaseUpdate? versionMatched = candidates.FirstOrDefault(candidate => AssetMatchesVersion(candidate.AssetName, version));
+        return versionMatched ?? candidates.FirstOrDefault() ?? new ReleaseUpdate(version, tag, releaseUrl, string.Empty, string.Empty);
+    }
+
+    private static bool AssetMatchesVersion(string assetName, string version)
+    {
+        if (string.IsNullOrWhiteSpace(assetName) || string.IsNullOrWhiteSpace(version))
+        {
+            return false;
+        }
+
+        return Regex.IsMatch(
+            assetName,
+            $@"(^|[-_])v?{Regex.Escape(version)}($|[-_.])",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static bool IsPreferredUpdateAsset(string name)
@@ -620,7 +632,19 @@ public sealed partial class MainWindow : Window
 
         if (!string.IsNullOrWhiteSpace(latest.AssetName) && OperatingSystem.IsWindows())
         {
-            await DownloadAndRunUpdateAsync(latest);
+            try
+            {
+                await DownloadAndRunUpdateAsync(latest);
+            }
+            catch (Exception ex)
+            {
+                SetStatus("Update install failed: " + ex.Message);
+                Log("Update install failed: " + ex);
+                await ShowMessageAsync(
+                    "Update Install Failed",
+                    $"The update could not be downloaded or launched automatically.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}The GitHub release page will open so you can download the installer manually.");
+                OpenUrl(latest.ReleaseUrl);
+            }
             return;
         }
 
@@ -635,14 +659,73 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        string targetPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), latest.AssetName);
+        string updateDirectory = System.IO.Path.Combine(_appDataPath, "Updates");
+        Directory.CreateDirectory(updateDirectory);
+
+        string safeAssetName = Regex.Replace(latest.AssetName, @"[^\w.\-]+", "_");
+        string targetPath = System.IO.Path.Combine(updateDirectory, safeAssetName);
+        if (File.Exists(targetPath))
+        {
+            File.Delete(targetPath);
+        }
+
         SetStatus($"Downloading IntelliFill OCR {latest.Version} installer...");
         using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
-        byte[] bytes = await client.GetByteArrayAsync(latest.DownloadUrl);
-        await File.WriteAllBytesAsync(targetPath, bytes);
+        client.Timeout = TimeSpan.FromMinutes(15);
+
+        using HttpResponseMessage response = await client.GetAsync(latest.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+
+        long? contentLength = response.Content.Headers.ContentLength;
+        await using Stream source = await response.Content.ReadAsStreamAsync();
+        await using FileStream destination = File.Create(targetPath);
+
+        byte[] buffer = new byte[1024 * 128];
+        long downloaded = 0;
+        int lastProgress = -1;
+        while (true)
+        {
+            int read = await source.ReadAsync(buffer);
+            if (read == 0)
+            {
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, read));
+            downloaded += read;
+            if (contentLength is long totalBytes && totalBytes > 0)
+            {
+                int progress = (int)Math.Clamp(downloaded * 100 / totalBytes, 0, 100);
+                if (progress >= lastProgress + 5 || progress == 100)
+                {
+                    lastProgress = progress;
+                    SetStatus($"Downloading IntelliFill OCR {latest.Version} installer... {progress}%");
+                }
+            }
+        }
+
+        await destination.FlushAsync();
+
+        var installer = new FileInfo(targetPath);
+        if (!installer.Exists || installer.Length < 100_000)
+        {
+            throw new InvalidOperationException("Downloaded installer is missing or incomplete.");
+        }
+
         SetStatus($"Launching update installer: {targetPath}");
-        Process.Start(new ProcessStartInfo(targetPath) { UseShellExecute = true });
+        Process? process = Process.Start(new ProcessStartInfo
+        {
+            FileName = targetPath,
+            WorkingDirectory = updateDirectory,
+            UseShellExecute = true
+        });
+        if (process is null)
+        {
+            throw new InvalidOperationException("Windows did not start the downloaded installer.");
+        }
+
+        await Task.Delay(1200);
         Close();
     }
 
