@@ -101,14 +101,19 @@ Section "${APP_NAME} application" SecApp
 SectionEnd
 
 Section /o "Install Tesseract OCR 5.5.0" SecTesseract
-  DetailPrint "Downloading Tesseract OCR 5.5.0..."
-  NSISdl::download "${TESSERACT_URL}" "$TEMP\tesseract-ocr-w64-setup-5.5.0.exe"
-  Pop $0
-  ${If} $0 == "success"
+  StrCpy $0 "$TEMP\tesseract-ocr-w64-setup-5.5.0.exe"
+  Delete "$0"
+
+  DetailPrint "Downloading Tesseract OCR 5.5.0 with Windows PowerShell..."
+  nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $$ProgressPreference = ''SilentlyContinue''; Invoke-WebRequest -Uri ''${TESSERACT_URL}'' -OutFile ''$0'' -UseBasicParsing"'
+  Pop $1
+
+  ${If} $1 == 0
+  ${AndIf} ${FileExists} "$0"
     DetailPrint "Running Tesseract OCR installer..."
-    ExecWait '"$TEMP\tesseract-ocr-w64-setup-5.5.0.exe" /S'
+    ExecWait '"$0" /S'
   ${Else}
-    DetailPrint "Tesseract download failed: $0"
+    DetailPrint "Tesseract download failed. PowerShell exit code: $1"
     MessageBox MB_ICONEXCLAMATION "Tesseract OCR could not be downloaded. The app is still installed. Configure Tesseract manually from Settings after installation."
   ${EndIf}
 SectionEnd

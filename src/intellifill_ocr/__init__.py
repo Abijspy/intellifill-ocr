@@ -1,2 +1,2 @@
 __app_name__ = "IntelliFill OCR"
-__version__ = "3.5.4"
+__version__ = "3.5.5"

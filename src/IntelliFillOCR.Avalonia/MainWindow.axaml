@@ -156,7 +156,7 @@
                             </StackPanel>
                         </Grid>
                         <Border Classes="darkCard" Padding="10,8">
-                            <TextBlock Text="v3.5.4" Classes="darkMuted" FontWeight="SemiBold" />
+                            <TextBlock Text="v3.5.5" Classes="darkMuted" FontWeight="SemiBold" />
                         </Border>
                     </StackPanel>
 
@@ -224,7 +224,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="1" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock Text="v3.5.4" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock Text="v3.5.5" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 

@@ -8,9 +8,9 @@
     <RootNamespace>IntelliFillOCR.Avalonia</RootNamespace>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
-    <Version>3.5.4</Version>
-    <AssemblyVersion>3.5.4.0</AssemblyVersion>
-    <FileVersion>3.5.4.0</FileVersion>
+    <Version>3.5.5</Version>
+    <AssemblyVersion>3.5.5.0</AssemblyVersion>
+    <FileVersion>3.5.5.0</FileVersion>
     <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 

@@ -19,7 +19,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.4";
+    private const string AppVersion = "3.5.5";
     private const double PreviewBaseWidth = 780;
     private const double PreviewBaseHeight = 500;
     private const double PreviewMinZoom = 0.5;
@@ -683,34 +683,35 @@ public sealed partial class MainWindow : Window
         response.EnsureSuccessStatusCode();
 
         long? contentLength = response.Content.Headers.ContentLength;
-        await using Stream source = await response.Content.ReadAsStreamAsync();
-        await using FileStream destination = File.Create(targetPath);
-
-        byte[] buffer = new byte[1024 * 128];
-        long downloaded = 0;
-        int lastProgress = -1;
-        while (true)
+        await using (Stream source = await response.Content.ReadAsStreamAsync())
+        await using (FileStream destination = File.Create(targetPath))
         {
-            int read = await source.ReadAsync(buffer);
-            if (read == 0)
+            byte[] buffer = new byte[1024 * 128];
+            long downloaded = 0;
+            int lastProgress = -1;
+            while (true)
             {
-                break;
-            }
-
-            await destination.WriteAsync(buffer.AsMemory(0, read));
-            downloaded += read;
-            if (contentLength is long totalBytes && totalBytes > 0)
-            {
-                int progress = (int)Math.Clamp(downloaded * 100 / totalBytes, 0, 100);
-                if (progress >= lastProgress + 5 || progress == 100)
+                int read = await source.ReadAsync(buffer);
+                if (read == 0)
                 {
-                    lastProgress = progress;
-                    SetStatus($"Downloading IntelliFill OCR {latest.Version} installer... {progress}%");
+                    break;
+                }
+
+                await destination.WriteAsync(buffer.AsMemory(0, read));
+                downloaded += read;
+                if (contentLength is long totalBytes && totalBytes > 0)
+                {
+                    int progress = (int)Math.Clamp(downloaded * 100 / totalBytes, 0, 100);
+                    if (progress >= lastProgress + 5 || progress == 100)
+                    {
+                        lastProgress = progress;
+                        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer... {progress}%");
+                    }
                 }
             }
-        }
 
-        await destination.FlushAsync();
+            await destination.FlushAsync();
+        }
 
         var installer = new FileInfo(targetPath);
         if (!installer.Exists || installer.Length < 100_000)
@@ -718,20 +719,60 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("Downloaded installer is missing or incomplete.");
         }
 
-        SetStatus($"Launching update installer: {targetPath}");
-        Process? process = Process.Start(new ProcessStartInfo
-        {
-            FileName = targetPath,
-            WorkingDirectory = updateDirectory,
-            UseShellExecute = true
-        });
-        if (process is null)
-        {
-            throw new InvalidOperationException("Windows did not start the downloaded installer.");
-        }
-
-        await Task.Delay(1200);
+        SetStatus($"Download complete. Launching update installer after IntelliFill OCR closes: {targetPath}");
+        LaunchInstallerAfterExit(targetPath, updateDirectory, latest.Version);
+        await Task.Delay(500);
         Close();
+    }
+
+    private void LaunchInstallerAfterExit(string installerPath, string updateDirectory, string version)
+    {
+        string launcherPath = System.IO.Path.Combine(updateDirectory, $"launch-intellifill-update-{version}.cmd");
+        string logPath = System.IO.Path.Combine(updateDirectory, "update-launch.log");
+        string processId = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
+        string script = $"""
+@echo off
+setlocal
+set "INSTALLER={installerPath}"
+set "LOG={logPath}"
+echo [%date% %time%] IntelliFill OCR update handoff started.>"%LOG%"
+echo Installer: %INSTALLER%>>"%LOG%"
+for /L %%I in (1,1,60) do (
+  tasklist /FI "PID eq {processId}" | find "{processId}" >nul
+  if errorlevel 1 goto launch
+  timeout /t 1 /nobreak >nul
+)
+echo Existing app process still running. Stopping PID {processId}.>>"%LOG%"
+taskkill /PID {processId} /F >>"%LOG%" 2>&1
+timeout /t 2 /nobreak >nul
+:launch
+if not exist "%INSTALLER%" (
+  echo Installer missing: %INSTALLER%>>"%LOG%"
+  exit /b 2
+)
+echo Launching installer.>>"%LOG%"
+start "IntelliFill OCR Setup" /wait "%INSTALLER%"
+set "INSTALL_EXIT=%ERRORLEVEL%"
+echo Installer finished with exit code %INSTALL_EXIT%.>>"%LOG%"
+del "%INSTALLER%" >>"%LOG%" 2>&1
+del "%~f0" >nul 2>&1
+exit /b %INSTALL_EXIT%
+""";
+
+        File.WriteAllText(launcherPath, script);
+        string shell = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+        Process? launcher = Process.Start(new ProcessStartInfo
+        {
+            FileName = shell,
+            Arguments = $"/c start \"IntelliFill OCR Update\" /min \"{launcherPath}\"",
+            WorkingDirectory = updateDirectory,
+            CreateNoWindow = true,
+            UseShellExecute = false
+        });
+        if (launcher is null)
+        {
+            throw new InvalidOperationException("Windows did not start the update handoff process.");
+        }
     }
 
     private async Task<string?> ShowChoiceAsync(string title, string text, string primaryText, string closeText)
@@ -1701,6 +1742,12 @@ public sealed partial class MainWindow : Window
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.5.5
+        - Fixed automatic updater launch by closing the downloaded installer file before setup starts.
+        - Added a detached update handoff script so the installer launches only after IntelliFill OCR exits.
+        - Writes update-launch.log in the local Updates folder to diagnose download or launch failures.
+        - Fixed optional Tesseract OCR download in the Windows installer by using PowerShell TLS 1.2 instead of NSISdl.
 
         Version 3.5.4
         - Made every main page scroll-safe: Template, Sources, Mapping, Review, and Settings.
