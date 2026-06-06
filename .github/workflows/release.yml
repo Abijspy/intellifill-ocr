@@ -172,10 +172,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Fixed clipped buttons and hidden elements by making Sources and Settings use scroll-safe stacked layouts.
-          - Improved image/PDF preview sizing so zoom, rotate, region selection, detected tables, and parsed text remain reachable.
-          - Fixed automatic update downloads to save in the app update cache, launch the installer reliably, and report download progress.
-          - Added installer metadata, release checksums, and update-package cleanup after install to reduce false positives and stale files.
+          - Made every main workflow page scroll-safe: Template, Sources, Mapping, Review, and Settings.
+          - Removed remaining fixed-height page layouts that could hide bottom controls on smaller windows or high display scaling.
+          - Added View Changelog buttons in the sidebar Tools section and Settings Maintenance section.
+          - Restyled popup windows so help, logs, changelog, about, validation, and update prompts match the main app UI.
           NOTES
 
       - name: Create or update GitHub release

@@ -19,9 +19,9 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.3";
-    private const double PreviewBaseWidth = 860;
-    private const double PreviewBaseHeight = 560;
+    private const string AppVersion = "3.5.4";
+    private const double PreviewBaseWidth = 780;
+    private const double PreviewBaseHeight = 500;
     private const double PreviewMinZoom = 0.5;
     private const double PreviewMaxZoom = 3.0;
     private const double PreviewZoomStep = 0.25;
@@ -304,6 +304,11 @@ public sealed partial class MainWindow : Window
     private async void OpenHelp_Click(object? sender, RoutedEventArgs e)
     {
         await ShowMessageAsync("User Guide and Feature Help", HelpText());
+    }
+
+    private async void OpenChangelog_Click(object? sender, RoutedEventArgs e)
+    {
+        await ShowMessageAsync("IntelliFill OCR Changelog", ChangelogText());
     }
 
     private async void OpenAbout_Click(object? sender, RoutedEventArgs e)
@@ -731,68 +736,22 @@ public sealed partial class MainWindow : Window
 
     private async Task<string?> ShowChoiceAsync(string title, string text, string primaryText, string closeText)
     {
-        var result = new TaskCompletionSource<string?>();
-        var primaryButton = new Button
+        Button primaryButton = CreateDialogButton(primaryText, isPrimary: true, minWidth: 160);
+        Button closeButton = CreateDialogButton(closeText, isPrimary: false, minWidth: 110);
+
+        var body = CreateDialogTextPanel(text);
+        var buttons = new StackPanel
         {
-            Content = primaryText,
-            Classes = { "primary" },
-            MinWidth = 150,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-        var closeButton = new Button
-        {
-            Content = closeText,
-            MinWidth = 100,
-            HorizontalAlignment = HorizontalAlignment.Right
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { primaryButton, closeButton }
         };
 
-        var box = new Window
-        {
-            Title = title,
-            Width = 560,
-            Height = 300,
-            MinWidth = 480,
-            MinHeight = 260,
-            Icon = this.Icon,
-            Content = new Grid
-            {
-                Margin = new Thickness(18),
-                RowDefinitions = new RowDefinitions("*,Auto"),
-                Children =
-                {
-                    new ScrollViewer
-                    {
-                        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                        Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Spacing = 10,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Children = { primaryButton, closeButton }
-                    }
-                }
-            }
-        };
-
-        if (box.Content is Grid grid)
-        {
-            Grid.SetRow(grid.Children[1], 1);
-        }
+        Window box = CreateStyledDialog(title, 600, 340, body, buttons);
         primaryButton.Click += (_, _) => box.Close("primary");
         closeButton.Click += (_, _) => box.Close("close");
-        box.Closed += (_, _) =>
-        {
-            if (!result.Task.IsCompleted)
-            {
-                result.TrySetResult(null);
-            }
-        };
-
-        string? dialogResult = await box.ShowDialog<string?>(this);
-        result.TrySetResult(dialogResult);
-        return await result.Task;
+        return await box.ShowDialog<string?>(this);
     }
 
     private static void OpenUrl(string url)
@@ -1486,37 +1445,119 @@ public sealed partial class MainWindow : Window
 
     private async Task ShowMessageAsync(string title, string text)
     {
-        var box = new Window
+        Button closeButton = CreateDialogButton("Close", isPrimary: true, minWidth: 110);
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { closeButton }
+        };
+
+        Window box = CreateStyledDialog(title, 760, 560, CreateDialogTextPanel(text), buttons);
+        closeButton.Click += (_, _) => box.Close();
+
+        await box.ShowDialog(this);
+    }
+
+    private Window CreateStyledDialog(string title, double width, double height, Control body, Control buttons)
+    {
+        var titleText = new TextBlock
+        {
+            Text = title,
+            FontSize = 22,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = DialogBrush("TitleTextBrush"),
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var contentGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
+            RowSpacing = 14,
+            Children =
+            {
+                titleText,
+                body,
+                buttons
+            }
+        };
+        Grid.SetRow(body, 1);
+        Grid.SetRow(buttons, 2);
+
+        return new Window
         {
             Title = title,
-            Width = 680,
-            Height = 460,
-            Content = new DockPanel
+            Width = width,
+            Height = height,
+            MinWidth = Math.Min(520, width),
+            MinHeight = Math.Min(320, height),
+            Icon = Icon,
+            FontFamily = FontFamily,
+            Background = DialogBrush("AppBackgroundBrush"),
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new Border
             {
-                Margin = new Thickness(16),
-                Children =
+                Background = DialogBrush("AppBackgroundBrush"),
+                Padding = new Thickness(16),
+                Child = new Border
                 {
-                    new Button
-                    {
-                        Content = "Close",
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        MinWidth = 90
-                    },
-                    new ScrollViewer
-                    {
-                        Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }
-                    }
+                    Background = DialogBrush("PanelBrush"),
+                    BorderBrush = DialogBrush("PanelBorderBrush"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(18),
+                    Padding = new Thickness(18),
+                    Child = contentGrid
                 }
             }
         };
+    }
 
-        if (box.Content is DockPanel panel && panel.Children[0] is Button button)
+    private Border CreateDialogTextPanel(string text)
+    {
+        return new Border
         {
-            DockPanel.SetDock(button, Dock.Bottom);
-            button.Click += (_, _) => box.Close();
-        }
+            Background = DialogBrush("PreviewPanelBrush"),
+            BorderBrush = DialogBrush("PanelBorderBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(14),
+            Child = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = new TextBlock
+                {
+                    Text = text,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = DialogBrush("BodyTextBrush"),
+                    LineHeight = 22
+                }
+            }
+        };
+    }
 
-        await box.ShowDialog(this);
+    private Button CreateDialogButton(string text, bool isPrimary, double minWidth)
+    {
+        return new Button
+        {
+            Content = text,
+            MinWidth = minWidth,
+            MinHeight = 38,
+            Padding = new Thickness(14, 8),
+            CornerRadius = new CornerRadius(10),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Background = isPrimary ? DialogBrush("PrimaryBrush") : DialogBrush("RailButtonBrush"),
+            Foreground = isPrimary ? Brushes.White : DialogBrush("RailButtonTextBrush"),
+            BorderBrush = isPrimary ? DialogBrush("PrimaryBrush") : DialogBrush("RailButtonBorderBrush"),
+            BorderThickness = new Thickness(1),
+            FontWeight = FontWeight.SemiBold
+        };
+    }
+
+    private IBrush DialogBrush(string key)
+    {
+        return Resources[key] is IBrush brush ? brush : Brushes.Transparent;
     }
 
     private string TableLabel(int index)
@@ -1655,6 +1696,177 @@ public sealed partial class MainWindow : Window
     private static JsonSerializerOptions JsonOptions() => new() { WriteIndented = true, PropertyNameCaseInsensitive = true };
 
     private static string CreateTraceabilityCode() => "IF" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+
+    private static string ChangelogText()
+    {
+        return """
+        IntelliFill OCR Changelog
+
+        Version 3.5.4
+        - Made every main page scroll-safe: Template, Sources, Mapping, Review, and Settings.
+        - Removed remaining fixed-height page layouts that could hide bottom controls on smaller windows or high display scaling.
+        - Added View Changelog buttons in the sidebar Tools section and Settings Maintenance section.
+        - Restyled popup windows so help, logs, changelog, about, validation, and update prompts match the main app UI.
+
+        Version 3.5.3
+        - Fixed clipped buttons and hidden elements by making Sources and Settings use safer stacked layouts.
+        - Improved image/PDF preview sizing so zoom, rotate, region selection, detected tables, and parsed text stay reachable.
+        - Fixed automatic update downloads to use the app update cache, launch the installer reliably, and report progress.
+        - Added installer metadata, release checksums, and update-package cleanup after install.
+
+        Version 3.5.2
+        - Removed duplicate top/side workflow actions.
+        - Fixed light mode sidebar palette.
+        - Replaced the old tab strip with rounded page-switcher buttons.
+        - Improved responsive sizing for sidebar, settings, source preview, mapping, and review layouts.
+
+        Version 3.5.1
+        - Polished light/dark mode consistency in the Avalonia UI.
+        - Improved rounded panel styling and page button states.
+
+        Version 3.5.0
+        - Redesigned the app with the Avalonia showcase-inspired layout.
+        - Added scroll wheel support to sidebar and pages.
+        - Improved source preview organization and update notifications.
+        - Continued NSIS installer distribution.
+
+        Version 3.4.0
+        - Migrated the packaged desktop app to Avalonia.
+        - Added NSIS installer support and removed portable EXE packaging.
+        - Added a separate Settings page and improved Windows icon registration.
+
+        Version 3.3.2
+        - Cleaned repository workflows and release packaging.
+        - Reduced duplicate GitHub release assets.
+
+        Version 3.3.1
+        - Added single-package release handling and update/install support for the package.
+
+        Version 3.3.0
+        - Reworked the Windows application packaging direction after the WinUI migration attempt.
+        - Improved document preview and selection workflow planning.
+
+        Version 3.2.0
+        - Added MSIX workflow support experiments for the WinUI shell.
+        - Improved release packaging workflow structure.
+
+        Version 3.1.1
+        - Fixed update installs where old shortcuts could point to a missing executable after the WinUI shell became default.
+        - The native WinUI shell launched as the top-level IntelliFillOCR.exe application.
+        - Included IntelliFillOCR.WinUI.exe as a compatibility launcher for v3.1.0 shortcuts.
+        - Bundled a Qt-free Python backend IPC process in the Windows package.
+
+        Version 3.1.0
+        - Made the Windows installer and default Windows package open the native WinUI 3 shell.
+        - Ran the Python OCR engine as a local JSON IPC backend for the WinUI shell.
+        - Added native WinUI template upload with detected table preview.
+        - Removed the old Qt workspace launch path from the WinUI user experience.
+
+        Version 3.0.1
+        - Fixed update installers that could still show the old 2.4.2 application version after install.
+        - Release builds stamp the app version from the GitHub release tag before packaging.
+        - The updater downloads only the installer asset that matches the latest release version.
+
+        Version 3.0.0
+        - Added the first native WinUI 3 shell package for IntelliFill OCR.
+        - Added a GitHub workflow that builds the WinUI shell, PyInstaller backend, and combined WinUI package.
+        - Published Windows, WinUI, Debian, and Fedora package assets from the release pipeline.
+
+        Version 2.4.2
+        - Added a scrolling installation details output window below the Windows setup progress bar.
+        - App file copying, optional Tesseract setup preparation, and final metadata steps are shown during install.
+        - Repeated progress events are de-duplicated so setup output remains readable.
+
+        Version 2.4.1
+        - Fixed the Windows uninstaller runtime proc error.
+        - Removed fragile custom uninstall progress label updates while keeping stable uninstall logging.
+
+        Version 2.4.0
+        - Major installer upgrade with Full, Minimal, and Custom setup types.
+        - Windows setup shows the current operation during install and uninstall.
+        - If Tesseract OCR is missing, setup can optionally download and launch the Tesseract OCR 5.5.0 installer.
+        - Installer metadata includes registry entries and install mode details.
+        - Update checks and package downloads use a 180-second network timeout.
+
+        Version 2.3.2
+        - User Guide and Feature Help workflow diagrams are readable in dark mode.
+        - Screenshot-style maps, flowcharts, warning boxes, and help panels use theme-aware colors.
+
+        Version 2.3.1
+        - Dock panels use Qt6 native close and float controls.
+        - Removed custom panel glyphs that could be hard to read.
+        - Actions > Panels restores closed Uploaded Files, Extracted Fields, and Output Preview panels.
+
+        Version 2.3.0
+        - Template documents with two or more tables load every table into Output Preview.
+        - Table selectors allow filling Table 1, Table 2, Table 3, and later tables.
+        - Manual mappings, intelligent matching, learned templates, validation, SQLite storage, and exports remember destination table number.
+        - CSV, Excel, Word, PDF, and preserved-layout exports include all template tables in one output document.
+        - GitHub Actions can build Linux Debian and Fedora packages.
+        - Linux update checks can download .deb or .rpm packages and show terminal install guidance.
+        - Ubuntu, Debian, and Fedora builds automatically detect local Tesseract from PATH and common install locations.
+
+        Version 2.2.4
+        - Added smoother wheel scrolling for tables, logs, parsed text, help, database preview, and changelog pages.
+        - Polished scrollbar styling in light and dark mode.
+        - Expanded the in-app User Guide.
+
+        Version 2.2.3
+        - PDF traceability barcodes render as clear bottom-center barcode images instead of collapsed black strips.
+        - Barcode exports keep a white quiet zone and wider modules so the ID remains scannable.
+
+        Version 2.2.2.1
+        - Dock panel close and float controls use custom high-contrast buttons in dark and light mode.
+        - Removed reliance on native glyphs that could disappear against panel chrome.
+
+        Version 2.2.2
+        - Large help, database, log, validation, detection, and learned-template windows open inside the visible screen area.
+        - Dock panel close/float buttons are visible in light mode.
+
+        Version 2.2.1
+        - Added a full offline User Guide under Actions > Help.
+        - Made the in-app changelog scrollable and complete from v1.0.0 onward.
+        - Changed GitHub release notes so release pages show only the latest version notes.
+
+        Version 2.2.0
+        - Template Learning saves reusable mappings, detects similar documents later, and applies them with confidence scores.
+        - Validation warns about required blanks, GST/GSTIN format, dates, amounts, duplicate IDs, and invoice total mismatches.
+        - Signature and stamp detection helps review approvals while preserved exports keep original marks intact.
+        - Windows scanner import can acquire source images from local WIA scanner drivers.
+
+        Version 2.1.0
+        - Actions > Panels can show, hide, or restore Uploaded Files, Extracted Fields, and Output Preview.
+        - Closing those panels is no longer a dead end.
+
+        Version 2.0.1
+        - Windows taskbar pins use the new icon when pinned from the updated shortcut.
+        - Installer shortcuts use the same app identity as the running application.
+
+        Version 2.0.0
+        - New AutoFill & Export logo is used in the app, package, installer, and README.
+        - The old top toolbar was replaced by one Actions button with every workflow option.
+        - Fresh installs and updates show the changelog automatically on first launch.
+        - Traceability IDs are shorter, scannable, and printed once at the bottom center of PDF/Word exports.
+        - Preserved-layout exports fill blank/template fields only and keep headings, logos, tables, and signature areas.
+        - Light mode visibility is improved for the mapping workflow.
+
+        Version 1.1.1
+        - Installer guidance explains that Tesseract OCR must be installed locally and SQLite storage is local/offline.
+        - Added SQLite database preview and application log viewer.
+        - Added About/What's New release page with installed version number.
+        - Added Check for Updates with download-and-launch installer flow.
+
+        Version 1.1.0
+        - Added Windows installer support and release packaging for the standalone EXE.
+        - Added GitHub release pipeline assets for setup installer distribution.
+
+        Version 1.0.0
+        - Initial offline OCR desktop app with PySide6 GUI, Tesseract OCR, OpenCV preprocessing, document parsing, and SQLite storage.
+        - Supported template/source upload for Word, Excel, CSV, images, and PDF where available.
+        - Added visual OCR region selection, extracted field mapping, editable output table preview, and export to CSV, Excel, Word, and PDF.
+        - Added traceability code storage, mapping configurations, uploaded file metadata, and core packaging scripts.
+        """;
+    }
 
     private static string HelpText()
     {
