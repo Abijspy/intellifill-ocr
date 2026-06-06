@@ -202,7 +202,7 @@ class AboutReleaseDialog(QDialog):
         <h2>📦 Version 1.1.0</h2>
         <ul>
           <li>Added Windows installer support and release packaging for the standalone EXE.</li>
-          <li>Added GitHub release pipeline assets for portable ZIP and setup installer distribution.</li>
+          <li>Added GitHub release pipeline assets for setup installer distribution.</li>
         </ul>
 
         <h2>🚀 Version 1.0.0</h2>

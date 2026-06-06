@@ -507,7 +507,7 @@ public sealed partial class MainWindow : Window
                 .FirstOrDefault();
             if (asset is null)
             {
-                await ShowTextDialogAsync("Check for Updates", $"IntelliFill OCR {latestVersion} is available, but the release does not contain a portable Windows updater EXE.");
+                await ShowTextDialogAsync("Check for Updates", $"IntelliFill OCR {latestVersion} is available, but the release does not contain a Windows setup installer.");
                 return;
             }
 

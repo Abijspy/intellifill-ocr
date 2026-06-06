@@ -140,6 +140,9 @@ jobs:
       - windows-nsis
       - linux-packages
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Resolve release version
         shell: bash
         run: |
@@ -175,13 +178,20 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
+          mapfile -t assets < <(find release-assets -maxdepth 1 -type f | sort)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets downloaded." >&2
+            exit 1
+          fi
+
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            for name in $(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name'); do
-              gh release delete-asset "$RELEASE_TAG" "$name" -y
-            done
-            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+            while IFS= read -r name; do
+              [ -n "$name" ] && gh release delete-asset "$RELEASE_TAG" "$name" -y
+            done < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
             gh release edit "$RELEASE_TAG" --notes-file release-notes.md --title "IntelliFill OCR $RELEASE_VERSION"
           else
-            gh release create "$RELEASE_TAG" release-assets/* --title "IntelliFill OCR $RELEASE_VERSION" --notes-file release-notes.md --target "$GITHUB_SHA"
+            gh release create "$RELEASE_TAG" "${assets[@]}" --title "IntelliFill OCR $RELEASE_VERSION" --notes-file release-notes.md --target "$GITHUB_SHA"
           fi
