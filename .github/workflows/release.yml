@@ -167,11 +167,11 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Migrated the desktop UI to Avalonia for Windows and Linux distribution support.
-          - Added Windows NSIS setup installer with shortcuts, uninstall support, install details, and optional Tesseract OCR install.
-          - Removed the old portable self-extracting updater EXE build.
-          - Added Debian/Ubuntu .deb, Fedora .rpm, and Linux tar.gz release assets.
-          - Keeps offline document parsing, visual region selection, zoom/rotate preview, mapping, validation, SQLite save, and traceable exports.
+          - Refined the Avalonia desktop UI with a showcase-inspired dark command rail and Material You-style rounded workspace panels.
+          - Added scroll wheel support and visible scrollbars for the left command rail and every workflow page.
+          - Reworked the Sources page with a much larger image/PDF preview area for region selection, zoom, and rotate workflows.
+          - Added startup update notification when a newer release is available.
+          - Added Windows update installer flow that downloads and launches the NSIS setup package from the latest GitHub release.
           NOTES
 
       - name: Create or update GitHub release

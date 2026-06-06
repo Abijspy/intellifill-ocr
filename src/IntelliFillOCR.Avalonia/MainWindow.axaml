@@ -4,378 +4,487 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="IntelliFill OCR"
     Icon="avares://IntelliFillOCR/Assets/app.ico"
-    Width="1440"
-    Height="920"
-    MinWidth="1120"
-    MinHeight="760"
-    Background="{DynamicResource SystemControlBackgroundChromeLowBrush}">
+    Width="1500"
+    Height="940"
+    MinWidth="1180"
+    MinHeight="780"
+    FontFamily="Segoe UI"
+    Background="#EAF2FF">
 
     <Window.Styles>
-        <Style Selector="Border.panel">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+        <Style Selector="Border.darkShell">
+            <Setter Property="Background" Value="#101124" />
+            <Setter Property="BorderBrush" Value="#22243A" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+        <Style Selector="Border.darkCard">
+            <Setter Property="Background" Value="#191A30" />
+            <Setter Property="BorderBrush" Value="#2C2E45" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="#FBFCFF" />
+            <Setter Property="BorderBrush" Value="#DDE5F5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="20" />
             <Setter Property="Padding" Value="16" />
         </Style>
-        <Style Selector="Border.surface">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+        <Style Selector="Border.softPanel">
+            <Setter Property="Background" Value="#F2F5FE" />
+            <Setter Property="BorderBrush" Value="#E2E8F7" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style Selector="Border.previewPanel">
+            <Setter Property="Background" Value="#F8FAFF" />
+            <Setter Property="BorderBrush" Value="#D8E2F3" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="12" />
         </Style>
         <Style Selector="TextBlock.kicker">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Opacity" Value="0.72" />
         </Style>
+        <Style Selector="TextBlock.darkMuted">
+            <Setter Property="Foreground" Value="#B9BDD6" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
         <Style Selector="TextBlock.title">
-            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#282B36" />
         </Style>
         <Style Selector="TextBlock.sectionTitle">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#2B2E3A" />
         </Style>
         <Style Selector="TextBlock.muted">
-            <Setter Property="Opacity" Value="0.72" />
+            <Setter Property="Foreground" Value="#687083" />
             <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="12,7" />
         </Style>
         <Style Selector="Button.primary">
             <Setter Property="Background" Value="#2563EB" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="Button.teal">
+            <Setter Property="Background" Value="#14B8A6" />
+            <Setter Property="Foreground" Value="#071318" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
         <Style Selector="Button.rail">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="MinHeight" Value="38" />
-            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Background" Value="#202139" />
+            <Setter Property="Foreground" Value="#EEF1FF" />
+            <Setter Property="BorderBrush" Value="#2E304B" />
+        </Style>
+        <Style Selector="Button.iconRail">
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="#202139" />
+            <Setter Property="Foreground" Value="#EEF1FF" />
+            <Setter Property="BorderBrush" Value="#30324C" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBox.mono">
             <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
         </Style>
     </Window.Styles>
 
-    <Grid ColumnDefinitions="300,*">
-        <Border Grid.Column="0" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="Auto,*,Auto" Margin="18" RowSpacing="18">
-                <StackPanel Spacing="14">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="54" Height="54" Stretch="Uniform" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="IntelliFill OCR" FontSize="22" FontWeight="SemiBold" />
-                            <TextBlock Text="Avalonia desktop edition" Classes="muted" />
+    <Grid ColumnDefinitions="384,*" Margin="20" ColumnSpacing="20">
+        <Border Grid.Column="0" Classes="darkShell">
+            <Grid ColumnDefinitions="64,*">
+                <Border Background="#17182D" CornerRadius="16,0,0,16">
+                    <Grid RowDefinitions="Auto,*,Auto" Margin="10" RowSpacing="16">
+                        <StackPanel Spacing="10">
+                            <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="44" Height="44" Stretch="Uniform" />
+                            <Button Classes="iconRail" Click="UploadTemplate_Click" Content="T" ToolTip.Tip="Upload template" />
+                            <Button Classes="iconRail" Click="UploadSources_Click" Content="S" ToolTip.Tip="Upload sources" />
+                            <Button Classes="iconRail" Click="EnableRegionSelection_Click" Content="R" ToolTip.Tip="Select OCR region" />
+                            <Button Classes="iconRail" Click="AutoFill_Click" Content="A" ToolTip.Tip="Auto fill" />
+                            <Button Classes="iconRail" Click="MapSelected_Click" Content="M" ToolTip.Tip="Map selected field" />
                         </StackPanel>
-                    </Grid>
-
-                    <Border Classes="surface" Padding="12">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Traceability" Classes="kicker" />
-                            <TextBlock x:Name="TraceabilityText" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        <StackPanel Grid.Row="2" Spacing="10">
+                            <Button Classes="iconRail" Click="CheckForUpdates_Click" Content="U" ToolTip.Tip="Check updates" />
+                            <Button Classes="iconRail" Click="OpenHelp_Click" Content="?" ToolTip.Tip="Help" />
                         </StackPanel>
-                    </Border>
-
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Workflow" Classes="kicker" />
-                        <Button Classes="primary rail" Click="UploadTemplate_Click" Content="Upload Template" />
-                        <Button Classes="rail" Click="UploadSources_Click" Content="Upload Sources" />
-                        <Button Classes="rail" Click="EnableRegionSelection_Click" Content="Select OCR Region" />
-                        <Button Classes="rail" Click="AutoFill_Click" Content="Auto Fill Tables" />
-                        <Button Classes="rail" Click="MapSelected_Click" Content="Map Selected Field" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Finish" Classes="kicker" />
-                        <Button Classes="rail" Click="RunValidation_Click" Content="Validate Output" />
-                        <Button Classes="rail" Click="SaveToDatabase_Click" Content="Save to SQLite" />
-                        <Button Classes="rail" Click="ExportPdf_Click" Content="Export PDF" />
-                        <Button Classes="rail" Click="ExportWord_Click" Content="Export Word" />
-                        <Button Classes="rail" Click="ExportExcel_Click" Content="Export Excel" />
-                        <Button Classes="rail" Click="ExportCsv_Click" Content="Export CSV" />
-                    </StackPanel>
-                </StackPanel>
-
-                <Border Grid.Row="1" Classes="surface" Padding="12">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                        <TextBlock Text="Status" Classes="kicker" />
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
-                        </ScrollViewer>
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Row="2" Spacing="8">
-                    <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
-                    <Button Classes="rail" Click="OpenHelp_Click" Content="Help and User Guide" />
-                    <Button Classes="rail" Click="OpenAbout_Click" Content="About" />
-                </StackPanel>
-            </Grid>
-        </Border>
+                <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="14" RowSpacing="14">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="IntelliFill OCR" FontSize="24" FontWeight="SemiBold" Foreground="#F5F7FF" />
+                        <TextBlock Text="Offline OCR extraction and table filling" Classes="darkMuted" />
+                        <Button Classes="teal" Click="UploadTemplate_Click" Content="New Document Run" />
+                    </StackPanel>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="22" RowSpacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <StackPanel Spacing="3">
-                    <TextBlock Text="Document Automation Workspace" Classes="title" />
-                    <TextBlock Text="Upload, extract, map, validate, and export traceable offline documents." Classes="muted" />
-                </StackPanel>
-                <Border Grid.Column="1" Classes="surface" Padding="12,8" VerticalAlignment="Center">
-                    <TextBlock Text="Offline first" FontWeight="SemiBold" />
-                </Border>
-            </Grid>
-
-            <TabControl Grid.Row="1">
-                <TabItem Header="Template">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,0,0">
-                        <Border Classes="panel">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="12">
+                            <Border Classes="darkCard">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="Template Document" Classes="sectionTitle" />
-                                    <TextBox x:Name="TemplatePathBox" IsReadOnly="True" PlaceholderText="No template loaded" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                                    <Button Classes="primary" Click="UploadTemplate_Click" Content="Upload Template" />
-                                    <Button Click="AutoFill_Click" Content="Auto Fill" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="1" ColumnDefinitions="320,*" ColumnSpacing="14">
-                            <Border Classes="panel">
-                                <StackPanel Spacing="12">
-                                    <TextBlock Text="Detected Tables" Classes="sectionTitle" />
-                                    <ComboBox x:Name="TemplateTableSelector" SelectionChanged="TemplateTableSelector_SelectionChanged" />
-                                    <TextBlock x:Name="TemplateSummaryText" Classes="muted" />
-                                    <Separator />
-                                    <TextBlock Text="Next Step" Classes="sectionTitle" />
-                                    <TextBlock Text="Open Mapping to fill destination cells." Classes="muted" />
+                                    <TextBlock Text="TRACEABILITY" Classes="kicker" Foreground="#AAB0CF" />
+                                    <TextBlock x:Name="TraceabilityText" Foreground="#FFFFFF" FontWeight="SemiBold" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
 
-                            <Border Grid.Column="1" Classes="panel">
-                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                    <TextBlock Text="Template Preview" Classes="sectionTitle" />
-                                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                        <Grid x:Name="TemplatePreviewGrid" />
+                            <Border Classes="darkCard">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="WORKFLOW" Classes="kicker" Foreground="#AAB0CF" />
+                                    <Button Classes="rail" Click="UploadTemplate_Click" Content="Upload Template" />
+                                    <Button Classes="rail" Click="UploadSources_Click" Content="Upload Sources" />
+                                    <Button Classes="rail" Click="EnableRegionSelection_Click" Content="Select OCR Region" />
+                                    <Button Classes="rail" Click="AutoFill_Click" Content="Auto Fill Tables" />
+                                    <Button Classes="rail" Click="MapSelected_Click" Content="Map Selected Field" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="darkCard">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="OUTPUT" Classes="kicker" Foreground="#AAB0CF" />
+                                    <Button Classes="rail" Click="RunValidation_Click" Content="Validate Output" />
+                                    <Button Classes="rail" Click="SaveToDatabase_Click" Content="Save to SQLite" />
+                                    <Button Classes="rail" Click="ExportPdf_Click" Content="Export PDF" />
+                                    <Button Classes="rail" Click="ExportWord_Click" Content="Export Word" />
+                                    <Button Classes="rail" Click="ExportExcel_Click" Content="Export Excel" />
+                                    <Button Classes="rail" Click="ExportCsv_Click" Content="Export CSV" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="darkCard" MinHeight="190">
+                                <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                    <TextBlock Text="STATUS" Classes="kicker" Foreground="#AAB0CF" />
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <TextBlock x:Name="StatusText" Foreground="#D7DBEF" TextWrapping="Wrap" />
                                     </ScrollViewer>
                                 </Grid>
                             </Border>
-                        </Grid>
-                    </Grid>
-                </TabItem>
 
-                <TabItem Header="Sources">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,0,0">
-                        <Border Classes="panel">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Source Documents" Classes="sectionTitle" />
-                                    <TextBlock x:Name="SelectedDocumentText" Text="Upload and select a document." Classes="muted" />
+                            <Border Classes="darkCard">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="TOOLS" Classes="kicker" Foreground="#AAB0CF" />
+                                    <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                    <Button Classes="rail" Click="OpenHelp_Click" Content="Help and User Guide" />
+                                    <Button Classes="rail" Click="OpenAbout_Click" Content="About" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <Button Classes="primary" Click="UploadSources_Click" Content="Upload Sources" />
-                                    <Button Click="OpenOriginal_Click" Content="Open Original" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="14">
-                            <Border Classes="panel">
-                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                    <TextBlock Text="Files" Classes="sectionTitle" />
-                                    <ListBox x:Name="DocumentsListBox" Grid.Row="1" SelectionChanged="DocumentsListBox_SelectionChanged" />
-                                </Grid>
                             </Border>
+                        </StackPanel>
+                    </ScrollViewer>
 
-                            <Grid Grid.Column="1" RowDefinitions="Auto,*,190" RowSpacing="12">
-                                <Border Classes="panel">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                        <ComboBox x:Name="SourceTableSelector" SelectionChanged="SourceTableSelector_SelectionChanged" />
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                            <Button Click="ZoomOut_Click" Content="Zoom -" />
-                                            <Button Click="ZoomIn_Click" Content="Zoom +" />
-                                            <Button Click="ResetPreview_Click" Content="Reset" />
-                                            <Button Click="RotateLeft_Click" Content="Rotate Left" />
-                                            <Button Click="RotateRight_Click" Content="Rotate Right" />
-                                            <Button Classes="primary" Click="EnableRegionSelection_Click" Content="Select Region" />
-                                            <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" />
+                    <Border Grid.Row="2" Classes="darkCard">
+                        <TextBlock Text="Logs and database tools are in Settings." Classes="darkMuted" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Classes="panel">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="Document Automation Workspace" Classes="title" />
+                        <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
+                        <TextBlock Text="v3.5.0" FontWeight="SemiBold" Foreground="#2B2E3A" />
+                    </Border>
+                </Grid>
+
+                <Border Grid.Row="1" Classes="softPanel">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="primary" Click="UploadTemplate_Click" Content="Template" />
+                            <Button Click="UploadSources_Click" Content="Sources" />
+                            <Button Click="EnableRegionSelection_Click" Content="Region" />
+                            <Button Click="AutoFill_Click" Content="Auto Fill" />
+                            <Button Click="MapSelected_Click" Content="Map" />
+                            <Button Click="RunValidation_Click" Content="Validate" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="primary" Click="ExportPdf_Click" Content="Export PDF" />
+                            <Button Click="SaveToDatabase_Click" Content="Save SQLite" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <TabControl Grid.Row="2">
+                    <TabItem Header="Template">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                                <Border Classes="softPanel">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Template Document" Classes="sectionTitle" />
+                                            <TextBox x:Name="TemplatePathBox" IsReadOnly="True" PlaceholderText="No template loaded" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                                            <Button Classes="primary" Click="UploadTemplate_Click" Content="Upload Template" />
+                                            <Button Click="AutoFill_Click" Content="Auto Fill" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="3*,2*" ColumnSpacing="14">
-                                    <Border Classes="panel">
+                                <Grid Grid.Row="1" ColumnDefinitions="320,*" ColumnSpacing="14">
+                                    <Border Classes="softPanel">
+                                        <StackPanel Spacing="12">
+                                            <TextBlock Text="Detected Tables" Classes="sectionTitle" />
+                                            <ComboBox x:Name="TemplateTableSelector" SelectionChanged="TemplateTableSelector_SelectionChanged" />
+                                            <TextBlock x:Name="TemplateSummaryText" Classes="muted" />
+                                            <Separator />
+                                            <TextBlock Text="Next Step" Classes="sectionTitle" />
+                                            <TextBlock Text="Open Mapping to fill destination cells. Export includes every detected output table in one document." Classes="muted" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Column="1" Classes="previewPanel">
                                         <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Text="Visual Preview" Classes="sectionTitle" />
-                                                <TextBlock x:Name="RegionSelectionText" Grid.Column="1" Text="No region selected" Classes="muted" VerticalAlignment="Center" />
+                                            <TextBlock Text="Template Preview" Classes="sectionTitle" />
+                                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                <Grid x:Name="TemplatePreviewGrid" />
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Sources">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="780">
+                                <Border Classes="softPanel">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Source Documents" Classes="sectionTitle" />
+                                            <TextBlock x:Name="SelectedDocumentText" Text="Upload and select a document." Classes="muted" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <Button Classes="primary" Click="UploadSources_Click" Content="Upload Sources" />
+                                            <Button Click="OpenOriginal_Click" Content="Open Original" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="1" ColumnDefinitions="240,*,360" ColumnSpacing="14">
+                                    <Border Classes="softPanel">
+                                        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                            <TextBlock Text="Files" Classes="sectionTitle" />
+                                            <ListBox x:Name="DocumentsListBox" Grid.Row="1" SelectionChanged="DocumentsListBox_SelectionChanged" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
+                                        <Border Classes="softPanel">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                <ComboBox x:Name="SourceTableSelector" SelectionChanged="SourceTableSelector_SelectionChanged" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                    <Button Click="ZoomOut_Click" Content="-" ToolTip.Tip="Zoom out" />
+                                                    <Button Click="ZoomIn_Click" Content="+" ToolTip.Tip="Zoom in" />
+                                                    <Button Click="ResetPreview_Click" Content="Reset" />
+                                                    <Button Click="RotateLeft_Click" Content="Left" />
+                                                    <Button Click="RotateRight_Click" Content="Right" />
+                                                    <Button Classes="primary" Click="EnableRegionSelection_Click" Content="Select Region" />
+                                                    <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" Foreground="#2B2E3A" />
+                                                </StackPanel>
                                             </Grid>
-                                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                <Canvas x:Name="PreviewCanvas" Width="760" Height="430" Background="{DynamicResource SystemControlBackgroundChromeLowBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
-                                                    <Image x:Name="PreviewImage" Width="760" Height="430" Stretch="Uniform" IsVisible="False" />
-                                                    <TextBlock x:Name="PreviewMessage" Width="720" Canvas.Left="20" Canvas.Top="185" TextAlignment="Center" TextWrapping="Wrap" Text="Preview will appear here for image documents. PDF and document text/table extraction appears beside it." Opacity="0.72" />
-                                                    <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="#2563EB" StrokeThickness="2" Fill="#332563EB" />
-                                                </Canvas>
-                                            </ScrollViewer>
-                                        </Grid>
-                                    </Border>
+                                        </Border>
 
-                                    <Border Grid.Column="1" Classes="panel">
-                                        <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                            <TextBlock Text="Detected Source Table" Classes="sectionTitle" />
-                                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                <Grid x:Name="SourceTablePreviewGrid" />
-                                            </ScrollViewer>
-                                        </Grid>
-                                    </Border>
+                                        <Border Grid.Row="1" Classes="previewPanel">
+                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="Large Visual Preview" Classes="sectionTitle" />
+                                                    <TextBlock x:Name="RegionSelectionText" Grid.Column="1" Text="No region selected" Classes="muted" VerticalAlignment="Center" />
+                                                </Grid>
+                                                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                    <Canvas x:Name="PreviewCanvas" Width="980" Height="680" Background="#EEF3FF" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
+                                                        <Image x:Name="PreviewImage" Width="980" Height="680" Stretch="Uniform" IsVisible="False" />
+                                                        <TextBlock x:Name="PreviewMessage" Width="920" Canvas.Left="30" Canvas.Top="315" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="#687083" />
+                                                        <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="#2563EB" StrokeThickness="2" Fill="#332563EB" />
+                                                    </Canvas>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                    <Grid Grid.Column="2" RowDefinitions="*,260" RowSpacing="14">
+                                        <Border Classes="softPanel">
+                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                                <TextBlock Text="Detected Source Table" Classes="sectionTitle" />
+                                                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                    <Grid x:Name="SourceTablePreviewGrid" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Classes="softPanel">
+                                            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                                <TextBlock Text="Parsed Text" Classes="sectionTitle" />
+                                                <TextBox x:Name="ParsedTextBox" Grid.Row="1" PlaceholderText="Parsed text from selected document" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
                                 </Grid>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
 
-                                <Border Grid.Row="2" Classes="panel">
-                                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                                        <TextBlock Text="Parsed Text" Classes="sectionTitle" />
-                                        <TextBox x:Name="ParsedTextBox" Grid.Row="1" PlaceholderText="Parsed text from selected document" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                    <TabItem Header="Mapping">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid ColumnDefinitions="400,*" ColumnSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                                <Border Classes="softPanel">
+                                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                                        <TextBlock Text="Extracted Fields" Classes="sectionTitle" />
+                                        <ListBox x:Name="ExtractedFieldsListBox" Grid.Row="1" SelectionChanged="ExtractedFieldsListBox_SelectionChanged" />
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                                            <Button Classes="primary" Click="MapSelected_Click" Content="Map Selected" />
+                                            <Button Click="AutoFill_Click" Content="Auto Fill" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                </TabItem>
 
-                <TabItem Header="Mapping">
-                    <Grid ColumnDefinitions="420,*" ColumnSpacing="14" Margin="0,14,0,0">
-                        <Border Classes="panel">
-                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-                                <TextBlock Text="Extracted Fields" Classes="sectionTitle" />
-                                <ListBox x:Name="ExtractedFieldsListBox" Grid.Row="1" SelectionChanged="ExtractedFieldsListBox_SelectionChanged" />
-                                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
-                                    <Button Classes="primary" Click="MapSelected_Click" Content="Map Selected" />
-                                    <Button Click="AutoFill_Click" Content="Auto Fill" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Border Grid.Column="1" Classes="panel">
-                            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                    <StackPanel>
-                                        <TextBlock Text="Destination Table" Classes="sectionTitle" />
-                                        <TextBlock x:Name="OutputSelectionText" Text="Select a destination cell, then map an extracted field." Classes="muted" />
-                                    </StackPanel>
-                                    <ComboBox x:Name="OutputTableSelector" Grid.Column="1" MinWidth="220" SelectionChanged="OutputTableSelector_SelectionChanged" />
-                                </Grid>
-                                <Separator Grid.Row="1" />
-                                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                    <Grid x:Name="OutputPreviewGrid" />
-                                </ScrollViewer>
-                            </Grid>
-                        </Border>
-                    </Grid>
-                </TabItem>
-
-                <TabItem Header="Review">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,0,0">
-                        <Border Classes="panel">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <StackPanel>
-                                    <TextBlock Text="Validation and Export" Classes="sectionTitle" />
-                                    <TextBlock Text="Review warnings, then export a traceable output document." Classes="muted" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                    <Button Classes="primary" Click="RunValidation_Click" Content="Validate" />
-                                    <Button Click="SaveToDatabase_Click" Content="Save SQLite" />
-                                    <Button Click="DetectSignatures_Click" Content="Signatures/Stamps" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="1" ColumnDefinitions="*,300" ColumnSpacing="14">
-                            <Border Classes="panel">
-                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                    <TextBlock Text="Validation Results" Classes="sectionTitle" />
-                                    <TextBox x:Name="ValidationBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="1" Classes="panel">
-                                <StackPanel Spacing="10">
-                                    <TextBlock Text="Export" Classes="sectionTitle" />
-                                    <Button Classes="primary rail" Click="ExportPdf_Click" Content="PDF with Traceability" />
-                                    <Button Classes="rail" Click="ExportWord_Click" Content="Word Document" />
-                                    <Button Classes="rail" Click="ExportExcel_Click" Content="Excel Workbook" />
-                                    <Button Classes="rail" Click="ExportCsv_Click" Content="CSV File" />
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </TabItem>
-
-                <TabItem Header="Settings">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,0,0">
-                        <Border Classes="panel">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                                <StackPanel>
-                                    <TextBlock Text="Settings" Classes="sectionTitle" />
-                                    <TextBlock Text="Local OCR, database, theme, logs, updates, and storage tools." Classes="muted" />
-                                </StackPanel>
-                                <Button Grid.Column="1" Classes="primary" Click="ApplyTheme_Click" Content="Save Settings" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="1" ColumnDefinitions="420,*" ColumnSpacing="14">
-                            <StackPanel Spacing="14">
-                                <Border Classes="panel">
-                                    <StackPanel Spacing="12">
-                                        <TextBlock Text="Local Paths" Classes="sectionTitle" />
-                                        <TextBlock Text="Tesseract OCR" Classes="kicker" />
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
-                                            <Button Grid.Column="1" Click="BrowseTesseract_Click" Content="Browse" />
+                                <Border Grid.Column="1" Classes="previewPanel">
+                                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Destination Table" Classes="sectionTitle" />
+                                                <TextBlock x:Name="OutputSelectionText" Text="Select a destination cell, then map an extracted field." Classes="muted" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="OutputTableSelector" Grid.Column="1" MinWidth="220" SelectionChanged="OutputTableSelector_SelectionChanged" />
                                         </Grid>
-                                        <TextBlock Text="SQLite Database" Classes="kicker" />
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
-                                            <Button Grid.Column="1" Click="BrowseDatabase_Click" Content="Browse" />
-                                        </Grid>
-                                        <TextBlock Text="Theme" Classes="kicker" />
-                                        <ComboBox x:Name="ThemeComboBox" SelectedIndex="0">
-                                            <ComboBoxItem Content="Use system theme" />
-                                            <ComboBoxItem Content="Light" />
-                                            <ComboBoxItem Content="Dark" />
-                                        </ComboBox>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Classes="panel">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Text="Maintenance" Classes="sectionTitle" />
-                                        <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
-                                        <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
-                                        <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
-                                        <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
-                                        <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-
-                            <Grid Grid.Column="1" RowDefinitions="*,*" RowSpacing="14">
-                                <Border Classes="panel">
-                                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                        <TextBlock Text="SQLite Database Preview" Classes="sectionTitle" />
-                                        <TextBox x:Name="DatabasePreviewBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
-                                    </Grid>
-                                </Border>
-                                <Border Grid.Row="1" Classes="panel">
-                                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                        <TextBlock Text="Application Status" Classes="sectionTitle" />
-                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                            <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" />
+                                        <Separator Grid.Row="1" />
+                                        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                            <Grid x:Name="OutputPreviewGrid" />
                                         </ScrollViewer>
                                     </Grid>
                                 </Border>
                             </Grid>
-                        </Grid>
-                    </Grid>
-                </TabItem>
-            </TabControl>
-        </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Review">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                                <Border Classes="softPanel">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <StackPanel>
+                                            <TextBlock Text="Validation and Export" Classes="sectionTitle" />
+                                            <TextBlock Text="Review warnings, then export a traceable output document." Classes="muted" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <Button Classes="primary" Click="RunValidation_Click" Content="Validate" />
+                                            <Button Click="SaveToDatabase_Click" Content="Save SQLite" />
+                                            <Button Click="DetectSignatures_Click" Content="Signatures/Stamps" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="1" ColumnDefinitions="*,300" ColumnSpacing="14">
+                                    <Border Classes="previewPanel">
+                                        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                            <TextBlock Text="Validation Results" Classes="sectionTitle" />
+                                            <TextBox x:Name="ValidationBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Classes="softPanel">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock Text="Export" Classes="sectionTitle" />
+                                            <Button Classes="primary rail" Click="ExportPdf_Click" Content="PDF with Traceability" />
+                                            <Button Classes="rail" Click="ExportWord_Click" Content="Word Document" />
+                                            <Button Classes="rail" Click="ExportExcel_Click" Content="Excel Workbook" />
+                                            <Button Classes="rail" Click="ExportCsv_Click" Content="CSV File" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Settings">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                                <Border Classes="softPanel">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                        <StackPanel>
+                                            <TextBlock Text="Settings" Classes="sectionTitle" />
+                                            <TextBlock Text="Local OCR, database, theme, logs, updates, and storage tools." Classes="muted" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Classes="primary" Click="ApplyTheme_Click" Content="Save Settings" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="1" ColumnDefinitions="420,*" ColumnSpacing="14">
+                                    <StackPanel Spacing="14">
+                                        <Border Classes="softPanel">
+                                            <StackPanel Spacing="12">
+                                                <TextBlock Text="Local Paths" Classes="sectionTitle" />
+                                                <TextBlock Text="Tesseract OCR" Classes="kicker" />
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
+                                                    <Button Grid.Column="1" Click="BrowseTesseract_Click" Content="Browse" />
+                                                </Grid>
+                                                <TextBlock Text="SQLite Database" Classes="kicker" />
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
+                                                    <Button Grid.Column="1" Click="BrowseDatabase_Click" Content="Browse" />
+                                                </Grid>
+                                                <TextBlock Text="Theme" Classes="kicker" />
+                                                <ComboBox x:Name="ThemeComboBox" SelectedIndex="0">
+                                                    <ComboBoxItem Content="Use system theme" />
+                                                    <ComboBoxItem Content="Light" />
+                                                    <ComboBoxItem Content="Dark" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Classes="softPanel">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="Maintenance" Classes="sectionTitle" />
+                                                <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
+                                                <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
+                                                <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                                <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
+                                                <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <Grid Grid.Column="1" RowDefinitions="*,*" RowSpacing="14">
+                                        <Border Classes="previewPanel">
+                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                                <TextBlock Text="SQLite Database Preview" Classes="sectionTitle" />
+                                                <TextBox x:Name="DatabasePreviewBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Row="1" Classes="softPanel">
+                                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                                <TextBlock Text="Application Status" Classes="sectionTitle" />
+                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                    <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" Foreground="#687083" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

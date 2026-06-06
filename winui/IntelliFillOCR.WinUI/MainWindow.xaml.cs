@@ -22,7 +22,7 @@ namespace IntelliFillOCR.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.4.0";
+    private const string AppVersion = "3.5.0";
     private const double PreviewBaseWidth = 760;
     private const double PreviewBaseHeight = 430;
     private const double PreviewMinZoom = 0.5;
@@ -1831,7 +1831,3 @@ public sealed partial class MainWindow : Window
         public string Theme { get; set; } = "Default";
     }
 }
-
-
-
-

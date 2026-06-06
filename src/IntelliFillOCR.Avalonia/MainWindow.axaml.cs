@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -18,9 +19,9 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.4.0";
-    private const double PreviewBaseWidth = 760;
-    private const double PreviewBaseHeight = 430;
+    private const string AppVersion = "3.5.0";
+    private const double PreviewBaseWidth = 980;
+    private const double PreviewBaseHeight = 680;
     private const double PreviewMinZoom = 0.5;
     private const double PreviewMaxZoom = 3.0;
     private const double PreviewZoomStep = 0.25;
@@ -67,6 +68,7 @@ public sealed partial class MainWindow : Window
         StatusText.Text = PackageStatus();
         TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
         Log("Avalonia application started.");
+        Opened += async (_, _) => await NotifyIfUpdateAvailableAsync();
     }
 
     private async void UploadTemplate_Click(object? sender, RoutedEventArgs e)
@@ -313,16 +315,14 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
-            string json = await client.GetStringAsync("https://api.github.com/repos/Abijspy/intellifill-ocr/releases/latest");
-            using JsonDocument document = JsonDocument.Parse(json);
-            string latest = document.RootElement.GetProperty("tag_name").GetString() ?? "unknown";
-            string latestVersion = latest.TrimStart('v');
-            string message = IsNewerVersion(latestVersion, AppVersion)
-                ? $"Version {latestVersion} is available. Open the GitHub release page to download the package for this operating system."
-                : $"You are on the latest version ({AppVersion}).";
-            await ShowMessageAsync("Check for Updates", message);
+            ReleaseUpdate latest = await GetLatestReleaseAsync();
+            if (!IsNewerVersion(latest.Version, AppVersion))
+            {
+                await ShowMessageAsync("Check for Updates", $"You are on the latest version ({AppVersion}).");
+                return;
+            }
+
+            await PromptForUpdateAsync(latest, isStartupNotice: false);
         }
         catch (Exception ex)
         {
@@ -499,6 +499,195 @@ public sealed partial class MainWindow : Window
         }
 
         Process.Start(new ProcessStartInfo(_selectedDocumentPreview.Path) { UseShellExecute = true });
+    }
+
+    private async Task NotifyIfUpdateAvailableAsync()
+    {
+        await Task.Delay(1200);
+        try
+        {
+            ReleaseUpdate latest = await GetLatestReleaseAsync();
+            if (IsNewerVersion(latest.Version, AppVersion))
+            {
+                await PromptForUpdateAsync(latest, isStartupNotice: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log("Startup update check skipped: " + ex.Message);
+        }
+    }
+
+    private static async Task<ReleaseUpdate> GetLatestReleaseAsync()
+    {
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
+        string json = await client.GetStringAsync("https://api.github.com/repos/Abijspy/intellifill-ocr/releases/latest");
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        string tag = root.GetProperty("tag_name").GetString() ?? "v0.0.0";
+        string version = tag.TrimStart('v');
+        string releaseUrl = root.TryGetProperty("html_url", out JsonElement htmlUrl) ? htmlUrl.GetString() ?? string.Empty : string.Empty;
+        string assetName = string.Empty;
+        string downloadUrl = string.Empty;
+
+        if (root.TryGetProperty("assets", out JsonElement assets))
+        {
+            foreach (JsonElement asset in assets.EnumerateArray())
+            {
+                string name = asset.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() ?? string.Empty : string.Empty;
+                if (!IsPreferredUpdateAsset(name))
+                {
+                    continue;
+                }
+
+                assetName = name;
+                downloadUrl = asset.TryGetProperty("browser_download_url", out JsonElement urlElement) ? urlElement.GetString() ?? string.Empty : string.Empty;
+                break;
+            }
+        }
+
+        return new ReleaseUpdate(version, tag, releaseUrl, assetName, downloadUrl);
+    }
+
+    private static bool IsPreferredUpdateAsset(string name)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                   name.Contains("setup-win-x64", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return name.EndsWith(".deb", StringComparison.OrdinalIgnoreCase) ||
+                   name.EndsWith(".rpm", StringComparison.OrdinalIgnoreCase) ||
+                   name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task PromptForUpdateAsync(ReleaseUpdate latest, bool isStartupNotice)
+    {
+        string installText = !string.IsNullOrWhiteSpace(latest.AssetName) && OperatingSystem.IsWindows()
+            ? $"Download and install {latest.AssetName} now?"
+            : "Open the GitHub release page to download the package for this operating system?";
+        string title = isStartupNotice ? "Update Available" : "Check for Updates";
+        string body = $"IntelliFill OCR {latest.Version} is available.{Environment.NewLine}Current version: {AppVersion}{Environment.NewLine}{Environment.NewLine}{installText}";
+        string primary = !string.IsNullOrWhiteSpace(latest.AssetName) && OperatingSystem.IsWindows()
+            ? "Download and Install"
+            : "Open Release Page";
+
+        string? choice = await ShowChoiceAsync(title, body, primary, "Later");
+        if (choice != "primary")
+        {
+            SetStatus($"Update {latest.Version} is available.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(latest.AssetName) && OperatingSystem.IsWindows())
+        {
+            await DownloadAndRunUpdateAsync(latest);
+            return;
+        }
+
+        OpenUrl(latest.ReleaseUrl);
+    }
+
+    private async Task DownloadAndRunUpdateAsync(ReleaseUpdate latest)
+    {
+        if (string.IsNullOrWhiteSpace(latest.DownloadUrl) || string.IsNullOrWhiteSpace(latest.AssetName))
+        {
+            OpenUrl(latest.ReleaseUrl);
+            return;
+        }
+
+        string targetPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), latest.AssetName);
+        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer...");
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
+        byte[] bytes = await client.GetByteArrayAsync(latest.DownloadUrl);
+        await File.WriteAllBytesAsync(targetPath, bytes);
+        SetStatus($"Launching update installer: {targetPath}");
+        Process.Start(new ProcessStartInfo(targetPath) { UseShellExecute = true });
+        Close();
+    }
+
+    private async Task<string?> ShowChoiceAsync(string title, string text, string primaryText, string closeText)
+    {
+        var result = new TaskCompletionSource<string?>();
+        var primaryButton = new Button
+        {
+            Content = primaryText,
+            Classes = { "primary" },
+            MinWidth = 150,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        var closeButton = new Button
+        {
+            Content = closeText,
+            MinWidth = 100,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+
+        var box = new Window
+        {
+            Title = title,
+            Width = 560,
+            Height = 300,
+            MinWidth = 480,
+            MinHeight = 260,
+            Icon = this.Icon,
+            Content = new Grid
+            {
+                Margin = new Thickness(18),
+                RowDefinitions = new RowDefinitions("*,Auto"),
+                Children =
+                {
+                    new ScrollViewer
+                    {
+                        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                        Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }
+                    },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 10,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children = { primaryButton, closeButton }
+                    }
+                }
+            }
+        };
+
+        if (box.Content is Grid grid)
+        {
+            Grid.SetRow(grid.Children[1], 1);
+        }
+        primaryButton.Click += (_, _) => box.Close("primary");
+        closeButton.Click += (_, _) => box.Close("close");
+        box.Closed += (_, _) =>
+        {
+            if (!result.Task.IsCompleted)
+            {
+                result.TrySetResult(null);
+            }
+        };
+
+        string? dialogResult = await box.ShowDialog<string?>(this);
+        result.TrySetResult(dialogResult);
+        return await result.Task;
+    }
+
+    private static void OpenUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     private void LoadTemplatePreview(DocumentPreview preview)
@@ -1331,6 +1520,8 @@ public sealed partial class MainWindow : Window
 
     private sealed record MappingSnapshot(string SourceLabel, string SourceValue, int TableIndex, int RowIndex, int ColumnIndex, string Value, string DestinationLabel);
 
+    private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl);
+
     private sealed class AppSettings
     {
         public string TesseractPath { get; set; } = string.Empty;
@@ -1338,5 +1529,3 @@ public sealed partial class MainWindow : Window
         public string Theme { get; set; } = "Default";
     }
 }
-
-

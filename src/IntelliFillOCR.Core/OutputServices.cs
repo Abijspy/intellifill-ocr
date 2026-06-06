@@ -484,5 +484,27 @@ public sealed class DatabaseService
             );
             """;
         command.ExecuteNonQuery();
+        EnsureColumn(connection, "extracted_values", "table_label", "TEXT NOT NULL DEFAULT 'Table 1'");
+        EnsureColumn(connection, "extracted_values", "table_index", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "extracted_values", "row_index", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "extracted_values", "column_index", "INTEGER NOT NULL DEFAULT 0");
+    }
+
+    private static void EnsureColumn(SqliteConnection connection, string tableName, string columnName, string definition)
+    {
+        using SqliteCommand infoCommand = connection.CreateCommand();
+        infoCommand.CommandText = $"PRAGMA table_info({tableName})";
+        using SqliteDataReader reader = infoCommand.ExecuteReader();
+        while (reader.Read())
+        {
+            if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        using SqliteCommand alterCommand = connection.CreateCommand();
+        alterCommand.CommandText = $"ALTER TABLE {tableName} ADD COLUMN {columnName} {definition}";
+        alterCommand.ExecuteNonQuery();
     }
 }

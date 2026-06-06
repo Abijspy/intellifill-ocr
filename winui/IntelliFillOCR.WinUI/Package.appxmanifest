@@ -9,7 +9,7 @@
   <Identity
     Name="IntelliFillOCR.WinUI"
     Publisher="CN=IntelliFillOCR"
-    Version="3.4.0.0" />
+    Version="3.5.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="a6fdbcc9-5d8d-44eb-b8e4-a76f43a9de20" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
@@ -20,8 +20,8 @@
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Universal" MinVersion="3.4.0.0" MaxVersionTested="10.0.26226.0" />
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="3.4.0.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="3.5.0.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="3.5.0.0" MaxVersionTested="10.0.26226.0" />
   </Dependencies>
 
   <Resources>
@@ -48,7 +48,3 @@
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
 </Package>
-
-
-
-
