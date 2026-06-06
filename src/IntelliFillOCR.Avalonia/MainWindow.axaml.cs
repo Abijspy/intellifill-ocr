@@ -19,7 +19,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.0";
+    private const string AppVersion = "3.5.1";
     private const double PreviewBaseWidth = 980;
     private const double PreviewBaseHeight = 680;
     private const double PreviewMinZoom = 0.5;
@@ -1276,6 +1276,71 @@ public sealed partial class MainWindow : Window
             "Dark" => ThemeVariant.Dark,
             _ => ThemeVariant.Default
         };
+        bool isDark = _settings.Theme == "Dark" ||
+                      (_settings.Theme == "Default" && Application.Current.ActualThemeVariant == ThemeVariant.Dark);
+        ApplyThemePalette(isDark);
+    }
+
+    private void ApplyThemePalette(bool isDark)
+    {
+        if (isDark)
+        {
+            SetBrush("AppBackgroundBrush", "#0B1020");
+            SetBrush("ShellBrush", "#070A18");
+            SetBrush("ShellRailBrush", "#0D1122");
+            SetBrush("ShellCardBrush", "#151A2B");
+            SetBrush("ShellBorderBrush", "#29314A");
+            SetBrush("PanelBrush", "#111827");
+            SetBrush("SoftPanelBrush", "#182033");
+            SetBrush("PreviewPanelBrush", "#101827");
+            SetBrush("PanelBorderBrush", "#2B3550");
+            SetBrush("TitleTextBrush", "#F7F9FF");
+            SetBrush("BodyTextBrush", "#E5EAF6");
+            SetBrush("MutedTextBrush", "#A6B1C5");
+            SetBrush("ShellTitleTextBrush", "#F7F9FF");
+            SetBrush("ShellBodyTextBrush", "#D7DBEF");
+            SetBrush("ShellMutedTextBrush", "#AAB0CF");
+            SetBrush("PrimaryBrush", "#60A5FA");
+            SetBrush("TealBrush", "#2DD4BF");
+            SetBrush("TealTextBrush", "#031417");
+            SetBrush("RailButtonBrush", "#222A44");
+            SetBrush("RailButtonTextBrush", "#F2F5FF");
+            SetBrush("RailButtonBorderBrush", "#3A4565");
+            SetBrush("PreviewCanvasBrush", "#0B1220");
+            SetBrush("SelectionStrokeBrush", "#60A5FA");
+            SetBrush("SelectionFillBrush", "#3360A5FA");
+            return;
+        }
+
+        SetBrush("AppBackgroundBrush", "#EAF2FF");
+        SetBrush("ShellBrush", "#101124");
+        SetBrush("ShellRailBrush", "#17182D");
+        SetBrush("ShellCardBrush", "#191A30");
+        SetBrush("ShellBorderBrush", "#22243A");
+        SetBrush("PanelBrush", "#FBFCFF");
+        SetBrush("SoftPanelBrush", "#F2F5FE");
+        SetBrush("PreviewPanelBrush", "#F8FAFF");
+        SetBrush("PanelBorderBrush", "#DDE5F5");
+        SetBrush("TitleTextBrush", "#282B36");
+        SetBrush("BodyTextBrush", "#2B2E3A");
+        SetBrush("MutedTextBrush", "#687083");
+        SetBrush("ShellTitleTextBrush", "#F5F7FF");
+        SetBrush("ShellBodyTextBrush", "#D7DBEF");
+        SetBrush("ShellMutedTextBrush", "#AAB0CF");
+        SetBrush("PrimaryBrush", "#2563EB");
+        SetBrush("TealBrush", "#14B8A6");
+        SetBrush("TealTextBrush", "#071318");
+        SetBrush("RailButtonBrush", "#202139");
+        SetBrush("RailButtonTextBrush", "#EEF1FF");
+        SetBrush("RailButtonBorderBrush", "#30324C");
+        SetBrush("PreviewCanvasBrush", "#EEF3FF");
+        SetBrush("SelectionStrokeBrush", "#2563EB");
+        SetBrush("SelectionFillBrush", "#332563EB");
+    }
+
+    private void SetBrush(string key, string color)
+    {
+        Resources[key] = new SolidColorBrush(Color.Parse(color));
     }
 
     private string PackageStatus()

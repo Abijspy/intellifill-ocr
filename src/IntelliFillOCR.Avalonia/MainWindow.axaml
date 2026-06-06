@@ -9,41 +9,68 @@
     MinWidth="1180"
     MinHeight="780"
     FontFamily="Segoe UI"
-    Background="#EAF2FF">
+    Background="{DynamicResource AppBackgroundBrush}">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EAF2FF" />
+        <SolidColorBrush x:Key="ShellBrush" Color="#101124" />
+        <SolidColorBrush x:Key="ShellRailBrush" Color="#17182D" />
+        <SolidColorBrush x:Key="ShellCardBrush" Color="#191A30" />
+        <SolidColorBrush x:Key="ShellBorderBrush" Color="#22243A" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FBFCFF" />
+        <SolidColorBrush x:Key="SoftPanelBrush" Color="#F2F5FE" />
+        <SolidColorBrush x:Key="PreviewPanelBrush" Color="#F8FAFF" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#DDE5F5" />
+        <SolidColorBrush x:Key="TitleTextBrush" Color="#282B36" />
+        <SolidColorBrush x:Key="BodyTextBrush" Color="#2B2E3A" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#687083" />
+        <SolidColorBrush x:Key="ShellTitleTextBrush" Color="#F5F7FF" />
+        <SolidColorBrush x:Key="ShellBodyTextBrush" Color="#D7DBEF" />
+        <SolidColorBrush x:Key="ShellMutedTextBrush" Color="#AAB0CF" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB" />
+        <SolidColorBrush x:Key="TealBrush" Color="#14B8A6" />
+        <SolidColorBrush x:Key="TealTextBrush" Color="#071318" />
+        <SolidColorBrush x:Key="RailButtonBrush" Color="#202139" />
+        <SolidColorBrush x:Key="RailButtonTextBrush" Color="#EEF1FF" />
+        <SolidColorBrush x:Key="RailButtonBorderBrush" Color="#30324C" />
+        <SolidColorBrush x:Key="PreviewCanvasBrush" Color="#EEF3FF" />
+        <SolidColorBrush x:Key="SelectionStrokeBrush" Color="#2563EB" />
+        <SolidColorBrush x:Key="SelectionFillBrush" Color="#332563EB" />
+    </Window.Resources>
 
     <Window.Styles>
         <Style Selector="Border.darkShell">
-            <Setter Property="Background" Value="#101124" />
-            <Setter Property="BorderBrush" Value="#22243A" />
+            <Setter Property="Background" Value="{DynamicResource ShellBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ShellBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="18" />
         </Style>
         <Style Selector="Border.darkCard">
-            <Setter Property="Background" Value="#191A30" />
-            <Setter Property="BorderBrush" Value="#2C2E45" />
+            <Setter Property="Background" Value="{DynamicResource ShellCardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ShellBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="12" />
         </Style>
         <Style Selector="Border.panel">
-            <Setter Property="Background" Value="#FBFCFF" />
-            <Setter Property="BorderBrush" Value="#DDE5F5" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="16" />
         </Style>
         <Style Selector="Border.softPanel">
-            <Setter Property="Background" Value="#F2F5FE" />
-            <Setter Property="BorderBrush" Value="#E2E8F7" />
+            <Setter Property="Background" Value="{DynamicResource SoftPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="14" />
         </Style>
         <Style Selector="Border.previewPanel">
-            <Setter Property="Background" Value="#F8FAFF" />
-            <Setter Property="BorderBrush" Value="#D8E2F3" />
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="12" />
         </Style>
         <Style Selector="TextBlock.kicker">
@@ -52,35 +79,36 @@
             <Setter Property="Opacity" Value="0.72" />
         </Style>
         <Style Selector="TextBlock.darkMuted">
-            <Setter Property="Foreground" Value="#B9BDD6" />
+            <Setter Property="Foreground" Value="{DynamicResource ShellMutedTextBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="TextBlock.title">
             <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#282B36" />
+            <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}" />
         </Style>
         <Style Selector="TextBlock.sectionTitle">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#2B2E3A" />
+            <Setter Property="Foreground" Value="{DynamicResource BodyTextBrush}" />
         </Style>
         <Style Selector="TextBlock.muted">
-            <Setter Property="Foreground" Value="#687083" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="Button">
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="12,7" />
+            <Setter Property="CornerRadius" Value="10" />
         </Style>
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.teal">
-            <Setter Property="Background" Value="#14B8A6" />
-            <Setter Property="Foreground" Value="#071318" />
+            <Setter Property="Background" Value="{DynamicResource TealBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TealTextBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.rail">
@@ -88,18 +116,18 @@
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="12,7" />
-            <Setter Property="Background" Value="#202139" />
-            <Setter Property="Foreground" Value="#EEF1FF" />
-            <Setter Property="BorderBrush" Value="#2E304B" />
+            <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
         </Style>
         <Style Selector="Button.iconRail">
             <Setter Property="Width" Value="42" />
             <Setter Property="Height" Value="42" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Background" Value="#202139" />
-            <Setter Property="Foreground" Value="#EEF1FF" />
-            <Setter Property="BorderBrush" Value="#30324C" />
+            <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBox.mono">
@@ -110,7 +138,7 @@
     <Grid ColumnDefinitions="384,*" Margin="20" ColumnSpacing="20">
         <Border Grid.Column="0" Classes="darkShell">
             <Grid ColumnDefinitions="64,*">
-                <Border Background="#17182D" CornerRadius="16,0,0,16">
+                <Border Background="{DynamicResource ShellRailBrush}" CornerRadius="18,0,0,18">
                     <Grid RowDefinitions="Auto,*,Auto" Margin="10" RowSpacing="16">
                         <StackPanel Spacing="10">
                             <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="44" Height="44" Stretch="Uniform" />
@@ -129,7 +157,7 @@
 
                 <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="14" RowSpacing="14">
                     <StackPanel Spacing="12">
-                        <TextBlock Text="IntelliFill OCR" FontSize="24" FontWeight="SemiBold" Foreground="#F5F7FF" />
+                        <TextBlock Text="IntelliFill OCR" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource ShellTitleTextBrush}" />
                         <TextBlock Text="Offline OCR extraction and table filling" Classes="darkMuted" />
                         <Button Classes="teal" Click="UploadTemplate_Click" Content="New Document Run" />
                     </StackPanel>
@@ -138,14 +166,14 @@
                         <StackPanel Spacing="12">
                             <Border Classes="darkCard">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="TRACEABILITY" Classes="kicker" Foreground="#AAB0CF" />
-                                    <TextBlock x:Name="TraceabilityText" Foreground="#FFFFFF" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="TRACEABILITY" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
+                                    <TextBlock x:Name="TraceabilityText" Foreground="{DynamicResource ShellTitleTextBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
 
                             <Border Classes="darkCard">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="WORKFLOW" Classes="kicker" Foreground="#AAB0CF" />
+                                    <TextBlock Text="WORKFLOW" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
                                     <Button Classes="rail" Click="UploadTemplate_Click" Content="Upload Template" />
                                     <Button Classes="rail" Click="UploadSources_Click" Content="Upload Sources" />
                                     <Button Classes="rail" Click="EnableRegionSelection_Click" Content="Select OCR Region" />
@@ -156,7 +184,7 @@
 
                             <Border Classes="darkCard">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="OUTPUT" Classes="kicker" Foreground="#AAB0CF" />
+                                    <TextBlock Text="OUTPUT" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
                                     <Button Classes="rail" Click="RunValidation_Click" Content="Validate Output" />
                                     <Button Classes="rail" Click="SaveToDatabase_Click" Content="Save to SQLite" />
                                     <Button Classes="rail" Click="ExportPdf_Click" Content="Export PDF" />
@@ -168,16 +196,16 @@
 
                             <Border Classes="darkCard" MinHeight="190">
                                 <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                                    <TextBlock Text="STATUS" Classes="kicker" Foreground="#AAB0CF" />
+                                    <TextBlock Text="STATUS" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
                                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                        <TextBlock x:Name="StatusText" Foreground="#D7DBEF" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="StatusText" Foreground="{DynamicResource ShellBodyTextBrush}" TextWrapping="Wrap" />
                                     </ScrollViewer>
                                 </Grid>
                             </Border>
 
                             <Border Classes="darkCard">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Text="TOOLS" Classes="kicker" Foreground="#AAB0CF" />
+                                    <TextBlock Text="TOOLS" Classes="kicker" Foreground="{DynamicResource ShellMutedTextBrush}" />
                                     <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
                                     <Button Classes="rail" Click="OpenHelp_Click" Content="Help and User Guide" />
                                     <Button Classes="rail" Click="OpenAbout_Click" Content="About" />
@@ -201,7 +229,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="1" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock Text="v3.5.0" FontWeight="SemiBold" Foreground="#2B2E3A" />
+                        <TextBlock Text="v3.5.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -299,7 +327,7 @@
                                                     <Button Click="RotateLeft_Click" Content="Left" />
                                                     <Button Click="RotateRight_Click" Content="Right" />
                                                     <Button Classes="primary" Click="EnableRegionSelection_Click" Content="Select Region" />
-                                                    <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" Foreground="#2B2E3A" />
+                                                    <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="92" Foreground="{DynamicResource BodyTextBrush}" />
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -311,10 +339,10 @@
                                                     <TextBlock x:Name="RegionSelectionText" Grid.Column="1" Text="No region selected" Classes="muted" VerticalAlignment="Center" />
                                                 </Grid>
                                                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                    <Canvas x:Name="PreviewCanvas" Width="980" Height="680" Background="#EEF3FF" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
+                                                    <Canvas x:Name="PreviewCanvas" Width="980" Height="680" Background="{DynamicResource PreviewCanvasBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
                                                         <Image x:Name="PreviewImage" Width="980" Height="680" Stretch="Uniform" IsVisible="False" />
-                                                        <TextBlock x:Name="PreviewMessage" Width="920" Canvas.Left="30" Canvas.Top="315" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="#687083" />
-                                                        <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="#2563EB" StrokeThickness="2" Fill="#332563EB" />
+                                                        <TextBlock x:Name="PreviewMessage" Width="920" Canvas.Left="30" Canvas.Top="315" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="{DynamicResource MutedTextBrush}" />
+                                                        <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="{DynamicResource SelectionStrokeBrush}" StrokeThickness="2" Fill="{DynamicResource SelectionFillBrush}" />
                                                     </Canvas>
                                                 </ScrollViewer>
                                             </Grid>
@@ -474,7 +502,7 @@
                                             <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                                 <TextBlock Text="Application Status" Classes="sectionTitle" />
                                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                    <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" Foreground="#687083" />
+                                                    <TextBlock Text="Settings are saved in the local application data folder. The live status is shown in the left rail." TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" />
                                                 </ScrollViewer>
                                             </Grid>
                                         </Border>

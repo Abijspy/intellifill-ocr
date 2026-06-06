@@ -167,11 +167,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Refined the Avalonia desktop UI with a showcase-inspired dark command rail and Material You-style rounded workspace panels.
-          - Added scroll wheel support and visible scrollbars for the left command rail and every workflow page.
-          - Reworked the Sources page with a much larger image/PDF preview area for region selection, zoom, and rotate workflows.
-          - Added startup update notification when a newer release is available.
-          - Added Windows update installer flow that downloads and launches the NSIS setup package from the latest GitHub release.
+          - Fixed light and dark mode consistency across the Avalonia shell.
+          - Added theme-aware palette resources so panels, preview surfaces, text, and action buttons switch together.
+          - Unified rounded corners across sidebar cards, workspace panels, preview panes, and buttons.
+          - Kept the showcase-style dark command rail and large image/PDF preview workflow from v3.5.0.
           NOTES
 
       - name: Create or update GitHub release
