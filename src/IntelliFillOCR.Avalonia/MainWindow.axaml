@@ -1,0 +1,180 @@
+<Window
+    x:Class="IntelliFillOCR.Avalonia.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="IntelliFill OCR"
+    Width="1320"
+    Height="880"
+    MinWidth="1040"
+    MinHeight="720">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="20,16" Background="{DynamicResource SystemControlBackgroundAccentBrush}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="58" Height="58" Stretch="Uniform" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                    <TextBlock Text="IntelliFill OCR" FontSize="25" FontWeight="SemiBold" />
+                    <TextBlock Text="Cross-platform offline OCR extraction, table filling, validation, SQLite storage, and traceable exports" Opacity="0.78" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Click="CheckForUpdates_Click" Content="Check Updates" />
+                    <Button Click="OpenHelp_Click" Content="Help" />
+                    <Button Click="OpenAbout_Click" Content="About" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid ColumnDefinitions="220,*">
+            <Border Padding="14" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Workflow" FontWeight="SemiBold" FontSize="16" />
+                    <Button Click="UploadTemplate_Click" Content="Upload Template" HorizontalAlignment="Stretch" />
+                    <Button Click="UploadSources_Click" Content="Upload Sources" HorizontalAlignment="Stretch" />
+                    <Button Click="EnableRegionSelection_Click" Content="Select OCR Region" HorizontalAlignment="Stretch" />
+                    <Button Click="AutoFill_Click" Content="Auto Fill" HorizontalAlignment="Stretch" />
+                    <Button Click="MapSelected_Click" Content="Map Selected" HorizontalAlignment="Stretch" />
+                    <Button Click="RunValidation_Click" Content="Validate" HorizontalAlignment="Stretch" />
+                    <Button Click="SaveToDatabase_Click" Content="Save SQLite" HorizontalAlignment="Stretch" />
+                    <Button Click="ExportPdf_Click" Content="Export PDF" HorizontalAlignment="Stretch" />
+                    <Button Click="ExportWord_Click" Content="Export Word" HorizontalAlignment="Stretch" />
+                    <Button Click="ExportExcel_Click" Content="Export Excel" HorizontalAlignment="Stretch" />
+                    <Button Click="ExportCsv_Click" Content="Export CSV" HorizontalAlignment="Stretch" />
+                    <Separator />
+                    <Button Click="DetectSignatures_Click" Content="Signatures/Stamps" HorizontalAlignment="Stretch" />
+                    <Button Click="PreviewDatabase_Click" Content="Database Preview" HorizontalAlignment="Stretch" />
+                    <Button Click="ViewLogs_Click" Content="Logs" HorizontalAlignment="Stretch" />
+                    <Button Click="ApplyTheme_Click" Content="Apply Theme" HorizontalAlignment="Stretch" />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="18" Spacing="16">
+                    <Border Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                        <Grid ColumnDefinitions="2*,*" ColumnSpacing="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Status" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TraceabilityText" TextWrapping="Wrap" Opacity="0.75" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="8">
+                                <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
+                                <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
+                                <ComboBox x:Name="ThemeComboBox" SelectedIndex="0">
+                                    <ComboBoxItem Content="Use system theme" />
+                                    <ComboBoxItem Content="Light" />
+                                    <ComboBoxItem Content="Dark" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <StackPanel>
+                                    <TextBlock Text="Template" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="Upload CSV, Excel, Word, PDF, or image templates. All detected tables are preserved in the output selector." Opacity="0.75" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Click="UploadTemplate_Click" Content="Upload Template" />
+                            </Grid>
+                            <TextBox x:Name="TemplatePathBox" IsReadOnly="True" PlaceholderText="No template loaded" />
+                            <ComboBox x:Name="TemplateTableSelector" SelectionChanged="TemplateTableSelector_SelectionChanged" />
+                            <TextBlock x:Name="TemplateSummaryText" Opacity="0.75" TextWrapping="Wrap" />
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                                <Grid x:Name="TemplatePreviewGrid" />
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <StackPanel>
+                                    <TextBlock Text="Uploaded Documents" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="Select a template/source to preview images, inspect parsed text, select tables, and draw OCR regions." Opacity="0.75" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Click="UploadSources_Click" Content="Upload Sources" />
+                                <Button Grid.Column="2" Click="EnableRegionSelection_Click" Content="Select Region" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="270,*" ColumnSpacing="14">
+                                <StackPanel Spacing="8">
+                                    <ListBox x:Name="DocumentsListBox" SelectionChanged="DocumentsListBox_SelectionChanged" MinHeight="260" />
+                                    <Button Click="OpenOriginal_Click" Content="Open Original" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Spacing="10">
+                                    <TextBlock x:Name="SelectedDocumentText" Text="Upload and select a document." FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <ComboBox x:Name="SourceTableSelector" SelectionChanged="SourceTableSelector_SelectionChanged" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                            <Button Click="ZoomOut_Click" Content="-" />
+                                            <Button Click="ZoomIn_Click" Content="+" />
+                                            <Button Click="ResetPreview_Click" Content="Reset" />
+                                            <Button Click="RotateLeft_Click" Content="Left" />
+                                            <Button Click="RotateRight_Click" Content="Right" />
+                                            <TextBlock x:Name="ZoomText" Text="100% / 0°" VerticalAlignment="Center" MinWidth="88" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="RegionSelectionText" Text="No region selected" Opacity="0.75" TextWrapping="Wrap" />
+
+                                    <Grid ColumnDefinitions="3*,2*" ColumnSpacing="12">
+                                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="440">
+                                                <Canvas x:Name="PreviewCanvas" Width="760" Height="430" Background="{DynamicResource SystemControlBackgroundChromeLowBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
+                                                    <Image x:Name="PreviewImage" Width="760" Height="430" Stretch="Uniform" IsVisible="False" />
+                                                    <TextBlock x:Name="PreviewMessage" Width="720" Canvas.Left="20" Canvas.Top="185" TextAlignment="Center" TextWrapping="Wrap" Text="Preview will appear here for images. PDF files can still be region-marked and table/parsed text is shown on the right." Opacity="0.75" />
+                                                    <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="#2563EB" StrokeThickness="2" Fill="#332563EB" />
+                                                </Canvas>
+                                            </ScrollViewer>
+                                        </Border>
+                                        <Border Grid.Column="1" Padding="8" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="440">
+                                                <Grid x:Name="SourceTablePreviewGrid" />
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Grid>
+
+                                    <TextBox x:Name="ParsedTextBox" PlaceholderText="Parsed text from selected document" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" MinHeight="120" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                        <Border Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Extracted Fields" FontSize="18" FontWeight="SemiBold" />
+                                <ListBox x:Name="ExtractedFieldsListBox" SelectionChanged="ExtractedFieldsListBox_SelectionChanged" MinHeight="230" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Output Preview" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock x:Name="OutputSelectionText" Text="Select a destination cell, then map an extracted field." Opacity="0.75" TextWrapping="Wrap" />
+                                <ComboBox x:Name="OutputTableSelector" SelectionChanged="OutputTableSelector_SelectionChanged" />
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="320">
+                                    <Grid x:Name="OutputPreviewGrid" />
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                        <Border Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Validation" FontSize="18" FontWeight="SemiBold" />
+                                <TextBox x:Name="ValidationBox" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" MinHeight="140" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Padding="16" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="SQLite Database Preview" FontSize="18" FontWeight="SemiBold" />
+                                <TextBox x:Name="DatabasePreviewBox" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" MinHeight="140" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>

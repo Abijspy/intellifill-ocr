@@ -1,38 +1,17 @@
-# IntelliFill OCR WinUI
+# IntelliFill OCR WinUI Legacy
 
-This folder contains the supported native Windows App SDK / WinUI 3 application.
+This folder contains the previous Windows App SDK / WinUI 3 implementation.
 
-The release package is a single portable updater EXE generated from:
-
-```powershell
-.\scripts\package-portable-exe.ps1 -Version 3.3.0
-```
-
-The EXE embeds the WinUI publish output, installs or updates the app under the current user profile, creates a Start Menu shortcut, and launches `IntelliFillOCR.exe`.
-
-## Build Only
-
-```powershell
-.\scripts\build-winui.ps1
-```
-
-The WinUI app uses:
-
-- .NET 8 Windows target framework.
-- Microsoft Windows App SDK.
-- WinUI NavigationView shell.
-- Native C# parsing, mapping, validation, SQLite save/preview, and export services.
-
-## Release
-
-Use the root build script:
-
-```powershell
-.\build.ps1 -Version 3.3.0
-```
-
-Output:
+The active release path has moved to:
 
 ```text
-release\IntelliFillOCR-3.3.0-portable-win-x64.exe
+src/IntelliFillOCR.Avalonia/
 ```
+
+Windows releases are now built with NSIS from the Avalonia publish output:
+
+```powershell
+.\scripts\package-release.ps1 -Version 3.4.0 -RuntimeIdentifier win-x64
+```
+
+The WinUI project is kept only as migration reference while remaining features are ported to Avalonia.

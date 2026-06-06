@@ -14,7 +14,7 @@ $VersionParts = $Version.Split(".")
 $AssemblyVersion = if ($VersionParts.Count -eq 4) { $Version } else { "$Version.0" }
 $Files = @(
     @{
-        Path = Join-Path $Root "src\intellifill_ocr\__init__.py"
+        Path = Join-Path $Root "src/intellifill_ocr/__init__.py"
         Pattern = '__version__\s*=\s*"[^"]+"'
         Replacement = "__version__ = `"$Version`""
     },
@@ -24,49 +24,54 @@ $Files = @(
         Replacement = "version = `"$Version`""
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\IntelliFillOCR.WinUI.csproj"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/IntelliFillOCR.WinUI.csproj"
         Pattern = '<Version>[^<]+</Version>'
         Replacement = "<Version>$Version</Version>"
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\IntelliFillOCR.WinUI.csproj"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/IntelliFillOCR.WinUI.csproj"
         Pattern = '<AssemblyVersion>[^<]+</AssemblyVersion>'
         Replacement = "<AssemblyVersion>$AssemblyVersion</AssemblyVersion>"
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\IntelliFillOCR.WinUI.csproj"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/IntelliFillOCR.WinUI.csproj"
         Pattern = '<FileVersion>[^<]+</FileVersion>'
         Replacement = "<FileVersion>$AssemblyVersion</FileVersion>"
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\Package.appxmanifest"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/Package.appxmanifest"
         Pattern = 'Version="[^"]+"'
         Replacement = "Version=`"$AssemblyVersion`""
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\app.manifest"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/app.manifest"
         Pattern = 'assemblyIdentity version="[^"]+"'
         Replacement = "assemblyIdentity version=`"$AssemblyVersion`""
     },
     @{
-        Path = Join-Path $Root "winui\IntelliFillOCR.WinUI\MainWindow.xaml.cs"
+        Path = Join-Path $Root "winui/IntelliFillOCR.WinUI/MainWindow.xaml.cs"
         Pattern = 'private const string AppVersion = "[^"]+";'
         Replacement = "private const string AppVersion = `"$Version`";"
     },
     @{
-        Path = Join-Path $Root "packaging\PortableInstaller\IntelliFillOCR.PortableInstaller.csproj"
+        Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj"
         Pattern = '<Version>[^<]+</Version>'
         Replacement = "<Version>$Version</Version>"
     },
     @{
-        Path = Join-Path $Root "packaging\PortableInstaller\IntelliFillOCR.PortableInstaller.csproj"
+        Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj"
         Pattern = '<AssemblyVersion>[^<]+</AssemblyVersion>'
         Replacement = "<AssemblyVersion>$AssemblyVersion</AssemblyVersion>"
     },
     @{
-        Path = Join-Path $Root "packaging\PortableInstaller\IntelliFillOCR.PortableInstaller.csproj"
+        Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj"
         Pattern = '<FileVersion>[^<]+</FileVersion>'
         Replacement = "<FileVersion>$AssemblyVersion</FileVersion>"
+    },
+    @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs"
+        Pattern = 'private const string AppVersion = "[^"]+";'
+        Replacement = "private const string AppVersion = `"$Version`";"
     }
 )
 

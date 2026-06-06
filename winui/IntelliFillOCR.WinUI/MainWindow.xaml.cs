@@ -22,7 +22,7 @@ namespace IntelliFillOCR.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.3.2";
+    private const string AppVersion = "3.4.0";
     private const double PreviewBaseWidth = 760;
     private const double PreviewBaseHeight = 430;
     private const double PreviewMinZoom = 0.5;
@@ -502,7 +502,7 @@ public sealed partial class MainWindow : Window
                 .Where(item => item.TryGetProperty("name", out JsonElement nameElement) &&
                                nameElement.GetString() is string name &&
                                name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-                               name.Contains("portable-win-x64", StringComparison.OrdinalIgnoreCase))
+                               name.Contains("setup-win-x64", StringComparison.OrdinalIgnoreCase))
                 .Cast<JsonElement?>()
                 .FirstOrDefault();
             if (asset is null)
@@ -511,7 +511,7 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            string assetName = asset.Value.GetProperty("name").GetString() ?? $"IntelliFillOCR-{latestVersion}-portable-win-x64.exe";
+            string assetName = asset.Value.GetProperty("name").GetString() ?? $"IntelliFillOCR-{latestVersion}-setup-win-x64.exe";
             string downloadUrl = asset.Value.GetProperty("browser_download_url").GetString() ?? "";
             var prompt = new ContentDialog
             {
@@ -537,7 +537,7 @@ public sealed partial class MainWindow : Window
             }
 
             Log($"Downloaded update: {updatePath}");
-            Process.Start(new ProcessStartInfo(updatePath, $"--silent --wait-pid={Environment.ProcessId}") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(updatePath, "/S") { UseShellExecute = true });
             Microsoft.UI.Xaml.Application.Current.Exit();
         }
         catch (Exception ex)
@@ -550,7 +550,7 @@ public sealed partial class MainWindow : Window
     {
         await ShowTextDialogAsync(
             "What's New",
-            $"Version {AppVersion}\n\n- Restored the full Qt-era Actions menu in native WinUI.\n- Added source fields, output preview, manual mapping, auto-fill, mapping templates, learned templates, validation, SQLite save/preview, logs, settings, and exports.\n- Release packaging now produces one portable updater EXE only.\n- The in-app updater downloads and runs the same portable updater EXE.\n\nEarlier highlights\n- v3.2.0: cleaned duplicate release assets.\n- v3.x: native WinUI shell.\n- v2.x: traceability barcode, preserved exports, template learning, validation, signature/stamp tools, scanner workflow, and detailed help.");
+            $"Version {AppVersion}\n\n- Legacy WinUI reference shell remains available during Avalonia migration.\n- Release packaging now uses the Avalonia app and Windows NSIS setup installer.\n- Portable updater EXE packaging has been removed.\n\nEarlier highlights\n- v3.4.0: Avalonia desktop migration and NSIS installer support.\n- v3.x: native WinUI shell.\n- v2.x: traceability barcode, preserved exports, template learning, validation, signature/stamp tools, scanner workflow, and detailed help.");
     }
 
     private async void OpenAbout_Click(object sender, RoutedEventArgs e)
@@ -1831,5 +1831,7 @@ public sealed partial class MainWindow : Window
         public string Theme { get; set; } = "Default";
     }
 }
+
+
 
 

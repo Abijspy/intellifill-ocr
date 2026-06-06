@@ -1,9 +1,9 @@
 param(
-    [string]$Version = "3.3.0"
+    [string]$Version = "3.4.0"
 )
 
 $ErrorActionPreference = "Stop"
 
-.\scripts\package-portable-exe.ps1 -Version $Version
+.\scripts\package-release.ps1 -Version $Version -RuntimeIdentifier win-x64
 
-Write-Host "Built release\IntelliFillOCR-$Version-portable-win-x64.exe"
+Write-Host "Built installer\out\IntelliFillOCR-$Version-setup-win-x64.exe"

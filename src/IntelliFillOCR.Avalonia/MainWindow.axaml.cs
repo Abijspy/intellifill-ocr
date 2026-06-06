@@ -1,0 +1,1300 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
+using Avalonia.Styling;
+using IntelliFillOCR.Core;
+
+namespace IntelliFillOCR.Avalonia;
+
+public sealed partial class MainWindow : Window
+{
+    private const string AppVersion = "3.4.0";
+    private const double PreviewBaseWidth = 760;
+    private const double PreviewBaseHeight = 430;
+    private const double PreviewMinZoom = 0.5;
+    private const double PreviewMaxZoom = 3.0;
+    private const double PreviewZoomStep = 0.25;
+
+    private readonly DocumentLoader _loader = new();
+    private readonly ExportService _exportService = new();
+    private readonly DatabaseService _databaseService = new();
+    private readonly List<DocumentTable> _templateTables = new();
+    private readonly List<DocumentItem> _uploadedDocuments = new();
+    private readonly List<DocumentPreview> _sourcePreviews = new();
+    private readonly List<ExtractedField> _extractedFields = new();
+    private readonly List<List<List<string>>> _outputTables = new();
+    private readonly List<MappingSnapshot> _mappings = new();
+    private readonly Dictionary<TextBox, CellAddress> _outputCellBindings = new();
+    private readonly string _appDataPath;
+    private readonly string _settingsPath;
+    private readonly string _logPath;
+
+    private DocumentPreview? _templatePreview;
+    private DocumentPreview? _selectedDocumentPreview;
+    private CellAddress? _selectedDestination;
+    private ExtractedField? _selectedField;
+    private bool _regionSelectionMode;
+    private Point? _regionStart;
+    private Rect? _selectedRegion;
+    private double _previewZoom = 1.0;
+    private int _previewRotation;
+    private AppSettings _settings = new();
+    private string _traceabilityCode = CreateTraceabilityCode();
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        _appDataPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "IntelliFillOCR");
+        _settingsPath = System.IO.Path.Combine(_appDataPath, "settings.json");
+        _logPath = System.IO.Path.Combine(_appDataPath, "logs", "intellifill-avalonia.log");
+        Directory.CreateDirectory(_appDataPath);
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_logPath)!);
+
+        _settings = LoadSettings();
+        ApplySettingsToUi();
+        StatusText.Text = PackageStatus();
+        TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
+        Log("Avalonia application started.");
+    }
+
+    private async void UploadTemplate_Click(object? sender, RoutedEventArgs e)
+    {
+        string? path = await PickSingleDocumentAsync("Upload template");
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            DocumentPreview preview = _loader.Load(path);
+            _templatePreview = preview;
+            _traceabilityCode = CreateTraceabilityCode();
+            TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
+            TemplatePathBox.Text = path;
+            LoadTemplatePreview(preview);
+            ResetOutputFromTemplate(preview);
+            RefreshUploadedFilesList();
+            SetStatus($"Template loaded: {System.IO.Path.GetFileName(path)} with {_templateTables.Count} table(s).");
+            Log($"Template loaded: {path}");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Template upload failed: " + ex.Message);
+            Log("Template upload failed: " + ex);
+        }
+    }
+
+    private async void UploadSources_Click(object? sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<string> paths = await PickManyDocumentsAsync("Upload source files");
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _sourcePreviews.Clear();
+            foreach (string path in paths.Take(5))
+            {
+                _sourcePreviews.Add(_loader.LoadManyText(path));
+                Log($"Source loaded: {path}");
+            }
+
+            RefreshUploadedFilesList();
+            RefreshExtractedFields();
+            RefreshParsedText();
+            SetStatus($"{_sourcePreviews.Count} source file(s) parsed.");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Source upload failed: " + ex.Message);
+            Log("Source upload failed: " + ex);
+        }
+    }
+
+    private void EnableRegionSelection_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_selectedDocumentPreview is null)
+        {
+            SetStatus("Upload and select an image/PDF before drawing a region.");
+            return;
+        }
+
+        string extension = System.IO.Path.GetExtension(_selectedDocumentPreview.Path).ToLowerInvariant();
+        if (extension is not ".png" and not ".jpg" and not ".jpeg" and not ".pdf")
+        {
+            SetStatus("Region selection is available for images and PDFs. For documents and spreadsheets, use parsed text or detected tables.");
+            return;
+        }
+
+        _regionSelectionMode = true;
+        _regionStart = null;
+        _selectedRegion = null;
+        PreviewRegionRectangle.IsVisible = false;
+        RegionSelectionText.Text = "Draw a rectangle on the preview.";
+        SetStatus("Region selection enabled.");
+    }
+
+    private void AutoFill_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_outputTables.Count == 0)
+        {
+            SetStatus("Upload a template before auto filling.");
+            return;
+        }
+        if (_extractedFields.Count == 0)
+        {
+            SetStatus("Upload source files before auto filling.");
+            return;
+        }
+
+        int filled = 0;
+        var details = new List<string>();
+        for (int tableIndex = 0; tableIndex < _outputTables.Count; tableIndex++)
+        {
+            List<List<string>> table = _outputTables[tableIndex];
+            for (int row = 0; row < table.Count; row++)
+            {
+                for (int column = 0; column < table[row].Count; column++)
+                {
+                    if (!IsFillablePlaceholder(table[row][column]))
+                    {
+                        continue;
+                    }
+
+                    string destinationLabel = DestinationLabel(table, row, column);
+                    MatchCandidate? best = _extractedFields
+                        .Select(field => new MatchCandidate(field, Similarity(destinationLabel, field.Label)))
+                        .OrderByDescending(match => match.Score)
+                        .FirstOrDefault();
+
+                    if (best is not null && best.Score >= 0.42)
+                    {
+                        string value = string.IsNullOrWhiteSpace(best.Field.Value) ? best.Field.Label : best.Field.Value;
+                        table[row][column] = value;
+                        AddMapping(best.Field, new CellAddress(tableIndex, row, column), value);
+                        filled++;
+                        details.Add($"{destinationLabel} <- {best.Field.Label} ({best.Score:P0})");
+                    }
+                }
+            }
+        }
+
+        RenderOutputTable();
+        ValidationBox.Text = filled == 0
+            ? "No confident automatic matches were found."
+            : "Auto-fill matches:" + Environment.NewLine + string.Join(Environment.NewLine, details.Take(60));
+        SetStatus($"{filled} cell(s) auto-filled.");
+    }
+
+    private void MapSelected_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_selectedField is null || _selectedDestination is null)
+        {
+            SetStatus("Select one extracted field and one output cell first.");
+            return;
+        }
+
+        CellAddress address = _selectedDestination;
+        if (!IsValidAddress(address))
+        {
+            SetStatus("Selected output cell is no longer available.");
+            return;
+        }
+
+        string value = string.IsNullOrWhiteSpace(_selectedField.Value) ? _selectedField.Label : _selectedField.Value;
+        _outputTables[address.TableIndex][address.RowIndex][address.ColumnIndex] = value;
+        AddMapping(_selectedField, address, value);
+        RenderOutputTable();
+        OutputSelectionText.Text = $"Mapped {_selectedField.Label} to table {address.TableIndex + 1}, row {address.RowIndex + 1}, column {address.ColumnIndex + 1}.";
+        SetStatus("Mapped selected field.");
+    }
+
+    private async void RunValidation_Click(object? sender, RoutedEventArgs e)
+    {
+        List<string> issues = ValidateOutput();
+        ValidationBox.Text = issues.Count == 0 ? "Validation passed. No warnings found." : string.Join(Environment.NewLine, issues);
+        await ShowMessageAsync("Validation Results", ValidationBox.Text);
+        SetStatus($"Validation complete. {issues.Count} issue(s) found.");
+    }
+
+    private void SaveToDatabase_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_outputTables.Count == 0)
+        {
+            SetStatus("Upload and fill a template before saving.");
+            return;
+        }
+
+        try
+        {
+            _databaseService.SaveRun(
+                _settings.DatabasePath,
+                _traceabilityCode,
+                _templatePreview?.Path ?? string.Empty,
+                _sourcePreviews.Select(source => source.Path).ToList(),
+                BuildRunValues(),
+                _mappings.Select(mapping => $"{mapping.DestinationLabel} <- {mapping.SourceLabel}: {mapping.Value}").ToList());
+            DatabasePreviewBox.Text = _databaseService.Preview(_settings.DatabasePath);
+            SetStatus("Saved to SQLite: " + _settings.DatabasePath);
+        }
+        catch (Exception ex)
+        {
+            SetStatus("SQLite save failed: " + ex.Message);
+            Log("SQLite save failed: " + ex);
+        }
+    }
+
+    private async void ExportCsv_Click(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("CSV", ".csv", path => _exportService.ExportCsv(BuildOutputTables(), path, _traceabilityCode));
+
+    private async void ExportExcel_Click(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("Excel workbook", ".xlsx", path => _exportService.ExportXlsx(BuildOutputTables(), path, _traceabilityCode));
+
+    private async void ExportWord_Click(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("Word document", ".docx", path => _exportService.ExportDocx(BuildOutputTables(), path, _traceabilityCode));
+
+    private async void ExportPdf_Click(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("PDF with traceability barcode", ".pdf", path => _exportService.ExportPdf(BuildOutputTables(), path, _traceabilityCode));
+
+    private async void DetectSignatures_Click(object? sender, RoutedEventArgs e)
+    {
+        string text = _sourcePreviews.Count == 0
+            ? "Upload source files first. Signature and stamp detection keeps the original documents untouched for export review."
+            : "Signature/stamp review candidates:" + Environment.NewLine + string.Join(Environment.NewLine, _sourcePreviews.Select(source => "- " + source.Name));
+        await ShowMessageAsync("Signature and Stamp Detection", text);
+    }
+
+    private void PreviewDatabase_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            DatabasePreviewBox.Text = _databaseService.Preview(_settings.DatabasePath);
+            SetStatus("Database preview refreshed.");
+        }
+        catch (Exception ex)
+        {
+            DatabasePreviewBox.Text = ex.ToString();
+            SetStatus("Database preview failed: " + ex.Message);
+        }
+    }
+
+    private async void ViewLogs_Click(object? sender, RoutedEventArgs e)
+    {
+        string text = File.Exists(_logPath) ? File.ReadAllText(_logPath) : "No log file has been created yet.";
+        await ShowMessageAsync("Application Logs", text);
+    }
+
+    private async void OpenHelp_Click(object? sender, RoutedEventArgs e)
+    {
+        await ShowMessageAsync("User Guide and Feature Help", HelpText());
+    }
+
+    private async void OpenAbout_Click(object? sender, RoutedEventArgs e)
+    {
+        await ShowMessageAsync("About IntelliFill OCR", $"IntelliFill OCR {AppVersion}{Environment.NewLine}Avalonia desktop edition{Environment.NewLine}{Environment.NewLine}Offline OCR, document extraction, table filling, SQLite storage, and traceable exports.");
+    }
+
+    private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
+            string json = await client.GetStringAsync("https://api.github.com/repos/Abijspy/intellifill-ocr/releases/latest");
+            using JsonDocument document = JsonDocument.Parse(json);
+            string latest = document.RootElement.GetProperty("tag_name").GetString() ?? "unknown";
+            string latestVersion = latest.TrimStart('v');
+            string message = IsNewerVersion(latestVersion, AppVersion)
+                ? $"Version {latestVersion} is available. Open the GitHub release page to download the package for this operating system."
+                : $"You are on the latest version ({AppVersion}).";
+            await ShowMessageAsync("Check for Updates", message);
+        }
+        catch (Exception ex)
+        {
+            await ShowMessageAsync("Check for Updates", $"Could not check GitHub releases. Offline use is still supported.{Environment.NewLine}{Environment.NewLine}{ex.Message}");
+        }
+    }
+
+    private void ApplyTheme_Click(object? sender, RoutedEventArgs e)
+    {
+        _settings.TesseractPath = TesseractPathBox.Text ?? string.Empty;
+        _settings.DatabasePath = string.IsNullOrWhiteSpace(DatabasePathBox.Text) ? DefaultDatabasePath() : Environment.ExpandEnvironmentVariables(DatabasePathBox.Text);
+        _settings.Theme = ThemeComboBox.SelectedIndex switch
+        {
+            1 => "Light",
+            2 => "Dark",
+            _ => "Default"
+        };
+        SaveSettings();
+        ApplyTheme();
+        StatusText.Text = PackageStatus();
+        SetStatus("Settings saved.");
+    }
+
+    private void DocumentsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        int index = DocumentsListBox.SelectedIndex;
+        SelectDocumentPreview(index >= 0 && index < _uploadedDocuments.Count ? _uploadedDocuments[index] : null);
+    }
+
+    private void TemplateTableSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        int index = TemplateTableSelector.SelectedIndex;
+        if (index >= 0 && index < _templateTables.Count)
+        {
+            RenderReadOnlyGrid(TemplatePreviewGrid, _templateTables[index].Rows, _templateTables[index].Label);
+        }
+    }
+
+    private void SourceTableSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        RenderSelectedSourceTable();
+    }
+
+    private void OutputTableSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        RenderOutputTable();
+    }
+
+    private void ExtractedFieldsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        int index = ExtractedFieldsListBox.SelectedIndex;
+        _selectedField = index >= 0 && index < _extractedFields.Count ? _extractedFields[index] : null;
+    }
+
+    private void ZoomOut_Click(object? sender, RoutedEventArgs e) => SetPreviewZoom(_previewZoom - PreviewZoomStep);
+
+    private void ZoomIn_Click(object? sender, RoutedEventArgs e) => SetPreviewZoom(_previewZoom + PreviewZoomStep);
+
+    private void ResetPreview_Click(object? sender, RoutedEventArgs e) => ResetPreviewView();
+
+    private void RotateLeft_Click(object? sender, RoutedEventArgs e)
+    {
+        _previewRotation = NormalizeRotation(_previewRotation - 90);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void RotateRight_Click(object? sender, RoutedEventArgs e)
+    {
+        _previewRotation = NormalizeRotation(_previewRotation + 90);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void PreviewCanvas_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!_regionSelectionMode)
+        {
+            return;
+        }
+
+        _regionStart = e.GetPosition(PreviewCanvas);
+        Canvas.SetLeft(PreviewRegionRectangle, _regionStart.Value.X);
+        Canvas.SetTop(PreviewRegionRectangle, _regionStart.Value.Y);
+        PreviewRegionRectangle.Width = 0;
+        PreviewRegionRectangle.Height = 0;
+        PreviewRegionRectangle.IsVisible = true;
+        e.Handled = true;
+    }
+
+    private void PreviewCanvas_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_regionSelectionMode || _regionStart is null)
+        {
+            return;
+        }
+
+        Point current = e.GetPosition(PreviewCanvas);
+        UpdateSelectionRectangle(_regionStart.Value, current);
+        e.Handled = true;
+    }
+
+    private void PreviewCanvas_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!_regionSelectionMode || _regionStart is null)
+        {
+            return;
+        }
+
+        Point end = e.GetPosition(PreviewCanvas);
+        _selectedRegion = UpdateSelectionRectangle(_regionStart.Value, end);
+        _regionSelectionMode = false;
+        _regionStart = null;
+        e.Handled = true;
+
+        if (_selectedRegion.Value.Width < 8 || _selectedRegion.Value.Height < 8)
+        {
+            PreviewRegionRectangle.IsVisible = false;
+            RegionSelectionText.Text = "Selection too small.";
+            SetStatus("Draw a larger rectangle on the preview.");
+            return;
+        }
+
+        RegionSelectionText.Text = FormatRegion(_selectedRegion.Value);
+        AddSelectedRegionField(_selectedRegion.Value);
+    }
+
+    private void OpenOriginal_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_selectedDocumentPreview is null || !File.Exists(_selectedDocumentPreview.Path))
+        {
+            SetStatus("Select an uploaded document first.");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(_selectedDocumentPreview.Path) { UseShellExecute = true });
+    }
+
+    private void LoadTemplatePreview(DocumentPreview preview)
+    {
+        _templateTables.Clear();
+        _templateTables.AddRange(preview.Tables);
+        TemplateTableSelector.Items.Clear();
+        for (int index = 0; index < _templateTables.Count; index++)
+        {
+            DocumentTable table = _templateTables[index];
+            TemplateTableSelector.Items.Add($"{table.Label} ({table.RowCount} x {table.ColumnCount})");
+        }
+
+        TemplateTableSelector.SelectedIndex = _templateTables.Count > 0 ? 0 : -1;
+        TemplateSummaryText.Text = _templateTables.Count == 0
+            ? "No tables were detected."
+            : $"{_templateTables.Count} table(s) detected. Export includes every output table in one document.";
+        if (_templateTables.Count > 0)
+        {
+            RenderReadOnlyGrid(TemplatePreviewGrid, _templateTables[0].Rows, _templateTables[0].Label);
+        }
+    }
+
+    private void ResetOutputFromTemplate(DocumentPreview preview)
+    {
+        _outputTables.Clear();
+        foreach (DocumentTable table in preview.Tables)
+        {
+            _outputTables.Add(table.Rows.Select(row => row.Select(value => value ?? string.Empty).ToList()).ToList());
+        }
+        if (_outputTables.Count == 0)
+        {
+            _outputTables.Add(new List<List<string>> { new() { "Field", "" } });
+        }
+
+        _mappings.Clear();
+        OutputTableSelector.Items.Clear();
+        for (int index = 0; index < _outputTables.Count; index++)
+        {
+            OutputTableSelector.Items.Add(TableLabel(index));
+        }
+        OutputTableSelector.SelectedIndex = 0;
+        RenderOutputTable();
+    }
+
+    private void RefreshUploadedFilesList()
+    {
+        int previousIndex = DocumentsListBox.SelectedIndex;
+        _uploadedDocuments.Clear();
+        DocumentsListBox.Items.Clear();
+        if (_templatePreview is not null)
+        {
+            _uploadedDocuments.Add(new DocumentItem("Template", _templatePreview));
+            DocumentsListBox.Items.Add($"Template: {System.IO.Path.GetFileName(_templatePreview.Path)} - {_templatePreview.Tables.Count} table(s)");
+        }
+        foreach (DocumentPreview preview in _sourcePreviews)
+        {
+            _uploadedDocuments.Add(new DocumentItem("Source", preview));
+            DocumentsListBox.Items.Add($"Source: {System.IO.Path.GetFileName(preview.Path)} - {preview.Tables.Count} table(s)");
+        }
+
+        if (_uploadedDocuments.Count == 0)
+        {
+            SelectDocumentPreview(null);
+            return;
+        }
+
+        DocumentsListBox.SelectedIndex = previousIndex >= 0 && previousIndex < _uploadedDocuments.Count ? previousIndex : 0;
+    }
+
+    private void SelectDocumentPreview(DocumentItem? item)
+    {
+        _selectedDocumentPreview = item?.Preview;
+        SourceTableSelector.Items.Clear();
+        ClearGrid(SourceTablePreviewGrid);
+        PreviewRegionRectangle.IsVisible = false;
+        RegionSelectionText.Text = "No region selected";
+        ResetPreviewView();
+
+        if (_selectedDocumentPreview is null)
+        {
+            SelectedDocumentText.Text = "Upload and select a document.";
+            ParsedTextBox.Text = string.Empty;
+            PreviewImage.IsVisible = false;
+            PreviewMessage.IsVisible = true;
+            return;
+        }
+
+        SelectedDocumentText.Text = $"{item?.Kind}: {System.IO.Path.GetFileName(_selectedDocumentPreview.Path)}";
+        ParsedTextBox.Text = _selectedDocumentPreview.ParsedText;
+        foreach (DocumentTable table in _selectedDocumentPreview.Tables)
+        {
+            SourceTableSelector.Items.Add($"{table.Label} ({table.RowCount} x {table.ColumnCount})");
+        }
+        SourceTableSelector.SelectedIndex = _selectedDocumentPreview.Tables.Count > 0 ? 0 : -1;
+        RenderDocumentPreview(_selectedDocumentPreview);
+    }
+
+    private void RenderDocumentPreview(DocumentPreview preview)
+    {
+        string extension = System.IO.Path.GetExtension(preview.Path).ToLowerInvariant();
+        PreviewImage.IsVisible = false;
+        PreviewMessage.IsVisible = true;
+        PreviewMessage.Text = "Preview will appear here for images. PDF files can still be region-marked and table/parsed text is shown on the right.";
+
+        try
+        {
+            if (extension is ".png" or ".jpg" or ".jpeg")
+            {
+                using FileStream stream = File.OpenRead(preview.Path);
+                PreviewImage.Source = new Bitmap(stream);
+                PreviewImage.IsVisible = true;
+                PreviewMessage.IsVisible = false;
+                RegionSelectionText.Text = "Use Select Region to draw OCR area.";
+                return;
+            }
+
+            if (extension == ".pdf")
+            {
+                PreviewMessage.Text = "PDF selected. Use Select Region for OCR window capture, or Open Original to inspect the PDF in the system viewer.";
+                RegionSelectionText.Text = "Use Select Region to draw PDF area.";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Preview render failed for {preview.Path}: {ex}");
+        }
+
+        RegionSelectionText.Text = "Table/text document.";
+    }
+
+    private void RenderSelectedSourceTable()
+    {
+        ClearGrid(SourceTablePreviewGrid);
+        if (_selectedDocumentPreview is null)
+        {
+            return;
+        }
+
+        int index = SourceTableSelector.SelectedIndex;
+        if (index < 0 || index >= _selectedDocumentPreview.Tables.Count)
+        {
+            return;
+        }
+
+        RenderReadOnlyGrid(SourceTablePreviewGrid, _selectedDocumentPreview.Tables[index].Rows, _selectedDocumentPreview.Tables[index].Label);
+    }
+
+    private void RefreshParsedText()
+    {
+        ParsedTextBox.Text = _selectedDocumentPreview is not null
+            ? _selectedDocumentPreview.ParsedText
+            : string.Join(Environment.NewLine + Environment.NewLine, _sourcePreviews.Select(preview => $"[{preview.Name}]{Environment.NewLine}{preview.ParsedText}"));
+    }
+
+    private void RefreshExtractedFields()
+    {
+        _extractedFields.Clear();
+        ExtractedFieldsListBox.Items.Clear();
+        foreach (DocumentPreview preview in _sourcePreviews)
+        {
+            foreach (ExtractedField field in ExtractFields(preview))
+            {
+                if (_extractedFields.Any(existing => existing.Label == field.Label && existing.Value == field.Value))
+                {
+                    continue;
+                }
+                AddExtractedField(field);
+            }
+        }
+    }
+
+    private void AddSelectedRegionField(Rect region)
+    {
+        if (_selectedDocumentPreview is null)
+        {
+            return;
+        }
+
+        string label = $"Region from {System.IO.Path.GetFileNameWithoutExtension(_selectedDocumentPreview.Path)}";
+        string value = FormatRegion(region);
+        AddExtractedField(new ExtractedField(_extractedFields.Count + 1, _selectedDocumentPreview.Name, label, value, 0.80));
+        SetStatus("Region field added. Select an output cell and choose Map Selected.");
+    }
+
+    private void AddExtractedField(ExtractedField field)
+    {
+        _extractedFields.Add(field);
+        ExtractedFieldsListBox.Items.Add($"{field.Label}: {field.Value}  ({field.SourceName}, {field.Confidence:P0})");
+        ExtractedFieldsListBox.SelectedIndex = _extractedFields.Count - 1;
+    }
+
+    private static IEnumerable<ExtractedField> ExtractFields(DocumentPreview preview)
+    {
+        int id = 1;
+        foreach (DocumentTable table in preview.Tables)
+        {
+            foreach (IReadOnlyList<string> row in table.Rows)
+            {
+                for (int column = 0; column < row.Count; column++)
+                {
+                    string current = row[column].Trim();
+                    if (string.IsNullOrWhiteSpace(current))
+                    {
+                        continue;
+                    }
+
+                    if (column + 1 < row.Count && !string.IsNullOrWhiteSpace(row[column + 1]))
+                    {
+                        yield return new ExtractedField(id++, preview.Name, current, row[column + 1].Trim(), 0.86);
+                    }
+                    else if (current.Contains(':'))
+                    {
+                        string[] parts = current.Split(':', 2);
+                        if (!string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]))
+                        {
+                            yield return new ExtractedField(id++, preview.Name, parts[0].Trim(), parts[1].Trim(), 0.82);
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (Match match in Regex.Matches(preview.ParsedText, @"(?m)^\s*([A-Za-z][A-Za-z0-9\s\/\.\-]{2,40})\s*[:\-]\s*(.{1,120})$").Cast<Match>().Take(80))
+        {
+            yield return new ExtractedField(id++, preview.Name, match.Groups[1].Value.Trim(), match.Groups[2].Value.Trim(), 0.74);
+        }
+    }
+
+    private void RenderReadOnlyGrid(Grid grid, IReadOnlyList<IReadOnlyList<string>> rows, string label)
+    {
+        ClearGrid(grid);
+        int rowCount = Math.Min(rows.Count, 120);
+        int columns = Math.Min(rows.Select(row => row.Count).DefaultIfEmpty(1).Max(), 30);
+        for (int column = 0; column < columns; column++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(150)));
+        }
+        for (int row = 0; row < rowCount; row++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            for (int column = 0; column < columns; column++)
+            {
+                string value = column < rows[row].Count ? rows[row][column] : string.Empty;
+                var border = new Border
+                {
+                    BorderBrush = Brushes.Gray,
+                    BorderThickness = new Thickness(1),
+                    Padding = new Thickness(6),
+                    Child = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap, MinWidth = 120 }
+                };
+                Grid.SetRow(border, row);
+                Grid.SetColumn(border, column);
+                grid.Children.Add(border);
+            }
+        }
+    }
+
+    private void RenderOutputTable()
+    {
+        ClearGrid(OutputPreviewGrid);
+        _outputCellBindings.Clear();
+        int tableIndex = OutputTableSelector.SelectedIndex;
+        if (tableIndex < 0 || tableIndex >= _outputTables.Count)
+        {
+            return;
+        }
+
+        List<List<string>> table = _outputTables[tableIndex];
+        int columns = Math.Min(table.Select(row => row.Count).DefaultIfEmpty(1).Max(), 40);
+        for (int column = 0; column < columns; column++)
+        {
+            OutputPreviewGrid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(150)));
+        }
+        for (int row = 0; row < table.Count; row++)
+        {
+            OutputPreviewGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            for (int column = 0; column < columns; column++)
+            {
+                while (table[row].Count <= column)
+                {
+                    table[row].Add(string.Empty);
+                }
+                var address = new CellAddress(tableIndex, row, column);
+                var textBox = new TextBox
+                {
+                    Text = table[row][column],
+                    MinWidth = 130,
+                    MinHeight = 34,
+                    AcceptsReturn = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    Background = IsFillablePlaceholder(table[row][column])
+                        ? new SolidColorBrush(Color.FromArgb(42, 37, 99, 235))
+                        : Brushes.Transparent
+                };
+                _outputCellBindings[textBox] = address;
+                textBox.GotFocus += (_, _) =>
+                {
+                    _selectedDestination = address;
+                    OutputSelectionText.Text = $"Destination selected: table {address.TableIndex + 1}, row {address.RowIndex + 1}, column {address.ColumnIndex + 1}.";
+                };
+                textBox.TextChanged += (_, _) =>
+                {
+                    if (IsValidAddress(address))
+                    {
+                        _outputTables[address.TableIndex][address.RowIndex][address.ColumnIndex] = textBox.Text ?? string.Empty;
+                    }
+                };
+
+                var border = new Border
+                {
+                    BorderBrush = Brushes.Gray,
+                    BorderThickness = new Thickness(1),
+                    Padding = new Thickness(2),
+                    Child = textBox
+                };
+                Grid.SetRow(border, row);
+                Grid.SetColumn(border, column);
+                OutputPreviewGrid.Children.Add(border);
+            }
+        }
+    }
+
+    private static void ClearGrid(Grid grid)
+    {
+        grid.Children.Clear();
+        grid.RowDefinitions.Clear();
+        grid.ColumnDefinitions.Clear();
+    }
+
+    private Rect UpdateSelectionRectangle(Point start, Point end)
+    {
+        double left = Math.Min(start.X, end.X);
+        double top = Math.Min(start.Y, end.Y);
+        double width = Math.Abs(end.X - start.X);
+        double height = Math.Abs(end.Y - start.Y);
+        Canvas.SetLeft(PreviewRegionRectangle, left);
+        Canvas.SetTop(PreviewRegionRectangle, top);
+        PreviewRegionRectangle.Width = width;
+        PreviewRegionRectangle.Height = height;
+        return new Rect(left, top, width, height);
+    }
+
+    private void SetPreviewZoom(double zoom)
+    {
+        _previewZoom = Math.Clamp(zoom, PreviewMinZoom, PreviewMaxZoom);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void ResetPreviewView()
+    {
+        _previewZoom = 1.0;
+        _previewRotation = 0;
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void ApplyPreviewView(bool resetSelection)
+    {
+        PreviewCanvas.Width = PreviewBaseWidth * _previewZoom;
+        PreviewCanvas.Height = PreviewBaseHeight * _previewZoom;
+        PreviewImage.Width = PreviewCanvas.Width;
+        PreviewImage.Height = PreviewCanvas.Height;
+        PreviewMessage.Width = Math.Max(280, PreviewCanvas.Width - 40);
+        PreviewImage.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+        PreviewImage.RenderTransform = new RotateTransform(_previewRotation);
+        ZoomText.Text = $"{_previewZoom:P0} / {_previewRotation}°";
+
+        if (resetSelection)
+        {
+            _regionSelectionMode = false;
+            _regionStart = null;
+            _selectedRegion = null;
+            PreviewRegionRectangle.IsVisible = false;
+            RegionSelectionText.Text = "No region selected";
+        }
+        else if (_selectedRegion is Rect region)
+        {
+            RegionSelectionText.Text = FormatRegion(region);
+        }
+    }
+
+    private string FormatRegion(Rect region)
+    {
+        double zoom = Math.Max(_previewZoom, 0.01);
+        Rect baseRegion = new(region.X / zoom, region.Y / zoom, region.Width / zoom, region.Height / zoom);
+        string rotation = _previewRotation == 0 ? "" : $", rotated {_previewRotation}°";
+        return $"Region X={baseRegion.X:0}, Y={baseRegion.Y:0}, W={baseRegion.Width:0}, H={baseRegion.Height:0} ({_previewZoom:P0}{rotation})";
+    }
+
+    private async Task ExportAsync(string label, string extension, Action<string> export)
+    {
+        if (_outputTables.Count == 0)
+        {
+            SetStatus("Upload and fill a template before exporting.");
+            return;
+        }
+
+        string? path = await PickSavePathAsync($"intellifill-output-{_traceabilityCode}{extension}", label, extension);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            export(path);
+            SetStatus($"Exported {label}: {path}");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Export {label} failed: {ex.Message}");
+            Log($"Export {label} failed: {ex}");
+        }
+    }
+
+    private IReadOnlyList<OutputTable> BuildOutputTables()
+    {
+        return _outputTables
+            .Select((rows, index) => new OutputTable(TableLabel(index), rows.Select(row => (IReadOnlyList<string>)row.ToList()).ToList()))
+            .ToList();
+    }
+
+    private IReadOnlyList<RunValue> BuildRunValues()
+    {
+        var values = new List<RunValue>();
+        for (int tableIndex = 0; tableIndex < _outputTables.Count; tableIndex++)
+        {
+            List<List<string>> table = _outputTables[tableIndex];
+            for (int row = 0; row < table.Count; row++)
+            {
+                for (int column = 0; column < table[row].Count; column++)
+                {
+                    values.Add(new RunValue(_traceabilityCode, TableLabel(tableIndex), tableIndex, row, column, table[row][column]));
+                }
+            }
+        }
+        return values;
+    }
+
+    private void AddMapping(ExtractedField field, CellAddress address, string value)
+    {
+        string destinationLabel = DestinationLabel(_outputTables[address.TableIndex], address.RowIndex, address.ColumnIndex);
+        _mappings.RemoveAll(mapping => mapping.TableIndex == address.TableIndex && mapping.RowIndex == address.RowIndex && mapping.ColumnIndex == address.ColumnIndex);
+        _mappings.Add(new MappingSnapshot(field.Label, field.Value, address.TableIndex, address.RowIndex, address.ColumnIndex, value, destinationLabel));
+    }
+
+    private List<string> ValidateOutput()
+    {
+        var issues = new List<string>();
+        var seenValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (int tableIndex = 0; tableIndex < _outputTables.Count; tableIndex++)
+        {
+            List<List<string>> table = _outputTables[tableIndex];
+            for (int row = 0; row < table.Count; row++)
+            {
+                for (int column = 0; column < table[row].Count; column++)
+                {
+                    string value = table[row][column].Trim();
+                    string label = DestinationLabel(table, row, column);
+                    if (IsFillablePlaceholder(value))
+                    {
+                        issues.Add($"Required/blank warning: {TableLabel(tableIndex)} row {row + 1}, column {column + 1} ({label}) is empty.");
+                    }
+                    if (label.Contains("gst", StringComparison.OrdinalIgnoreCase) && value.Length > 0 && !Regex.IsMatch(value, @"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", RegexOptions.IgnoreCase))
+                    {
+                        issues.Add($"GST/GSTIN warning: {label} value '{value}' does not look valid.");
+                    }
+                    if (label.Contains("date", StringComparison.OrdinalIgnoreCase) && value.Length > 0 && !DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out _))
+                    {
+                        issues.Add($"Date warning: {label} value '{value}' could not be parsed as a date.");
+                    }
+                    if ((label.Contains("amount", StringComparison.OrdinalIgnoreCase) || label.Contains("total", StringComparison.OrdinalIgnoreCase)) && value.Length > 0 && !TryParseAmount(value, out _))
+                    {
+                        issues.Add($"Amount warning: {label} value '{value}' is not a recognizable number.");
+                    }
+                    if (value.Length > 3 && seenValues.TryGetValue(value, out string? firstLabel))
+                    {
+                        issues.Add($"Duplicate warning: '{value}' appears in both {firstLabel} and {label}.");
+                    }
+                    else if (value.Length > 3)
+                    {
+                        seenValues[value] = label;
+                    }
+                }
+            }
+        }
+        return issues;
+    }
+
+    private async Task<string?> PickSingleDocumentAsync(string title)
+    {
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = DocumentFileTypes()
+        });
+        return files.FirstOrDefault()?.Path.LocalPath;
+    }
+
+    private async Task<IReadOnlyList<string>> PickManyDocumentsAsync(string title)
+    {
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = true,
+            FileTypeFilter = DocumentFileTypes()
+        });
+        return files.Select(file => file.Path.LocalPath).Where(path => !string.IsNullOrWhiteSpace(path)).ToList();
+    }
+
+    private async Task<string?> PickSavePathAsync(string suggestedName, string label, string extension)
+    {
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save " + label,
+            SuggestedFileName = suggestedName,
+            FileTypeChoices = new[] { new FilePickerFileType(label) { Patterns = new[] { "*" + extension } } }
+        });
+        return file?.Path.LocalPath;
+    }
+
+    private static IReadOnlyList<FilePickerFileType> DocumentFileTypes()
+    {
+        return new[]
+        {
+            new FilePickerFileType("Documents")
+            {
+                Patterns = new[] { "*.csv", "*.txt", "*.xlsx", "*.xls", "*.docx", "*.pdf", "*.png", "*.jpg", "*.jpeg" }
+            },
+            FilePickerFileTypes.All
+        };
+    }
+
+    private AppSettings LoadSettings()
+    {
+        try
+        {
+            if (File.Exists(_settingsPath))
+            {
+                AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_settingsPath), JsonOptions());
+                if (settings is not null)
+                {
+                    settings.DatabasePath = string.IsNullOrWhiteSpace(settings.DatabasePath) ? DefaultDatabasePath() : Environment.ExpandEnvironmentVariables(settings.DatabasePath);
+                    return settings;
+                }
+            }
+        }
+        catch
+        {
+            // Use defaults when settings are invalid.
+        }
+        return new AppSettings { DatabasePath = DefaultDatabasePath() };
+    }
+
+    private void SaveSettings()
+    {
+        Directory.CreateDirectory(_appDataPath);
+        File.WriteAllText(_settingsPath, JsonSerializer.Serialize(_settings, JsonOptions()));
+    }
+
+    private void ApplySettingsToUi()
+    {
+        TesseractPathBox.Text = _settings.TesseractPath;
+        DatabasePathBox.Text = _settings.DatabasePath;
+        ThemeComboBox.SelectedIndex = _settings.Theme switch
+        {
+            "Light" => 1,
+            "Dark" => 2,
+            _ => 0
+        };
+        ApplyTheme();
+    }
+
+    private void ApplyTheme()
+    {
+        if (Application.Current is null)
+        {
+            return;
+        }
+
+        Application.Current.RequestedThemeVariant = _settings.Theme switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
+    }
+
+    private string PackageStatus()
+    {
+        string tesseract = string.IsNullOrWhiteSpace(_settings.TesseractPath) ? "Not selected" : _settings.TesseractPath;
+        return $"Version: {AppVersion}{Environment.NewLine}App folder: {AppContext.BaseDirectory}{Environment.NewLine}App data: {_appDataPath}{Environment.NewLine}Tesseract: {tesseract}{Environment.NewLine}SQLite: {_settings.DatabasePath}";
+    }
+
+    private string DefaultDatabasePath() => System.IO.Path.Combine(_appDataPath, "intellifill.sqlite3");
+
+    private void SetStatus(string message)
+    {
+        StatusText.Text = message + Environment.NewLine + Environment.NewLine + PackageStatus();
+        Log(message);
+    }
+
+    private void Log(string message)
+    {
+        try
+        {
+            File.AppendAllText(_logPath, $"[{DateTimeOffset.Now:O}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Logging must not stop the UI.
+        }
+    }
+
+    private async Task ShowMessageAsync(string title, string text)
+    {
+        var box = new Window
+        {
+            Title = title,
+            Width = 680,
+            Height = 460,
+            Content = new DockPanel
+            {
+                Margin = new Thickness(16),
+                Children =
+                {
+                    new Button
+                    {
+                        Content = "Close",
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        MinWidth = 90
+                    },
+                    new ScrollViewer
+                    {
+                        Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }
+                    }
+                }
+            }
+        };
+
+        if (box.Content is DockPanel panel && panel.Children[0] is Button button)
+        {
+            DockPanel.SetDock(button, Dock.Bottom);
+            button.Click += (_, _) => box.Close();
+        }
+
+        await box.ShowDialog(this);
+    }
+
+    private string TableLabel(int index)
+    {
+        return index >= 0 && index < _templateTables.Count ? _templateTables[index].Label : $"Table {index + 1}";
+    }
+
+    private bool IsValidAddress(CellAddress address)
+    {
+        return address.TableIndex >= 0 &&
+               address.TableIndex < _outputTables.Count &&
+               address.RowIndex >= 0 &&
+               address.RowIndex < _outputTables[address.TableIndex].Count &&
+               address.ColumnIndex >= 0 &&
+               address.ColumnIndex < _outputTables[address.TableIndex][address.RowIndex].Count;
+    }
+
+    private static bool IsFillablePlaceholder(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        string trimmed = value.Trim();
+        return trimmed.Contains("___", StringComparison.Ordinal) ||
+               Regex.IsMatch(trimmed, @"^\[.*\]$") ||
+               Regex.IsMatch(trimmed, @"^\{\{.*\}\}$") ||
+               Regex.IsMatch(trimmed, @"^<.*>$");
+    }
+
+    private static string DestinationLabel(List<List<string>> table, int row, int column)
+    {
+        for (int left = column - 1; left >= 0; left--)
+        {
+            if (!string.IsNullOrWhiteSpace(table[row][left]) && !IsFillablePlaceholder(table[row][left]))
+            {
+                return table[row][left].Trim();
+            }
+        }
+        for (int up = row - 1; up >= 0; up--)
+        {
+            if (column < table[up].Count && !string.IsNullOrWhiteSpace(table[up][column]) && !IsFillablePlaceholder(table[up][column]))
+            {
+                return table[up][column].Trim();
+            }
+        }
+        return $"Row {row + 1} Column {column + 1}";
+    }
+
+    private static double Similarity(string left, string right)
+    {
+        string a = Normalize(left);
+        string b = Normalize(right);
+        if (a.Length == 0 || b.Length == 0)
+        {
+            return 0;
+        }
+        if (a == b)
+        {
+            return 1;
+        }
+        var leftTokens = a.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+        var rightTokens = b.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+        int intersection = leftTokens.Intersect(rightTokens).Count();
+        int union = leftTokens.Union(rightTokens).Count();
+        double tokenScore = union == 0 ? 0 : (double)intersection / union;
+        int distance = Levenshtein(a, b);
+        double editScore = 1.0 - (double)distance / Math.Max(a.Length, b.Length);
+        return Math.Max(tokenScore, editScore);
+    }
+
+    private static string Normalize(string value)
+    {
+        return Regex.Replace(value.ToLowerInvariant(), @"[^a-z0-9]+", " ").Trim();
+    }
+
+    private static int Levenshtein(string a, string b)
+    {
+        var costs = new int[b.Length + 1];
+        for (int j = 0; j < costs.Length; j++)
+        {
+            costs[j] = j;
+        }
+        for (int i = 1; i <= a.Length; i++)
+        {
+            costs[0] = i;
+            int previous = i - 1;
+            for (int j = 1; j <= b.Length; j++)
+            {
+                int current = costs[j];
+                costs[j] = a[i - 1] == b[j - 1] ? previous : Math.Min(Math.Min(costs[j - 1], costs[j]), previous) + 1;
+                previous = current;
+            }
+        }
+        return costs[b.Length];
+    }
+
+    private static bool TryParseAmount(string value, out decimal amount)
+    {
+        string cleaned = Regex.Replace(value, @"[^\d\.\-]", "");
+        return decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out amount) ||
+               decimal.TryParse(value, NumberStyles.Currency, CultureInfo.CurrentCulture, out amount);
+    }
+
+    private static int NormalizeRotation(int angle)
+    {
+        int normalized = angle % 360;
+        return normalized < 0 ? normalized + 360 : normalized;
+    }
+
+    private static bool IsNewerVersion(string candidate, string current)
+    {
+        int[] left = VersionParts(candidate);
+        int[] right = VersionParts(current);
+        for (int index = 0; index < Math.Max(left.Length, right.Length); index++)
+        {
+            int leftPart = index < left.Length ? left[index] : 0;
+            int rightPart = index < right.Length ? right[index] : 0;
+            if (leftPart != rightPart)
+            {
+                return leftPart > rightPart;
+            }
+        }
+        return false;
+    }
+
+    private static int[] VersionParts(string version)
+    {
+        return version
+            .Split('.', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(Regex.Replace(part, @"[^\d]", ""), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0)
+            .ToArray();
+    }
+
+    private static JsonSerializerOptions JsonOptions() => new() { WriteIndented = true, PropertyNameCaseInsensitive = true };
+
+    private static string CreateTraceabilityCode() => "IF" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+
+    private static string HelpText()
+    {
+        return """
+        IntelliFill OCR Avalonia User Guide
+
+        1. Upload Template
+        Use Upload Template. CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG files are accepted. Every detected table appears in the template and output table selectors.
+
+        2. Upload Sources
+        Use Upload Sources. Add up to five documents. The selected document preview, parsed text, and detected tables appear in Uploaded Documents.
+
+        3. OCR Region Selection
+        Select an image or PDF, choose Select OCR Region, then drag a rectangle on the preview. Use zoom and rotate before selecting if the document is hard to read.
+
+        4. Manual Mapping
+        Select an extracted field, click a destination output cell, then choose Map Selected. Output cells remain editable before database save/export.
+
+        5. Auto Fill
+        Auto Fill compares blank template cells with extracted field labels using fuzzy matching and fills confident matches.
+
+        6. Validation
+        Validate warns about blank fields, duplicate values, amount/date issues, and GST/GSTIN-like fields.
+
+        7. SQLite
+        Save SQLite stores the traceability code, source metadata, extracted values, mappings, and timestamps.
+
+        8. Exports
+        Export CSV, Excel, Word, or PDF. PDF includes one traceability barcode/code at the bottom center.
+
+        9. Settings
+        Enter the Tesseract executable path and SQLite path, choose theme, then Apply Theme.
+        """;
+    }
+
+    private sealed record CellAddress(int TableIndex, int RowIndex, int ColumnIndex);
+
+    private sealed record DocumentItem(string Kind, DocumentPreview Preview);
+
+    private sealed record ExtractedField(int Id, string SourceName, string Label, string Value, double Confidence);
+
+    private sealed record MatchCandidate(ExtractedField Field, double Score);
+
+    private sealed record MappingSnapshot(string SourceLabel, string SourceValue, int TableIndex, int RowIndex, int ColumnIndex, string Value, string DestinationLabel);
+
+    private sealed class AppSettings
+    {
+        public string TesseractPath { get; set; } = string.Empty;
+        public string DatabasePath { get; set; } = string.Empty;
+        public string Theme { get; set; } = "Default";
+    }
+}
+
+
