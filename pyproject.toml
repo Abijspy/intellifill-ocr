@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intellifill-ocr"
-version = "3.5.1"
+version = "3.5.2"
 description = "Offline Windows desktop app for OCR-driven data extraction and table filling"
 requires-python = ">=3.11"
 dependencies = []

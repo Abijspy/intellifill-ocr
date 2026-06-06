@@ -167,10 +167,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Fixed light and dark mode consistency across the Avalonia shell.
-          - Added theme-aware palette resources so panels, preview surfaces, text, and action buttons switch together.
-          - Unified rounded corners across sidebar cards, workspace panels, preview panes, and buttons.
-          - Kept the showcase-style dark command rail and large image/PDF preview workflow from v3.5.0.
+          - Removed duplicate workflow actions from the top command area and left icon rail.
+          - Fixed light mode so the left sidebar uses the same light palette as the workspace.
+          - Replaced the old tab strip with rounded page-switcher buttons for Template, Sources, Mapping, Review, and Settings.
+          - Improved responsive sizing for sidebar, settings, source preview, mapping, and review layouts.
           NOTES
 
       - name: Create or update GitHub release

@@ -6,17 +6,17 @@
     Icon="avares://IntelliFillOCR/Assets/app.ico"
     Width="1500"
     Height="940"
-    MinWidth="1180"
+    MinWidth="1080"
     MinHeight="780"
     FontFamily="Segoe UI"
     Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.Resources>
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EAF2FF" />
-        <SolidColorBrush x:Key="ShellBrush" Color="#101124" />
-        <SolidColorBrush x:Key="ShellRailBrush" Color="#17182D" />
-        <SolidColorBrush x:Key="ShellCardBrush" Color="#191A30" />
-        <SolidColorBrush x:Key="ShellBorderBrush" Color="#22243A" />
+        <SolidColorBrush x:Key="ShellBrush" Color="#FBFCFF" />
+        <SolidColorBrush x:Key="ShellRailBrush" Color="#EEF4FF" />
+        <SolidColorBrush x:Key="ShellCardBrush" Color="#F2F5FE" />
+        <SolidColorBrush x:Key="ShellBorderBrush" Color="#DDE5F5" />
         <SolidColorBrush x:Key="PanelBrush" Color="#FBFCFF" />
         <SolidColorBrush x:Key="SoftPanelBrush" Color="#F2F5FE" />
         <SolidColorBrush x:Key="PreviewPanelBrush" Color="#F8FAFF" />
@@ -24,15 +24,15 @@
         <SolidColorBrush x:Key="TitleTextBrush" Color="#282B36" />
         <SolidColorBrush x:Key="BodyTextBrush" Color="#2B2E3A" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#687083" />
-        <SolidColorBrush x:Key="ShellTitleTextBrush" Color="#F5F7FF" />
-        <SolidColorBrush x:Key="ShellBodyTextBrush" Color="#D7DBEF" />
-        <SolidColorBrush x:Key="ShellMutedTextBrush" Color="#AAB0CF" />
+        <SolidColorBrush x:Key="ShellTitleTextBrush" Color="#282B36" />
+        <SolidColorBrush x:Key="ShellBodyTextBrush" Color="#2B2E3A" />
+        <SolidColorBrush x:Key="ShellMutedTextBrush" Color="#687083" />
         <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="TealBrush" Color="#14B8A6" />
         <SolidColorBrush x:Key="TealTextBrush" Color="#071318" />
-        <SolidColorBrush x:Key="RailButtonBrush" Color="#202139" />
-        <SolidColorBrush x:Key="RailButtonTextBrush" Color="#EEF1FF" />
-        <SolidColorBrush x:Key="RailButtonBorderBrush" Color="#30324C" />
+        <SolidColorBrush x:Key="RailButtonBrush" Color="#E8EEF9" />
+        <SolidColorBrush x:Key="RailButtonTextBrush" Color="#263044" />
+        <SolidColorBrush x:Key="RailButtonBorderBrush" Color="#CDD8EC" />
         <SolidColorBrush x:Key="PreviewCanvasBrush" Color="#EEF3FF" />
         <SolidColorBrush x:Key="SelectionStrokeBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="SelectionFillBrush" Color="#332563EB" />
@@ -130,36 +130,51 @@
             <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="Button.pageTab">
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Padding" Value="18,9" />
+            <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TabControl">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TabItem">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style Selector="TabItem:selected">
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
         <Style Selector="TextBox.mono">
             <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
         </Style>
     </Window.Styles>
 
-    <Grid ColumnDefinitions="384,*" Margin="20" ColumnSpacing="20">
+    <Grid ColumnDefinitions="300,*" Margin="16" ColumnSpacing="16">
         <Border Grid.Column="0" Classes="darkShell">
-            <Grid ColumnDefinitions="64,*">
-                <Border Background="{DynamicResource ShellRailBrush}" CornerRadius="18,0,0,18">
-                    <Grid RowDefinitions="Auto,*,Auto" Margin="10" RowSpacing="16">
-                        <StackPanel Spacing="10">
-                            <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="44" Height="44" Stretch="Uniform" />
-                            <Button Classes="iconRail" Click="UploadTemplate_Click" Content="T" ToolTip.Tip="Upload template" />
-                            <Button Classes="iconRail" Click="UploadSources_Click" Content="S" ToolTip.Tip="Upload sources" />
-                            <Button Classes="iconRail" Click="EnableRegionSelection_Click" Content="R" ToolTip.Tip="Select OCR region" />
-                            <Button Classes="iconRail" Click="AutoFill_Click" Content="A" ToolTip.Tip="Auto fill" />
-                            <Button Classes="iconRail" Click="MapSelected_Click" Content="M" ToolTip.Tip="Map selected field" />
-                        </StackPanel>
-                        <StackPanel Grid.Row="2" Spacing="10">
-                            <Button Classes="iconRail" Click="CheckForUpdates_Click" Content="U" ToolTip.Tip="Check updates" />
-                            <Button Classes="iconRail" Click="OpenHelp_Click" Content="?" ToolTip.Tip="Help" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="14" RowSpacing="14">
+            <Grid RowDefinitions="Auto,*,Auto" Margin="14" RowSpacing="14">
                     <StackPanel Spacing="12">
-                        <TextBlock Text="IntelliFill OCR" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource ShellTitleTextBrush}" />
-                        <TextBlock Text="Offline OCR extraction and table filling" Classes="darkMuted" />
-                        <Button Classes="teal" Click="UploadTemplate_Click" Content="New Document Run" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="44" Height="44" Stretch="Uniform" />
+                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="IntelliFill OCR" FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource ShellTitleTextBrush}" />
+                                <TextBlock Text="Offline OCR extraction and table filling" Classes="darkMuted" />
+                            </StackPanel>
+                        </Grid>
+                        <Border Classes="darkCard" Padding="10,8">
+                            <TextBlock Text="v3.5.1" Classes="darkMuted" FontWeight="SemiBold" />
+                        </Border>
                     </StackPanel>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -217,42 +232,36 @@
                     <Border Grid.Row="2" Classes="darkCard">
                         <TextBlock Text="Logs and database tools are in Settings." Classes="darkMuted" />
                     </Border>
-                </Grid>
             </Grid>
         </Border>
 
         <Border Grid.Column="1" Classes="panel">
-            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+            <Grid RowDefinitions="Auto,*" RowSpacing="14">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel Spacing="3">
                         <TextBlock Text="Document Automation Workspace" Classes="title" />
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="1" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock Text="v3.5.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock Text="v3.5.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
-                <Border Grid.Row="1" Classes="softPanel">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Classes="primary" Click="UploadTemplate_Click" Content="Template" />
-                            <Button Click="UploadSources_Click" Content="Sources" />
-                            <Button Click="EnableRegionSelection_Click" Content="Region" />
-                            <Button Click="AutoFill_Click" Content="Auto Fill" />
-                            <Button Click="MapSelected_Click" Content="Map" />
-                            <Button Click="RunValidation_Click" Content="Validate" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                            <Button Classes="primary" Click="ExportPdf_Click" Content="Export PDF" />
-                            <Button Click="SaveToDatabase_Click" Content="Save SQLite" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="14">
+                    <Border Classes="softPanel" Padding="10">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="TemplatePageButton" Classes="pageTab primary" Click="ShowTemplatePage_Click" Content="Template" />
+                                <Button x:Name="SourcesPageButton" Classes="pageTab" Click="ShowSourcesPage_Click" Content="Sources" />
+                                <Button x:Name="MappingPageButton" Classes="pageTab" Click="ShowMappingPage_Click" Content="Mapping" />
+                                <Button x:Name="ReviewPageButton" Classes="pageTab" Click="ShowReviewPage_Click" Content="Review" />
+                                <Button x:Name="SettingsPageButton" Classes="pageTab" Click="ShowSettingsPage_Click" Content="Settings" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
 
-                <TabControl Grid.Row="2">
-                    <TabItem Header="Template">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid Grid.Row="1">
+                        <ScrollViewer x:Name="TemplatePage" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
@@ -267,7 +276,7 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="320,*" ColumnSpacing="14">
+                                <Grid Grid.Row="1" ColumnDefinitions="280,*" ColumnSpacing="14">
                                     <Border Classes="softPanel">
                                         <StackPanel Spacing="12">
                                             <TextBlock Text="Detected Tables" Classes="sectionTitle" />
@@ -290,10 +299,8 @@
                                 </Grid>
                             </Grid>
                         </ScrollViewer>
-                    </TabItem>
 
-                    <TabItem Header="Sources">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer x:Name="SourcesPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="780">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
@@ -308,7 +315,7 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="240,*,360" ColumnSpacing="14">
+                                <Grid Grid.Row="1" ColumnDefinitions="220,2*,320" ColumnSpacing="14">
                                     <Border Classes="softPanel">
                                         <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                             <TextBlock Text="Files" Classes="sectionTitle" />
@@ -369,11 +376,9 @@
                                 </Grid>
                             </Grid>
                         </ScrollViewer>
-                    </TabItem>
 
-                    <TabItem Header="Mapping">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Grid ColumnDefinitions="400,*" ColumnSpacing="14" Margin="0,14,8,8" MinHeight="660">
+                        <ScrollViewer x:Name="MappingPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <Grid ColumnDefinitions="360,*" ColumnSpacing="14" Margin="0,14,8,8" MinHeight="660">
                                 <Border Classes="softPanel">
                                     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                                         <TextBlock Text="Extracted Fields" Classes="sectionTitle" />
@@ -402,10 +407,8 @@
                                 </Border>
                             </Grid>
                         </ScrollViewer>
-                    </TabItem>
 
-                    <TabItem Header="Review">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer x:Name="ReviewPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -421,7 +424,7 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="*,300" ColumnSpacing="14">
+                                <Grid Grid.Row="1" ColumnDefinitions="*,270" ColumnSpacing="14">
                                     <Border Classes="previewPanel">
                                         <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                             <TextBlock Text="Validation Results" Classes="sectionTitle" />
@@ -440,10 +443,8 @@
                                 </Grid>
                             </Grid>
                         </ScrollViewer>
-                    </TabItem>
 
-                    <TabItem Header="Settings">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer x:Name="SettingsPage" IsVisible="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <Grid RowDefinitions="Auto,*" RowSpacing="14" Margin="0,14,8,8" MinHeight="660">
                                 <Border Classes="softPanel">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
@@ -455,7 +456,7 @@
                                     </Grid>
                                 </Border>
 
-                                <Grid Grid.Row="1" ColumnDefinitions="420,*" ColumnSpacing="14">
+                                <Grid Grid.Row="1" ColumnDefinitions="360,*" ColumnSpacing="14">
                                     <StackPanel Spacing="14">
                                         <Border Classes="softPanel">
                                             <StackPanel Spacing="12">
@@ -510,8 +511,8 @@
                                 </Grid>
                             </Grid>
                         </ScrollViewer>
-                    </TabItem>
-                </TabControl>
+                    </Grid>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

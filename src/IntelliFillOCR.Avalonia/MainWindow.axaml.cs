@@ -19,7 +19,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.1";
+    private const string AppVersion = "3.5.2";
     private const double PreviewBaseWidth = 980;
     private const double PreviewBaseHeight = 680;
     private const double PreviewMinZoom = 0.5;
@@ -386,6 +386,38 @@ public sealed partial class MainWindow : Window
             DatabasePathBox.Text = path;
             SetStatus("SQLite database path selected. Save Settings to keep it.");
         }
+    }
+
+    private void ShowTemplatePage_Click(object? sender, RoutedEventArgs e) =>
+        ShowPage(TemplatePage, TemplatePageButton);
+
+    private void ShowSourcesPage_Click(object? sender, RoutedEventArgs e) =>
+        ShowPage(SourcesPage, SourcesPageButton);
+
+    private void ShowMappingPage_Click(object? sender, RoutedEventArgs e) =>
+        ShowPage(MappingPage, MappingPageButton);
+
+    private void ShowReviewPage_Click(object? sender, RoutedEventArgs e) =>
+        ShowPage(ReviewPage, ReviewPageButton);
+
+    private void ShowSettingsPage_Click(object? sender, RoutedEventArgs e) =>
+        ShowPage(SettingsPage, SettingsPageButton);
+
+    private void ShowPage(Control page, Button selectedButton)
+    {
+        Control[] pages = { TemplatePage, SourcesPage, MappingPage, ReviewPage, SettingsPage };
+        Button[] buttons = { TemplatePageButton, SourcesPageButton, MappingPageButton, ReviewPageButton, SettingsPageButton };
+
+        foreach (Control candidate in pages)
+        {
+            candidate.IsVisible = ReferenceEquals(candidate, page);
+        }
+
+        foreach (Button button in buttons)
+        {
+            button.Classes.Remove("primary");
+        }
+        selectedButton.Classes.Add("primary");
     }
 
     private void DocumentsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -1313,10 +1345,10 @@ public sealed partial class MainWindow : Window
         }
 
         SetBrush("AppBackgroundBrush", "#EAF2FF");
-        SetBrush("ShellBrush", "#101124");
-        SetBrush("ShellRailBrush", "#17182D");
-        SetBrush("ShellCardBrush", "#191A30");
-        SetBrush("ShellBorderBrush", "#22243A");
+        SetBrush("ShellBrush", "#FBFCFF");
+        SetBrush("ShellRailBrush", "#EEF4FF");
+        SetBrush("ShellCardBrush", "#F2F5FE");
+        SetBrush("ShellBorderBrush", "#DDE5F5");
         SetBrush("PanelBrush", "#FBFCFF");
         SetBrush("SoftPanelBrush", "#F2F5FE");
         SetBrush("PreviewPanelBrush", "#F8FAFF");
@@ -1324,15 +1356,15 @@ public sealed partial class MainWindow : Window
         SetBrush("TitleTextBrush", "#282B36");
         SetBrush("BodyTextBrush", "#2B2E3A");
         SetBrush("MutedTextBrush", "#687083");
-        SetBrush("ShellTitleTextBrush", "#F5F7FF");
-        SetBrush("ShellBodyTextBrush", "#D7DBEF");
-        SetBrush("ShellMutedTextBrush", "#AAB0CF");
+        SetBrush("ShellTitleTextBrush", "#282B36");
+        SetBrush("ShellBodyTextBrush", "#2B2E3A");
+        SetBrush("ShellMutedTextBrush", "#687083");
         SetBrush("PrimaryBrush", "#2563EB");
         SetBrush("TealBrush", "#14B8A6");
         SetBrush("TealTextBrush", "#071318");
-        SetBrush("RailButtonBrush", "#202139");
-        SetBrush("RailButtonTextBrush", "#EEF1FF");
-        SetBrush("RailButtonBorderBrush", "#30324C");
+        SetBrush("RailButtonBrush", "#E8EEF9");
+        SetBrush("RailButtonTextBrush", "#263044");
+        SetBrush("RailButtonBorderBrush", "#CDD8EC");
         SetBrush("PreviewCanvasBrush", "#EEF3FF");
         SetBrush("SelectionStrokeBrush", "#2563EB");
         SetBrush("SelectionFillBrush", "#332563EB");
