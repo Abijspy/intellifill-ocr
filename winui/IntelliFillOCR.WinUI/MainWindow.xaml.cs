@@ -14,18 +14,26 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 using Windows.Storage.Pickers;
 
 namespace IntelliFillOCR.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.3.0";
+    private const string AppVersion = "3.3.1";
+    private const double PreviewBaseWidth = 760;
+    private const double PreviewBaseHeight = 430;
+    private const double PreviewMinZoom = 0.5;
+    private const double PreviewMaxZoom = 3.0;
+    private const double PreviewZoomStep = 0.25;
 
     private readonly NativeTemplateLoader _loader = new();
     private readonly NativeExportService _exportService = new();
     private readonly NativeDatabaseService _databaseService = new();
     private readonly List<NativeDocumentTable> _templateTables = new();
+    private readonly List<DocumentItem> _uploadedDocuments = new();
     private readonly List<NativeDocumentPreview> _sourcePreviews = new();
     private readonly List<ExtractedField> _extractedFields = new();
     private readonly List<List<List<string>>> _outputTables = new();
@@ -37,8 +45,14 @@ public sealed partial class MainWindow : Window
     private readonly string _learnedTemplatesPath;
 
     private NativeDocumentPreview? _templatePreview;
+    private NativeDocumentPreview? _selectedDocumentPreview;
     private CellAddress? _selectedDestination;
     private ExtractedField? _selectedField;
+    private bool _regionSelectionMode;
+    private Point? _regionStart;
+    private Rect? _selectedRegion;
+    private double _previewZoom = 1.0;
+    private int _previewRotation;
     private AppSettings _settings = new();
     private string _traceabilityCode = CreateTraceabilityCode();
 
@@ -142,14 +156,33 @@ public sealed partial class MainWindow : Window
     {
         await ShowTextDialogAsync(
             "Scan Source Document",
-            "Scanner integration is available from this Actions command. In the native WinUI package, use your scanner utility to save a PNG/JPG/PDF locally, then choose Upload Source Files. The selected scanned file remains fully offline and can be mapped like any other source.");
+            "Direct scanner device acquisition still depends on the installed Windows scanner driver. Save the scan as PNG, JPG, or PDF from your scanner utility, then use Upload Source Files. The selected scanned document will show in the preview panel and can be region-selected for mapping.");
     }
 
-    private async void SelectOcrRegion_Click(object sender, RoutedEventArgs e)
+    private void SelectOcrRegion_Click(object sender, RoutedEventArgs e)
     {
-        await ShowTextDialogAsync(
-            "Select OCR Region",
-            "Region OCR is exposed from Actions for parity with the Qt workflow. Select or scan a source image/PDF, configure the Tesseract path in Settings, then upload the OCR result as a source. The current native WinUI preview keeps parsed text local and ready for mapping.");
+        if (_selectedDocumentPreview is null)
+        {
+            ShowStatus(InfoBarSeverity.Warning, "Select a document", "Upload and select an image, PDF, or document before drawing a region.");
+            UploadedFilesPanel.StartBringIntoView();
+            return;
+        }
+
+        string extension = Path.GetExtension(_selectedDocumentPreview.Path).ToLowerInvariant();
+        if (extension is not ".png" and not ".jpg" and not ".jpeg" and not ".pdf")
+        {
+            ShowStatus(InfoBarSeverity.Warning, "Region selection is for visual documents", "Select an image or PDF document. For CSV, Excel, and Word, use the table selector and parsed text.");
+            UploadedFilesPanel.StartBringIntoView();
+            return;
+        }
+
+        _regionSelectionMode = true;
+        _regionStart = null;
+        _selectedRegion = null;
+        PreviewRegionRectangle.Visibility = Visibility.Collapsed;
+        RegionSelectionText.Text = "Draw a rectangle on the preview";
+        UploadedFilesPanel.StartBringIntoView();
+        ShowStatus(InfoBarSeverity.Informational, "Region selection enabled", "Drag on the document preview to select an OCR region.");
     }
 
     private void AutoFillButton_Click(object sender, RoutedEventArgs e)
@@ -590,11 +623,26 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        FrameworkElement? target = tag switch
+        {
+            "workspace" => WorkflowPanel,
+            "template" => TemplatePanel,
+            "sources" => UploadedFilesPanel,
+            "mapping" => ExtractedFieldsPanel,
+            "output" => OutputPreviewPanel,
+            "database" => DatabasePanel,
+            "settings" => SettingsPanel,
+            "about" => WorkflowPanel,
+            _ => null
+        };
+
+        target?.StartBringIntoView();
+
         string message = tag switch
         {
             "workspace" => "Use Actions for every workflow command.",
             "template" => "Upload and preview every detected template table.",
-            "sources" => "Upload source files and review parsed text.",
+            "sources" => "Select uploaded documents, preview files, select document tables, and draw regions.",
             "mapping" => "Select extracted fields and destination cells, then map or auto-fill.",
             "output" => "Edit output cells, validate, save, and export.",
             "database" => "Preview SQLite records and saved runs.",
@@ -872,22 +920,352 @@ public sealed partial class MainWindow : Window
 
     private void RefreshUploadedFilesList()
     {
+        int previousIndex = SourcesListView.SelectedIndex;
+        _uploadedDocuments.Clear();
         SourcesListView.Items.Clear();
         if (_templatePreview is not null)
         {
+            _uploadedDocuments.Add(new DocumentItem("Template", _templatePreview));
             SourcesListView.Items.Add($"Template: {Path.GetFileName(_templatePreview.Path)}  -  {_templatePreview.Tables.Count} table(s)");
         }
         foreach (NativeDocumentPreview preview in _sourcePreviews)
         {
+            _uploadedDocuments.Add(new DocumentItem("Source", preview));
             SourcesListView.Items.Add($"Source: {Path.GetFileName(preview.Path)}  -  {preview.Tables.Count} table(s)");
         }
+
+        if (_uploadedDocuments.Count == 0)
+        {
+            SelectDocumentPreview(null);
+            return;
+        }
+
+        SourcesListView.SelectedIndex = previousIndex >= 0 && previousIndex < _uploadedDocuments.Count ? previousIndex : 0;
     }
 
     private void RefreshParsedText()
     {
+        if (_selectedDocumentPreview is not null)
+        {
+            ParsedTextBox.Text = _selectedDocumentPreview.ParsedText;
+            return;
+        }
+
         ParsedTextBox.Text = string.Join(
             Environment.NewLine + Environment.NewLine,
             _sourcePreviews.Select(preview => $"[{preview.Name}]{Environment.NewLine}{preview.ParsedText}"));
+    }
+
+    private void SourcesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        int index = SourcesListView.SelectedIndex;
+        SelectDocumentPreview(index >= 0 && index < _uploadedDocuments.Count ? _uploadedDocuments[index] : null);
+    }
+
+    private void SourceTableSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        RenderSelectedSourceTable();
+    }
+
+    private void PreviewZoomOut_Click(object sender, RoutedEventArgs e)
+    {
+        SetPreviewZoom(_previewZoom - PreviewZoomStep);
+    }
+
+    private void PreviewZoomIn_Click(object sender, RoutedEventArgs e)
+    {
+        SetPreviewZoom(_previewZoom + PreviewZoomStep);
+    }
+
+    private void PreviewResetView_Click(object sender, RoutedEventArgs e)
+    {
+        ResetPreviewView();
+    }
+
+    private void PreviewRotateLeft_Click(object sender, RoutedEventArgs e)
+    {
+        _previewRotation = NormalizeRotation(_previewRotation - 90);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void PreviewRotateRight_Click(object sender, RoutedEventArgs e)
+    {
+        _previewRotation = NormalizeRotation(_previewRotation + 90);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void SelectDocumentPreview(DocumentItem? item)
+    {
+        _selectedDocumentPreview = item?.Preview;
+        SourceTableSelector.Items.Clear();
+        SourceTablePreviewGrid.Children.Clear();
+        SourceTablePreviewGrid.RowDefinitions.Clear();
+        SourceTablePreviewGrid.ColumnDefinitions.Clear();
+        PreviewRegionRectangle.Visibility = Visibility.Collapsed;
+        RegionSelectionText.Text = "No region selected";
+        _regionSelectionMode = false;
+        _regionStart = null;
+        _selectedRegion = null;
+        ResetPreviewView();
+
+        if (_selectedDocumentPreview is null)
+        {
+            SelectedDocumentText.Text = "Upload and select a document to preview it.";
+            ParsedTextBox.Text = "";
+            DocumentPreviewImage.Visibility = Visibility.Collapsed;
+            DocumentPreviewWebView.Visibility = Visibility.Collapsed;
+            DocumentPreviewMessage.Visibility = Visibility.Visible;
+            DocumentPreviewMessage.Text = "Preview will appear here for images and PDFs. Tables and parsed text are shown on the right and below.";
+            return;
+        }
+
+        SelectedDocumentText.Text = $"{item?.Kind}: {Path.GetFileName(_selectedDocumentPreview.Path)}";
+        ParsedTextBox.Text = _selectedDocumentPreview.ParsedText;
+        foreach (NativeDocumentTable table in _selectedDocumentPreview.Tables)
+        {
+            SourceTableSelector.Items.Add($"{table.Label} ({table.RowCount} x {table.ColumnCount})");
+        }
+        SourceTableSelector.SelectedIndex = _selectedDocumentPreview.Tables.Count > 0 ? 0 : -1;
+        RenderDocumentPreview(_selectedDocumentPreview);
+    }
+
+    private void RenderDocumentPreview(NativeDocumentPreview preview)
+    {
+        string extension = Path.GetExtension(preview.Path).ToLowerInvariant();
+        DocumentPreviewImage.Visibility = Visibility.Collapsed;
+        DocumentPreviewWebView.Visibility = Visibility.Collapsed;
+        DocumentPreviewMessage.Visibility = Visibility.Collapsed;
+        ApplyPreviewView(resetSelection: false);
+
+        try
+        {
+            if (extension is ".png" or ".jpg" or ".jpeg")
+            {
+                DocumentPreviewImage.Source = new BitmapImage(ToFileUri(preview.Path));
+                DocumentPreviewImage.Visibility = Visibility.Visible;
+                RegionSelectionText.Text = "Use Select Region to draw OCR area";
+                return;
+            }
+
+            if (extension == ".pdf")
+            {
+                DocumentPreviewWebView.Source = ToFileUri(preview.Path);
+                DocumentPreviewWebView.Visibility = Visibility.Visible;
+                RegionSelectionText.Text = "Use Select Region to draw PDF area";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"Preview render failed for {preview.Path}: {ex}");
+        }
+
+        DocumentPreviewMessage.Visibility = Visibility.Visible;
+        DocumentPreviewMessage.Text = preview.Tables.Count > 0
+            ? "This document is table/text based. Use the table selector and parsed text preview."
+            : "No visual preview is available for this document type.";
+        RegionSelectionText.Text = "Table/text document";
+    }
+
+    private void RenderSelectedSourceTable()
+    {
+        SourceTablePreviewGrid.Children.Clear();
+        SourceTablePreviewGrid.RowDefinitions.Clear();
+        SourceTablePreviewGrid.ColumnDefinitions.Clear();
+
+        if (_selectedDocumentPreview is null)
+        {
+            return;
+        }
+
+        int index = SourceTableSelector.SelectedIndex;
+        if (index < 0 || index >= _selectedDocumentPreview.Tables.Count)
+        {
+            return;
+        }
+
+        NativeDocumentTable table = _selectedDocumentPreview.Tables[index];
+        RenderReadOnlyGrid(SourceTablePreviewGrid, table.Rows, table.Label, updateSummary: false);
+    }
+
+    private void OpenSelectedDocument_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedDocumentPreview is null || !File.Exists(_selectedDocumentPreview.Path))
+        {
+            ShowStatus(InfoBarSeverity.Warning, "No document selected", "Select an uploaded document first.");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(_selectedDocumentPreview.Path) { UseShellExecute = true });
+    }
+
+    private void PreviewSelectionCanvas_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_regionSelectionMode)
+        {
+            return;
+        }
+
+        _regionStart = e.GetCurrentPoint(PreviewSelectionCanvas).Position;
+        Canvas.SetLeft(PreviewRegionRectangle, _regionStart.Value.X);
+        Canvas.SetTop(PreviewRegionRectangle, _regionStart.Value.Y);
+        PreviewRegionRectangle.Width = 0;
+        PreviewRegionRectangle.Height = 0;
+        PreviewRegionRectangle.Visibility = Visibility.Visible;
+        e.Handled = true;
+    }
+
+    private void PreviewSelectionCanvas_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_regionSelectionMode || _regionStart is null)
+        {
+            return;
+        }
+
+        Point current = e.GetCurrentPoint(PreviewSelectionCanvas).Position;
+        UpdateSelectionRectangle(_regionStart.Value, current);
+        e.Handled = true;
+    }
+
+    private async void PreviewSelectionCanvas_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_regionSelectionMode || _regionStart is null)
+        {
+            return;
+        }
+
+        Point end = e.GetCurrentPoint(PreviewSelectionCanvas).Position;
+        _selectedRegion = UpdateSelectionRectangle(_regionStart.Value, end);
+        _regionSelectionMode = false;
+        _regionStart = null;
+        e.Handled = true;
+
+        if (_selectedRegion.Value.Width < 8 || _selectedRegion.Value.Height < 8)
+        {
+            PreviewRegionRectangle.Visibility = Visibility.Collapsed;
+            RegionSelectionText.Text = "Selection too small";
+            ShowStatus(InfoBarSeverity.Warning, "Region too small", "Draw a larger rectangle on the preview.");
+            return;
+        }
+
+        RegionSelectionText.Text = FormatRegion(_selectedRegion.Value);
+        await AddSelectedRegionFieldAsync(_selectedRegion.Value);
+    }
+
+    private Rect UpdateSelectionRectangle(Point start, Point end)
+    {
+        double left = Math.Min(start.X, end.X);
+        double top = Math.Min(start.Y, end.Y);
+        double width = Math.Abs(end.X - start.X);
+        double height = Math.Abs(end.Y - start.Y);
+        Canvas.SetLeft(PreviewRegionRectangle, left);
+        Canvas.SetTop(PreviewRegionRectangle, top);
+        PreviewRegionRectangle.Width = width;
+        PreviewRegionRectangle.Height = height;
+        return new Rect(left, top, width, height);
+    }
+
+    private async Task AddSelectedRegionFieldAsync(Rect region)
+    {
+        if (_selectedDocumentPreview is null)
+        {
+            return;
+        }
+
+        var labelBox = new TextBox
+        {
+            Header = "Field label",
+            Text = $"Region from {Path.GetFileNameWithoutExtension(_selectedDocumentPreview.Path)}",
+            MinWidth = 420
+        };
+        var valueBox = new TextBox
+        {
+            Header = "Extracted value / manual correction",
+            PlaceholderText = "Type the OCR result or field value from this selected region",
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            MinHeight = 100
+        };
+        var stack = new StackPanel { Spacing = 12 };
+        stack.Children.Add(new TextBlock
+        {
+            Text = $"{Path.GetFileName(_selectedDocumentPreview.Path)}\n{FormatRegion(region)}\n\nNative region selection is captured locally. Enter or correct the OCR text here, then map it to the output table.",
+            TextWrapping = TextWrapping.WrapWholeWords
+        });
+        stack.Children.Add(labelBox);
+        stack.Children.Add(valueBox);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = "Add Selected Region as Field",
+            Content = stack,
+            PrimaryButtonText = "Add Field",
+            CloseButtonText = "Cancel"
+        };
+        ContentDialogResult result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        string label = string.IsNullOrWhiteSpace(labelBox.Text) ? "Selected Region" : labelBox.Text.Trim();
+        string value = string.IsNullOrWhiteSpace(valueBox.Text) ? FormatRegion(region) : valueBox.Text.Trim();
+        AddExtractedField(new ExtractedField(_extractedFields.Count + 1, _selectedDocumentPreview.Name, label, value, 0.80));
+        ShowStatus(InfoBarSeverity.Success, "Region field added", $"{label}: {value}");
+    }
+
+    private void AddExtractedField(ExtractedField field)
+    {
+        _extractedFields.Add(field);
+        ExtractedFieldsListView.Items.Add($"{field.Label}: {field.Value}  ({field.SourceName}, {field.Confidence:P0})");
+        ExtractedFieldsListView.SelectedIndex = _extractedFields.Count - 1;
+    }
+
+    private void SetPreviewZoom(double zoom)
+    {
+        _previewZoom = Math.Clamp(zoom, PreviewMinZoom, PreviewMaxZoom);
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void ResetPreviewView()
+    {
+        _previewZoom = 1.0;
+        _previewRotation = 0;
+        ApplyPreviewView(resetSelection: true);
+    }
+
+    private void ApplyPreviewView(bool resetSelection)
+    {
+        DocumentPreviewHost.Width = PreviewBaseWidth * _previewZoom;
+        DocumentPreviewHost.Height = PreviewBaseHeight * _previewZoom;
+        PreviewSelectionCanvas.Width = DocumentPreviewHost.Width;
+        PreviewSelectionCanvas.Height = DocumentPreviewHost.Height;
+        PreviewZoomText.Text = $"{_previewZoom:P0} / {_previewRotation}°";
+
+        DocumentPreviewImage.RenderTransform = new RotateTransform { Angle = _previewRotation };
+        DocumentPreviewWebView.RenderTransform = new RotateTransform { Angle = _previewRotation };
+
+        if (resetSelection)
+        {
+            _regionSelectionMode = false;
+            _regionStart = null;
+            _selectedRegion = null;
+            PreviewRegionRectangle.Visibility = Visibility.Collapsed;
+            RegionSelectionText.Text = "No region selected";
+        }
+        else if (_selectedRegion is Rect region)
+        {
+            RegionSelectionText.Text = FormatRegion(region);
+        }
+    }
+
+    private string FormatRegion(Rect region)
+    {
+        double zoom = Math.Max(_previewZoom, 0.01);
+        Rect baseRegion = new(region.X / zoom, region.Y / zoom, region.Width / zoom, region.Height / zoom);
+        string rotation = _previewRotation == 0 ? "" : $", rotated {_previewRotation}°";
+        return $"Region X={baseRegion.X:0}, Y={baseRegion.Y:0}, W={baseRegion.Width:0}, H={baseRegion.Height:0} ({_previewZoom:P0}{rotation})";
     }
 
     private void RefreshExtractedFields()
@@ -902,8 +1280,7 @@ public sealed partial class MainWindow : Window
                 {
                     continue;
                 }
-                _extractedFields.Add(field);
-                ExtractedFieldsListView.Items.Add($"{field.Label}: {field.Value}  ({field.SourceName}, {field.Confidence:P0})");
+                AddExtractedField(field);
             }
         }
     }
@@ -1358,6 +1735,17 @@ public sealed partial class MainWindow : Window
             .ToArray();
     }
 
+    private static int NormalizeRotation(int angle)
+    {
+        int normalized = angle % 360;
+        return normalized < 0 ? normalized + 360 : normalized;
+    }
+
+    private static Uri ToFileUri(string path)
+    {
+        return new Uri(Path.GetFullPath(path));
+    }
+
     private static string SanitizeFileName(string fileName)
     {
         foreach (char invalid in Path.GetInvalidFileNameChars())
@@ -1424,6 +1812,8 @@ public sealed partial class MainWindow : Window
 
     private sealed record CellAddress(int TableIndex, int RowIndex, int ColumnIndex);
 
+    private sealed record DocumentItem(string Kind, NativeDocumentPreview Preview);
+
     private sealed record ExtractedField(int Id, string SourceName, string Label, string Value, double Confidence);
 
     private sealed record MatchCandidate(ExtractedField Field, double Score);
@@ -1441,3 +1831,4 @@ public sealed partial class MainWindow : Window
         public string Theme { get; set; } = "Default";
     }
 }
+
