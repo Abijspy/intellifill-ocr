@@ -25,8 +25,8 @@ internal static class Program
                 "IntelliFill OCR");
 
             Directory.CreateDirectory(Path.GetDirectoryName(target) ?? ".");
-            WaitForExistingAppToClose(options.Silent);
-            ReplaceTargetWithPayload(target);
+            WaitForExistingAppToClose(target, options);
+            ReplaceTargetWithPayload(target, options);
             WriteInstallMetadata(target);
             CreateStartMenuShortcut(target);
 
@@ -45,37 +45,79 @@ internal static class Program
         }
     }
 
-    private static void WaitForExistingAppToClose(bool silent)
+    private static void WaitForExistingAppToClose(string target, Options options)
     {
-        for (int attempt = 0; attempt < 30; attempt++)
+        if (options.WaitProcessId is int waitProcessId && waitProcessId != Environment.ProcessId)
         {
-            Process[] running = Process.GetProcessesByName("IntelliFillOCR")
-                .Where(process => process.Id != Environment.ProcessId)
-                .ToArray();
-            if (running.Length == 0)
+            WaitForProcessIdToExit(waitProcessId, target, options);
+        }
+
+        Process[] running = FindRunningAppProcesses(target);
+        if (running.Length == 0)
+        {
+            return;
+        }
+
+        RequestProcessesToClose(running);
+        if (WaitForProcessesToExit(running, TimeSpan.FromSeconds(20)))
+        {
+            return;
+        }
+
+        running = FindRunningAppProcesses(target);
+        if (running.Length == 0)
+        {
+            return;
+        }
+
+        if (!options.Silent && !ConfirmForceClose(running.Length))
+        {
+            throw new IOException("IntelliFill OCR is still running. Close the app and run the updater again.");
+        }
+
+        ForceCloseProcesses(running);
+        if (!WaitForProcessesToExit(running, TimeSpan.FromSeconds(20)))
+        {
+            throw new IOException("IntelliFill OCR is still running and could not be closed. Close it from Task Manager and run the updater again.");
+        }
+    }
+
+    private static void WaitForProcessIdToExit(int processId, string target, Options options)
+    {
+        try
+        {
+            using Process process = Process.GetProcessById(processId);
+            if (!IsProcessFromTarget(process, target))
             {
                 return;
             }
 
-            if (attempt == 0 && !silent)
+            if (process.WaitForExit((int)TimeSpan.FromSeconds(60).TotalMilliseconds))
             {
-                foreach (Process process in running)
-                {
-                    try
-                    {
-                        process.CloseMainWindow();
-                    }
-                    catch
-                    {
-                        // Continue waiting; the update can still proceed after the app exits.
-                    }
-                }
+                return;
             }
-            Thread.Sleep(500);
+
+            RequestProcessesToClose(new[] { process });
+            if (process.WaitForExit((int)TimeSpan.FromSeconds(20).TotalMilliseconds))
+            {
+                return;
+            }
+
+            if (!options.Silent && !ConfirmForceClose(1))
+            {
+                throw new IOException("IntelliFill OCR is still running. Close the app and run the updater again.");
+            }
+
+            ForceCloseProcesses(new[] { process });
+            process.WaitForExit((int)TimeSpan.FromSeconds(20).TotalMilliseconds);
+        }
+        catch (ArgumentException)
+        {
+            // The process has already exited.
         }
     }
 
-    private static void ReplaceTargetWithPayload(string target)
+    private static void ReplaceTargetWithPayload(string target, Options options)
     {
         string tempTarget = target + ".new";
         string oldTarget = target + ".old";
@@ -112,11 +154,19 @@ internal static class Program
         DeleteDirectory(oldTarget);
         if (Directory.Exists(target))
         {
-            Directory.Move(target, oldTarget);
+            RunFileSystemStep(
+                () => Directory.Move(target, oldTarget),
+                target,
+                options,
+                "prepare the existing installation for update");
         }
 
-        Directory.Move(tempTarget, target);
-        DeleteDirectory(oldTarget);
+        RunFileSystemStep(
+            () => Directory.Move(tempTarget, target),
+            target,
+            options,
+            "activate the updated installation");
+        TryDeleteDirectory(oldTarget);
     }
 
     private static string? DetectRootPrefix(ZipArchive archive)
@@ -147,6 +197,132 @@ internal static class Program
             catch when (attempt < 11)
             {
                 Thread.Sleep(400);
+            }
+        }
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            DeleteDirectory(path);
+        }
+        catch
+        {
+            // The old folder is no longer active. A future update can clean it if Windows releases it later.
+        }
+    }
+
+    private static void RunFileSystemStep(Action action, string target, Options options, string description)
+    {
+        Exception? lastError = null;
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            try
+            {
+                action();
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                lastError = ex;
+                WaitForExistingAppToClose(target, options);
+                Thread.Sleep(500 + (attempt * 250));
+            }
+        }
+
+        throw new IOException(
+            $"Could not {description}. Close IntelliFill OCR and any file explorer windows opened inside the install folder, then run the updater again.",
+            lastError);
+    }
+
+    private static Process[] FindRunningAppProcesses(string target)
+    {
+        return Process.GetProcessesByName("IntelliFillOCR")
+            .Where(process => process.Id != Environment.ProcessId && IsProcessFromTarget(process, target))
+            .ToArray();
+    }
+
+    private static bool IsProcessFromTarget(Process process, string target)
+    {
+        try
+        {
+            string targetRoot = Path.GetFullPath(target).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string? processPath = process.MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                return true;
+            }
+
+            string fullProcessPath = Path.GetFullPath(processPath);
+            return fullProcessPath.StartsWith(targetRoot, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static void RequestProcessesToClose(Process[] processes)
+    {
+        foreach (Process process in processes)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.CloseMainWindow();
+                }
+            }
+            catch
+            {
+                // Continue with wait/force-close fallback.
+            }
+        }
+    }
+
+    private static bool WaitForProcessesToExit(Process[] processes, TimeSpan timeout)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < timeout)
+        {
+            if (processes.All(process => HasExited(process)))
+            {
+                return true;
+            }
+
+            Thread.Sleep(250);
+        }
+
+        return processes.All(process => HasExited(process));
+    }
+
+    private static bool HasExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static void ForceCloseProcesses(Process[] processes)
+    {
+        foreach (Process process in processes)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // The final wait will report a clear error if the process remains alive.
             }
         }
     }
@@ -210,13 +386,33 @@ internal static class Program
         }
     }
 
-    private sealed record Options(string? TargetPath, bool Launch, bool Silent)
+    private static bool ConfirmForceClose(int processCount)
+    {
+        try
+        {
+            Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+            dynamic? shell = shellType is null ? null : Activator.CreateInstance(shellType);
+            int result = shell?.Popup(
+                $"IntelliFill OCR is still running ({processCount} process(es)). The updater must close it before replacing files.\n\nClick OK to close IntelliFill OCR and continue, or Cancel to stop.",
+                0,
+                "Close IntelliFill OCR to update",
+                49) ?? 2;
+            return result == 1;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed record Options(string? TargetPath, bool Launch, bool Silent, int? WaitProcessId)
     {
         public static Options Parse(string[] args)
         {
             string? target = null;
             bool launch = true;
             bool silent = false;
+            int? waitProcessId = null;
 
             foreach (string arg in args)
             {
@@ -232,9 +428,14 @@ internal static class Program
                 {
                     target = arg["--target=".Length..].Trim('"');
                 }
+                else if (arg.StartsWith("--wait-pid=", StringComparison.OrdinalIgnoreCase) &&
+                         int.TryParse(arg["--wait-pid=".Length..].Trim('"'), out int parsedProcessId))
+                {
+                    waitProcessId = parsedProcessId;
+                }
             }
 
-            return new Options(target, launch, silent);
+            return new Options(target, launch, silent, waitProcessId);
         }
     }
 }

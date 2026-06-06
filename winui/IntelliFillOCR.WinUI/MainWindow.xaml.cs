@@ -22,7 +22,7 @@ namespace IntelliFillOCR.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.3.1";
+    private const string AppVersion = "3.3.2";
     private const double PreviewBaseWidth = 760;
     private const double PreviewBaseHeight = 430;
     private const double PreviewMinZoom = 0.5;
@@ -537,7 +537,7 @@ public sealed partial class MainWindow : Window
             }
 
             Log($"Downloaded update: {updatePath}");
-            Process.Start(new ProcessStartInfo(updatePath, "--silent") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(updatePath, $"--silent --wait-pid={Environment.ProcessId}") { UseShellExecute = true });
             Microsoft.UI.Xaml.Application.Current.Exit();
         }
         catch (Exception ex)
@@ -1831,4 +1831,5 @@ public sealed partial class MainWindow : Window
         public string Theme { get; set; } = "Default";
     }
 }
+
 
