@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.6.1"
+        default: "3.7.0"
   push:
     tags:
       - "v*"
@@ -172,12 +172,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Improved image/PDF preview clarity with a larger high-resolution visual canvas.
-          - Added a final output preview to the Review page before saving or exporting.
-          - Improved PDF export with multi-page tables, borders, wrapped cell text, page numbers, and a single bottom traceability barcode.
-          - Improved Word and Excel export formatting with clearer headings, table borders, and readable spacing.
-          - Added a loading progress popup while Check for Updates is running.
-          - Short popup messages now open in smaller styled windows instead of oversized dialogs.
+          - Added the new OCR AutoFill logo and Windows app icon.
+          - Updated the GitHub README to show the wide OCR AutoFill branding banner.
+          - Added the new wide banner image to the in-app About dialog.
+          - Bundled the new logo assets into the Avalonia application and installer package.
           NOTES
 
       - name: Create or update GitHub release

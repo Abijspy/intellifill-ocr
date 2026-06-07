@@ -12,6 +12,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Docnet.Core;
@@ -23,7 +24,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.6.1";
+    private const string AppVersion = "3.7.0";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -321,7 +322,7 @@ public sealed partial class MainWindow : Window
 
     private async void OpenAbout_Click(object? sender, RoutedEventArgs e)
     {
-        await ShowMessageAsync("About IntelliFill OCR", $"IntelliFill OCR {AppVersion}{Environment.NewLine}Avalonia desktop edition{Environment.NewLine}{Environment.NewLine}Offline OCR, document extraction, table filling, SQLite storage, and traceable exports.");
+        await ShowAboutAsync();
     }
 
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
@@ -1890,6 +1891,87 @@ exit /b %INSTALL_EXIT%
         await box.ShowDialog(this);
     }
 
+    private async Task ShowAboutAsync()
+    {
+        Button closeButton = CreateDialogButton("Close", isPrimary: true, minWidth: 110);
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { closeButton }
+        };
+
+        Control banner = CreateAboutBanner();
+        var body = new Border
+        {
+            Background = DialogBrush("PreviewPanelBrush"),
+            BorderBrush = DialogBrush("PanelBorderBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(18),
+            Child = new StackPanel
+            {
+                Spacing = 16,
+                Children =
+                {
+                    banner,
+                    new TextBlock
+                    {
+                        Text = $"IntelliFill OCR {AppVersion}",
+                        FontSize = 22,
+                        FontWeight = FontWeight.SemiBold,
+                        Foreground = DialogBrush("TitleTextBrush")
+                    },
+                    new TextBlock
+                    {
+                        Text = "Avalonia desktop edition",
+                        FontSize = 14,
+                        Foreground = DialogBrush("MutedTextBrush")
+                    },
+                    new TextBlock
+                    {
+                        Text = "Offline OCR, document extraction, table filling, SQLite storage, and traceable exports.",
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = DialogBrush("BodyTextBrush"),
+                        LineHeight = 22
+                    }
+                }
+            }
+        };
+
+        Window box = CreateStyledDialog("About IntelliFill OCR", 740, 540, body, buttons);
+        closeButton.Click += (_, _) => box.Close();
+        await box.ShowDialog(this);
+    }
+
+    private Control CreateAboutBanner()
+    {
+        try
+        {
+            using Stream stream = AssetLoader.Open(new Uri("avares://IntelliFillOCR/Assets/logo.png"));
+            return new Image
+            {
+                Source = new Bitmap(stream),
+                Stretch = Stretch.Uniform,
+                MaxHeight = 220,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+        }
+        catch (Exception ex)
+        {
+            Log("About banner failed to load: " + ex.Message);
+            return new TextBlock
+            {
+                Text = "OCR AUTOFILL",
+                FontSize = 28,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = DialogBrush("TitleTextBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+        }
+    }
+
     private Window CreateProgressDialog(string title, string text)
     {
         var body = new Border
@@ -2179,6 +2261,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.7.0
+        - Added the new OCR AutoFill brand logo to the app, installer icon, and GitHub README.
+        - Updated README branding to use the wide OCR AutoFill banner.
+        - Added the wide OCR AutoFill banner to the in-app About dialog.
+        - Rebuilt the Windows application icon from the new document/OCR logo.
 
         Version 3.6.1
         - Improved image/PDF preview clarity with a larger high-resolution visual canvas.
