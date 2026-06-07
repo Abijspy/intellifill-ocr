@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Avalonia;
@@ -13,13 +14,16 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Docnet.Core;
+using Docnet.Core.Models;
 using IntelliFillOCR.Core;
+using SkiaSharp;
 
 namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.5.5";
+    private const string AppVersion = "3.6.0";
     private const double PreviewBaseWidth = 780;
     private const double PreviewBaseHeight = 500;
     private const double PreviewMinZoom = 0.5;
@@ -49,6 +53,8 @@ public sealed partial class MainWindow : Window
     private Rect? _selectedRegion;
     private double _previewZoom = 1.0;
     private int _previewRotation;
+    private string? _previewBaseRasterPath;
+    private string? _previewDisplayRasterPath;
     private AppSettings _settings = new();
     private string _traceabilityCode = CreateTraceabilityCode();
 
@@ -64,7 +70,9 @@ public sealed partial class MainWindow : Window
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_logPath)!);
 
         _settings = LoadSettings();
+        AutoDetectTesseractPath();
         ApplySettingsToUi();
+        VersionBadgeText.Text = $"v{AppVersion}";
         StatusText.Text = PackageStatus();
         TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
         Log("Avalonia application started.");
@@ -337,7 +345,7 @@ public sealed partial class MainWindow : Window
 
     private void ApplyTheme_Click(object? sender, RoutedEventArgs e)
     {
-        _settings.TesseractPath = TesseractPathBox.Text ?? string.Empty;
+        _settings.TesseractPath = string.IsNullOrWhiteSpace(TesseractPathBox.Text) ? DetectTesseractPath() ?? string.Empty : TesseractPathBox.Text;
         _settings.DatabasePath = string.IsNullOrWhiteSpace(DatabasePathBox.Text) ? DefaultDatabasePath() : Environment.ExpandEnvironmentVariables(DatabasePathBox.Text);
         _settings.Theme = ThemeComboBox.SelectedIndex switch
         {
@@ -502,7 +510,7 @@ public sealed partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void PreviewCanvas_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    private async void PreviewCanvas_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (!_regionSelectionMode || _regionStart is null)
         {
@@ -524,7 +532,7 @@ public sealed partial class MainWindow : Window
         }
 
         RegionSelectionText.Text = FormatRegion(_selectedRegion.Value);
-        AddSelectedRegionField(_selectedRegion.Value);
+        await AddSelectedRegionFieldAsync(_selectedRegion.Value);
     }
 
     private void OpenOriginal_Click(object? sender, RoutedEventArgs e)
@@ -880,6 +888,8 @@ exit /b %INSTALL_EXIT%
         ClearGrid(SourceTablePreviewGrid);
         PreviewRegionRectangle.IsVisible = false;
         RegionSelectionText.Text = "No region selected";
+        _previewBaseRasterPath = null;
+        _previewDisplayRasterPath = null;
         ResetPreviewView();
 
         if (_selectedDocumentPreview is null)
@@ -904,35 +914,324 @@ exit /b %INSTALL_EXIT%
     private void RenderDocumentPreview(DocumentPreview preview)
     {
         string extension = System.IO.Path.GetExtension(preview.Path).ToLowerInvariant();
+        _previewBaseRasterPath = null;
+        _previewDisplayRasterPath = null;
         PreviewImage.IsVisible = false;
         PreviewMessage.IsVisible = true;
-        PreviewMessage.Text = "Preview will appear here for images. PDF files can still be region-marked and table/parsed text is shown on the right.";
+        PreviewMessage.Text = "Preview will appear here for images and PDFs. Parsed text and detected tables are shown below.";
 
         try
         {
             if (extension is ".png" or ".jpg" or ".jpeg")
             {
-                using FileStream stream = File.OpenRead(preview.Path);
-                PreviewImage.Source = new Bitmap(stream);
-                PreviewImage.IsVisible = true;
-                PreviewMessage.IsVisible = false;
+                _previewBaseRasterPath = RenderImagePreviewToPng(preview.Path);
+                RefreshPreviewImageSource();
                 RegionSelectionText.Text = "Use Select Region to draw OCR area.";
                 return;
             }
 
             if (extension == ".pdf")
             {
-                PreviewMessage.Text = "PDF selected. Use Select Region for OCR window capture, or Open Original to inspect the PDF in the system viewer.";
+                _previewBaseRasterPath = RenderPdfPreviewToPng(preview.Path);
+                RefreshPreviewImageSource();
                 RegionSelectionText.Text = "Use Select Region to draw PDF area.";
                 return;
             }
         }
         catch (Exception ex)
         {
+            PreviewMessage.Text = $"Could not render preview: {ex.Message}";
             Log($"Preview render failed for {preview.Path}: {ex}");
         }
 
         RegionSelectionText.Text = "Table/text document.";
+    }
+
+    private string RenderImagePreviewToPng(string path)
+    {
+        using SKBitmap source = SKBitmap.Decode(path) ?? throw new InvalidDataException("The image could not be decoded.");
+        return SaveCanvasPreview(source, "image");
+    }
+
+    private string RenderPdfPreviewToPng(string path)
+    {
+        byte[] pdfBytes = File.ReadAllBytes(path);
+        using var docReader = DocLib.Instance.GetDocReader(pdfBytes, new PageDimensions(1600, 2200));
+        using var pageReader = docReader.GetPageReader(0);
+        int width = pageReader.GetPageWidth();
+        int height = pageReader.GetPageHeight();
+        byte[] rawBytes = pageReader.GetImage();
+
+        using var source = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+        Marshal.Copy(rawBytes, 0, source.GetPixels(), Math.Min(rawBytes.Length, width * height * 4));
+        return SaveCanvasPreview(source, "pdf");
+    }
+
+    private string SaveCanvasPreview(SKBitmap source, string suffix)
+    {
+        int width = (int)PreviewBaseWidth;
+        int height = (int)PreviewBaseHeight;
+        using SKSurface surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul))
+            ?? throw new InvalidOperationException("Could not create the preview drawing surface.");
+        surface.Canvas.Clear(PreviewBackgroundColor());
+        SKRect destination = FitWithin(source.Width, source.Height, width, height);
+        using var paint = new SKPaint { IsAntialias = true };
+        surface.Canvas.DrawBitmap(source, destination, paint);
+
+        string outputPath = NewPreviewPath(suffix);
+        SaveSurfacePng(surface, outputPath);
+        return outputPath;
+    }
+
+    private bool RefreshPreviewImageSource()
+    {
+        if (string.IsNullOrWhiteSpace(_previewBaseRasterPath) || !File.Exists(_previewBaseRasterPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            _previewDisplayRasterPath = _previewRotation == 0
+                ? _previewBaseRasterPath
+                : RenderRotatedPreview(_previewBaseRasterPath, _previewRotation);
+            using FileStream stream = File.OpenRead(_previewDisplayRasterPath);
+            PreviewImage.Source = new Bitmap(stream);
+            PreviewImage.IsVisible = true;
+            PreviewMessage.IsVisible = false;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            PreviewImage.IsVisible = false;
+            PreviewMessage.IsVisible = true;
+            PreviewMessage.Text = $"Could not refresh preview: {ex.Message}";
+            Log("Preview refresh failed: " + ex);
+            return false;
+        }
+    }
+
+    private string RenderRotatedPreview(string sourcePath, int rotation)
+    {
+        using SKBitmap source = SKBitmap.Decode(sourcePath) ?? throw new InvalidDataException("The preview image could not be decoded.");
+        int width = (int)PreviewBaseWidth;
+        int height = (int)PreviewBaseHeight;
+        using SKSurface surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul))
+            ?? throw new InvalidOperationException("Could not create the rotated preview drawing surface.");
+        surface.Canvas.Clear(PreviewBackgroundColor());
+        surface.Canvas.Translate(width / 2f, height / 2f);
+        surface.Canvas.RotateDegrees(rotation);
+        float rotatedWidth = rotation is 90 or 270 ? source.Height : source.Width;
+        float rotatedHeight = rotation is 90 or 270 ? source.Width : source.Height;
+        float scale = Math.Min(width / rotatedWidth, height / rotatedHeight);
+        surface.Canvas.Scale(scale);
+        surface.Canvas.DrawBitmap(source, new SKRect(-source.Width / 2f, -source.Height / 2f, source.Width / 2f, source.Height / 2f));
+
+        string outputPath = NewPreviewPath($"rotated-{rotation}");
+        SaveSurfacePng(surface, outputPath);
+        return outputPath;
+    }
+
+    private string? CropSelectedRegionToPng(Rect region)
+    {
+        if (string.IsNullOrWhiteSpace(_previewDisplayRasterPath) || !File.Exists(_previewDisplayRasterPath))
+        {
+            return null;
+        }
+
+        using SKBitmap source = SKBitmap.Decode(_previewDisplayRasterPath) ?? throw new InvalidDataException("The preview image could not be decoded.");
+        double zoom = Math.Max(_previewZoom, 0.01);
+        int left = (int)Math.Clamp(Math.Floor(region.X / zoom), 0, Math.Max(0, source.Width - 1));
+        int top = (int)Math.Clamp(Math.Floor(region.Y / zoom), 0, Math.Max(0, source.Height - 1));
+        int right = (int)Math.Clamp(Math.Ceiling((region.X + region.Width) / zoom), left + 1, source.Width);
+        int bottom = (int)Math.Clamp(Math.Ceiling((region.Y + region.Height) / zoom), top + 1, source.Height);
+        int width = right - left;
+        int height = bottom - top;
+        if (width < 2 || height < 2)
+        {
+            return null;
+        }
+
+        using var crop = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul));
+        using var canvas = new SKCanvas(crop);
+        canvas.Clear(SKColors.White);
+        canvas.DrawBitmap(source, new SKRectI(left, top, right, bottom), new SKRect(0, 0, width, height));
+
+        string outputPath = NewPreviewPath("region");
+        SaveBitmapPng(crop, outputPath);
+        return outputPath;
+    }
+
+    private async Task<string?> RunTesseractAsync(string imagePath)
+    {
+        string executable = ResolveTesseractExecutable();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executable,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add(imagePath);
+        startInfo.ArgumentList.Add("stdout");
+        startInfo.ArgumentList.Add("-l");
+        startInfo.ArgumentList.Add("eng");
+        startInfo.ArgumentList.Add("--psm");
+        startInfo.ArgumentList.Add("6");
+
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Tesseract could not be started.");
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        string output = await outputTask;
+        string error = await errorTask;
+        if (process.ExitCode != 0)
+        {
+            Log($"Tesseract exited with code {process.ExitCode}: {error}");
+            return null;
+        }
+
+        return Regex.Replace(output, @"\s+", " ").Trim();
+    }
+
+    private string ResolveTesseractExecutable()
+    {
+        if (!string.IsNullOrWhiteSpace(_settings.TesseractPath) && File.Exists(_settings.TesseractPath))
+        {
+            return _settings.TesseractPath;
+        }
+
+        string? detected = DetectTesseractPath();
+        if (!string.IsNullOrWhiteSpace(detected))
+        {
+            _settings.TesseractPath = detected;
+            TesseractPathBox.Text = detected;
+            SaveSettings();
+            return detected;
+        }
+
+        throw new InvalidOperationException("Tesseract OCR was not found. Install Tesseract or choose tesseract.exe in Settings.");
+    }
+
+    private void AutoDetectTesseractPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_settings.TesseractPath) && File.Exists(_settings.TesseractPath))
+        {
+            return;
+        }
+
+        string? detected = DetectTesseractPath();
+        if (!string.IsNullOrWhiteSpace(detected))
+        {
+            _settings.TesseractPath = detected;
+            SaveSettings();
+            Log("Tesseract auto-detected: " + detected);
+        }
+    }
+
+    private static string? DetectTesseractPath()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            string[] candidates =
+            {
+                System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tesseract-OCR", "tesseract.exe"),
+                System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Tesseract-OCR", "tesseract.exe"),
+                System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Tesseract-OCR", "tesseract.exe")
+            };
+
+            string? match = candidates.FirstOrDefault(File.Exists);
+            if (!string.IsNullOrWhiteSpace(match))
+            {
+                return match;
+            }
+        }
+
+        string executableName = OperatingSystem.IsWindows() ? "tesseract.exe" : "tesseract";
+        foreach (string directory in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(System.IO.Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                continue;
+            }
+
+            string path = System.IO.Path.Combine(directory.Trim(), executableName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return null;
+    }
+
+    private string NewPreviewPath(string suffix)
+    {
+        string directory = System.IO.Path.Combine(_appDataPath, "PreviewCache");
+        Directory.CreateDirectory(directory);
+        return System.IO.Path.Combine(directory, $"preview-{Guid.NewGuid():N}-{suffix}.png");
+    }
+
+    private SKColor PreviewBackgroundColor()
+    {
+        try
+        {
+            if (Resources["PreviewCanvasBrush"] is SolidColorBrush brush)
+            {
+                Color color = brush.Color;
+                return new SKColor(color.R, color.G, color.B, color.A);
+            }
+        }
+        catch
+        {
+            // Use the light preview color if the dynamic resource is not available yet.
+        }
+
+        return new SKColor(238, 243, 255);
+    }
+
+    private static SKRect FitWithin(float sourceWidth, float sourceHeight, float targetWidth, float targetHeight)
+    {
+        float scale = Math.Min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+        float width = sourceWidth * scale;
+        float height = sourceHeight * scale;
+        float left = (targetWidth - width) / 2f;
+        float top = (targetHeight - height) / 2f;
+        return new SKRect(left, top, left + width, top + height);
+    }
+
+    private static void SaveSurfacePng(SKSurface surface, string outputPath)
+    {
+        using SKImage image = surface.Snapshot();
+        using SKData data = image.Encode(SKEncodedImageFormat.Png, 95)
+            ?? throw new InvalidOperationException("Preview image encoding failed.");
+        using FileStream stream = File.Create(outputPath);
+        data.SaveTo(stream);
+    }
+
+    private static void SaveBitmapPng(SKBitmap bitmap, string outputPath)
+    {
+        using SKImage image = SKImage.FromBitmap(bitmap);
+        using SKData data = image.Encode(SKEncodedImageFormat.Png, 95)
+            ?? throw new InvalidOperationException("Region image encoding failed.");
+        using FileStream stream = File.Create(outputPath);
+        data.SaveTo(stream);
+    }
+
+    private static void TryDeleteFile(string? path)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Cache cleanup should never interrupt the user workflow.
+        }
     }
 
     private void RenderSelectedSourceTable()
@@ -976,7 +1275,7 @@ exit /b %INSTALL_EXIT%
         }
     }
 
-    private void AddSelectedRegionField(Rect region)
+    private async Task AddSelectedRegionFieldAsync(Rect region)
     {
         if (_selectedDocumentPreview is null)
         {
@@ -985,8 +1284,40 @@ exit /b %INSTALL_EXIT%
 
         string label = $"Region from {System.IO.Path.GetFileNameWithoutExtension(_selectedDocumentPreview.Path)}";
         string value = FormatRegion(region);
-        AddExtractedField(new ExtractedField(_extractedFields.Count + 1, _selectedDocumentPreview.Name, label, value, 0.80));
-        SetStatus("Region field added. Select an output cell and choose Map Selected.");
+        double confidence = 0.80;
+        string status = "Region field added. Select an output cell and choose Map Selected.";
+        string? cropPath = null;
+
+        try
+        {
+            cropPath = CropSelectedRegionToPng(region);
+            if (!string.IsNullOrWhiteSpace(cropPath))
+            {
+                string? ocrText = await RunTesseractAsync(cropPath);
+                if (!string.IsNullOrWhiteSpace(ocrText))
+                {
+                    value = ocrText.Trim();
+                    confidence = 0.88;
+                    status = "OCR text extracted from selected region. Select an output cell and choose Map Selected.";
+                }
+                else
+                {
+                    status = "Region selected, but OCR returned no readable text. Coordinates were added as the field value.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            status = "Region selected, but OCR extraction failed: " + ex.Message;
+            Log("Region OCR failed: " + ex);
+        }
+        finally
+        {
+            TryDeleteFile(cropPath);
+        }
+
+        AddExtractedField(new ExtractedField(_extractedFields.Count + 1, _selectedDocumentPreview.Name, label, value, confidence));
+        SetStatus(status);
     }
 
     private void AddExtractedField(ExtractedField field)
@@ -1168,7 +1499,8 @@ exit /b %INSTALL_EXIT%
         PreviewImage.Height = PreviewCanvas.Height;
         PreviewMessage.Width = Math.Max(280, PreviewCanvas.Width - 40);
         PreviewImage.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
-        PreviewImage.RenderTransform = new RotateTransform(_previewRotation);
+        PreviewImage.RenderTransform = null;
+        RefreshPreviewImageSource();
         ZoomText.Text = $"{_previewZoom:P0} / {_previewRotation}°";
 
         if (resetSelection)
@@ -1742,6 +2074,15 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.6.0
+        - Removed the duplicated left sidebar and moved the app name/version into the top header.
+        - Traceability and output/export actions now live in Review.
+        - Tools, logs, update checks, help, changelog, and live status now live in Settings.
+        - Image and PDF files now render as real visual previews instead of placeholder text.
+        - OCR region selection crops the selected preview area and runs local Tesseract OCR when available.
+        - Added automatic Tesseract detection from common Windows install locations and PATH.
+        - Removed legacy WinUI and PySide/Qt files from the repository.
 
         Version 3.5.5
         - Fixed automatic updater launch by closing the downloaded installer file before setup starts.

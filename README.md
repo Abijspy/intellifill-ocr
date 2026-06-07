@@ -14,7 +14,8 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 - Template upload for CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG.
 - Multi-table template preview and output table selector.
 - Source upload for up to five files with parsed text preview.
-- Image/PDF region selection surface with zoom, reset, and rotate controls.
+- Real image/PDF visual preview with zoom, reset, rotate, and rectangle OCR region selection.
+- Tesseract OCR auto-detection from common install locations and PATH.
 - Detected source table selector and parsed text preview.
 - Extracted field list and manual source-to-cell mapping.
 - Auto Fill using local fuzzy matching.
@@ -72,19 +73,19 @@ Publish the Windows Avalonia app:
 Build the Windows NSIS installer:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 3.4.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 3.6.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-3.4.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-3.6.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 3.4.0 linux-x64 Release
+bash scripts/package-linux.sh 3.6.0 linux-x64 Release
 ```
 
 ## GitHub Release Pipeline
@@ -105,8 +106,8 @@ It publishes:
 Publish by pushing a tag:
 
 ```powershell
-git tag v3.4.0
-git push origin v3.4.0
+git tag v3.6.0
+git push origin v3.6.0
 ```
 
 Or run the workflow manually from GitHub Actions and enter the version.
@@ -120,8 +121,6 @@ installer/IntelliFillOCR.nsi      NSIS Windows installer script
 scripts/                          Build, version, and packaging scripts
 assets/                           App icon and logo
 demo/                             Small CSV demo fixtures
-winui/                            Legacy WinUI implementation kept for reference during migration
-src/intellifill_ocr/              Legacy Python reference code
 ```
 
 ## Notes

@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.4.0"
+        default: "3.6.0"
   push:
     tags:
       - "v*"
@@ -172,10 +172,12 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Fixed automatic updater launch by closing the downloaded installer file before setup starts.
-          - Added a detached update handoff script so setup launches only after IntelliFill OCR exits.
-          - The updater now writes update-launch.log in the local Updates folder for diagnosis if Windows blocks setup launch.
-          - Fixed optional Tesseract OCR download in the Windows installer by using a PowerShell TLS 1.2 download path instead of NSISdl.
+          - Removed the duplicated left sidebar and moved traceability/export tools into Review.
+          - Moved status, logs, update checks, help, changelog, and path tools into Settings.
+          - Added real image/PDF visual preview rendering for OCR region selection.
+          - Region selection now crops the selected preview area and runs local Tesseract OCR when available.
+          - Added automatic Tesseract detection from common install locations and PATH.
+          - Removed legacy WinUI and PySide/Qt source files so the repo ships the Avalonia app only.
           NOTES
 
       - name: Create or update GitHub release
