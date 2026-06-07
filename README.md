@@ -2,6 +2,8 @@
   <img src="assets/logo_512.png" alt="AutoFill & Export logo" width="220">
 </p>
 
+[![IntelliFill OCR Builder](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml/badge.svg)](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml)
+
 # IntelliFill OCR Desktop
 
 IntelliFill OCR is an offline desktop application for OCR-assisted document extraction, template table filling, validation, SQLite storage, and traceable exports.
@@ -90,11 +92,13 @@ bash scripts/package-linux.sh 3.6.1 linux-x64 Release
 
 ## GitHub Release Pipeline
 
-The release workflow is:
+The package builder and publisher workflow is:
 
 ```text
 .github/workflows/release.yml
 ```
+
+It appears in GitHub Actions as `IntelliFill OCR Builder`.
 
 It publishes:
 
