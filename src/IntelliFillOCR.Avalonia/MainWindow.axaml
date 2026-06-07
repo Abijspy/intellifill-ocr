@@ -154,7 +154,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.6.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.6.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -257,9 +257,9 @@
                                                     <TextBlock x:Name="RegionSelectionText" Grid.Column="1" Text="No region selected" Classes="muted" VerticalAlignment="Center" />
                                                 </Grid>
                                                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                                    <Canvas x:Name="PreviewCanvas" Width="780" Height="500" Background="{DynamicResource PreviewCanvasBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
-                                                        <Image x:Name="PreviewImage" Width="780" Height="500" Stretch="Uniform" IsVisible="False" />
-                                                        <TextBlock x:Name="PreviewMessage" Width="720" Canvas.Left="30" Canvas.Top="230" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="{DynamicResource MutedTextBrush}" />
+                                                    <Canvas x:Name="PreviewCanvas" Width="1120" Height="760" Background="{DynamicResource PreviewCanvasBrush}" PointerPressed="PreviewCanvas_PointerPressed" PointerMoved="PreviewCanvas_PointerMoved" PointerReleased="PreviewCanvas_PointerReleased">
+                                                        <Image x:Name="PreviewImage" Width="1120" Height="760" Stretch="Uniform" IsVisible="False" />
+                                                        <TextBlock x:Name="PreviewMessage" Width="1000" Canvas.Left="60" Canvas.Top="350" TextAlignment="Center" TextWrapping="Wrap" Text="Image and PDF region selection preview appears here. Use zoom, rotate, and Select Region for accurate OCR windows." Foreground="{DynamicResource MutedTextBrush}" />
                                                         <Rectangle x:Name="PreviewRegionRectangle" IsVisible="False" Stroke="{DynamicResource SelectionStrokeBrush}" StrokeThickness="2" Fill="{DynamicResource SelectionFillBrush}" />
                                                     </Canvas>
                                                 </ScrollViewer>
@@ -345,6 +345,21 @@
                                     <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                                         <TextBlock Text="Validation Results" Classes="sectionTitle" />
                                         <TextBox x:Name="ValidationBox" Grid.Row="1" MinHeight="220" MaxHeight="360" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                    </Grid>
+                                </Border>
+                                <Border Classes="previewPanel">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Final Output Preview" Classes="sectionTitle" />
+                                                <TextBlock Text="This is the table content that will be saved or exported." Classes="muted" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="ReviewOutputTableSelector" Grid.Column="1" MinWidth="220" SelectionChanged="ReviewOutputTableSelector_SelectionChanged" />
+                                        </Grid>
+                                        <Separator Grid.Row="1" />
+                                        <ScrollViewer Grid.Row="2" MinHeight="300" MaxHeight="520" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                            <Grid x:Name="ReviewOutputPreviewGrid" />
+                                        </ScrollViewer>
                                     </Grid>
                                 </Border>
                                 <Border Classes="softPanel">

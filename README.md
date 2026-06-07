@@ -14,7 +14,7 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 - Template upload for CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG.
 - Multi-table template preview and output table selector.
 - Source upload for up to five files with parsed text preview.
-- Real image/PDF visual preview with zoom, reset, rotate, and rectangle OCR region selection.
+- Larger high-clarity image/PDF visual preview with zoom, reset, rotate, and rectangle OCR region selection.
 - Tesseract OCR auto-detection from common install locations and PATH.
 - Detected source table selector and parsed text preview.
 - Extracted field list and manual source-to-cell mapping.
@@ -24,8 +24,8 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 - SQLite save and database preview.
 - Application log viewer.
 - Settings for Tesseract path, SQLite path, and light/dark/system appearance.
-- Exports to CSV, XLSX, DOCX, and PDF.
-- PDF exports include one bottom traceability barcode/code.
+- Exports to CSV, formatted XLSX, formatted DOCX, and multi-page PDF.
+- PDF exports include one bottom traceability barcode/code on the final page.
 
 ## Install
 
@@ -73,19 +73,19 @@ Publish the Windows Avalonia app:
 Build the Windows NSIS installer:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 3.6.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 3.6.1 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-3.6.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-3.6.1-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 3.6.0 linux-x64 Release
+bash scripts/package-linux.sh 3.6.1 linux-x64 Release
 ```
 
 ## GitHub Release Pipeline
@@ -106,8 +106,8 @@ It publishes:
 Publish by pushing a tag:
 
 ```powershell
-git tag v3.6.0
-git push origin v3.6.0
+git tag v3.6.1
+git push origin v3.6.1
 ```
 
 Or run the workflow manually from GitHub Actions and enter the version.

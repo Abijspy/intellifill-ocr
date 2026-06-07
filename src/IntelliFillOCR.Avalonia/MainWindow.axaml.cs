@@ -23,9 +23,9 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.6.0";
-    private const double PreviewBaseWidth = 780;
-    private const double PreviewBaseHeight = 500;
+    private const string AppVersion = "3.6.1";
+    private const double PreviewBaseWidth = 1120;
+    private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
     private const double PreviewMaxZoom = 3.0;
     private const double PreviewZoomStep = 0.25;
@@ -326,9 +326,16 @@ public sealed partial class MainWindow : Window
 
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
     {
+        Window? progressDialog = null;
         try
         {
+            progressDialog = CreateProgressDialog("Check for Updates", "Checking GitHub releases for a newer installer...");
+            progressDialog.Show(this);
+            SetStatus("Checking for updates...");
+            await Task.Delay(250);
             ReleaseUpdate latest = await GetLatestReleaseAsync();
+            progressDialog.Close();
+            progressDialog = null;
             if (!IsNewerVersion(latest.Version, AppVersion))
             {
                 await ShowMessageAsync("Check for Updates", $"You are on the latest version ({AppVersion}).");
@@ -339,6 +346,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            progressDialog?.Close();
             await ShowMessageAsync("Check for Updates", $"Could not check GitHub releases. Offline use is still supported.{Environment.NewLine}{Environment.NewLine}{ex.Message}");
         }
     }
@@ -410,8 +418,11 @@ public sealed partial class MainWindow : Window
     private void ShowMappingPage_Click(object? sender, RoutedEventArgs e) =>
         ShowPage(MappingPage, MappingPageButton);
 
-    private void ShowReviewPage_Click(object? sender, RoutedEventArgs e) =>
+    private void ShowReviewPage_Click(object? sender, RoutedEventArgs e)
+    {
+        RenderReviewOutputTable();
         ShowPage(ReviewPage, ReviewPageButton);
+    }
 
     private void ShowSettingsPage_Click(object? sender, RoutedEventArgs e) =>
         ShowPage(SettingsPage, SettingsPageButton);
@@ -455,7 +466,16 @@ public sealed partial class MainWindow : Window
 
     private void OutputTableSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        if (OutputTableSelector.SelectedIndex >= 0 && OutputTableSelector.SelectedIndex < ReviewOutputTableSelector.Items.Count)
+        {
+            ReviewOutputTableSelector.SelectedIndex = OutputTableSelector.SelectedIndex;
+        }
         RenderOutputTable();
+    }
+
+    private void ReviewOutputTableSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        RenderReviewOutputTable();
     }
 
     private void ExtractedFieldsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -573,6 +593,7 @@ public sealed partial class MainWindow : Window
         string tag = root.GetProperty("tag_name").GetString() ?? "v0.0.0";
         string version = tag.TrimStart('v');
         string releaseUrl = root.TryGetProperty("html_url", out JsonElement htmlUrl) ? htmlUrl.GetString() ?? string.Empty : string.Empty;
+        string notes = root.TryGetProperty("body", out JsonElement bodyElement) ? bodyElement.GetString() ?? string.Empty : string.Empty;
         var candidates = new List<ReleaseUpdate>();
 
         if (root.TryGetProperty("assets", out JsonElement assets))
@@ -586,12 +607,12 @@ public sealed partial class MainWindow : Window
                 }
 
                 string downloadUrl = asset.TryGetProperty("browser_download_url", out JsonElement urlElement) ? urlElement.GetString() ?? string.Empty : string.Empty;
-                candidates.Add(new ReleaseUpdate(version, tag, releaseUrl, name, downloadUrl));
+                candidates.Add(new ReleaseUpdate(version, tag, releaseUrl, name, downloadUrl, notes));
             }
         }
 
         ReleaseUpdate? versionMatched = candidates.FirstOrDefault(candidate => AssetMatchesVersion(candidate.AssetName, version));
-        return versionMatched ?? candidates.FirstOrDefault() ?? new ReleaseUpdate(version, tag, releaseUrl, string.Empty, string.Empty);
+        return versionMatched ?? candidates.FirstOrDefault() ?? new ReleaseUpdate(version, tag, releaseUrl, string.Empty, string.Empty, notes);
     }
 
     private static bool AssetMatchesVersion(string assetName, string version)
@@ -631,7 +652,7 @@ public sealed partial class MainWindow : Window
             ? $"Download and install {latest.AssetName} now?"
             : "Open the GitHub release page to download the package for this operating system?";
         string title = isStartupNotice ? "Update Available" : "Check for Updates";
-        string body = $"IntelliFill OCR {latest.Version} is available.{Environment.NewLine}Current version: {AppVersion}{Environment.NewLine}{Environment.NewLine}{installText}";
+        string body = $"IntelliFill OCR {latest.Version} is available.{Environment.NewLine}Current version: {AppVersion}{Environment.NewLine}{Environment.NewLine}{installText}{Environment.NewLine}{Environment.NewLine}What's new in this update:{Environment.NewLine}{LatestReleaseNotes(latest)}";
         string primary = !string.IsNullOrWhiteSpace(latest.AssetName) && OperatingSystem.IsWindows()
             ? "Download and Install"
             : "Open Release Page";
@@ -662,6 +683,17 @@ public sealed partial class MainWindow : Window
         }
 
         OpenUrl(latest.ReleaseUrl);
+    }
+
+    private static string LatestReleaseNotes(ReleaseUpdate latest)
+    {
+        if (string.IsNullOrWhiteSpace(latest.Notes))
+        {
+            return "No release notes were published for this update.";
+        }
+
+        string notes = latest.Notes.Trim();
+        return notes.Length <= 1800 ? notes : notes[..1800] + Environment.NewLine + "...";
     }
 
     private async Task DownloadAndRunUpdateAsync(ReleaseUpdate latest)
@@ -797,7 +829,8 @@ exit /b %INSTALL_EXIT%
             Children = { primaryButton, closeButton }
         };
 
-        Window box = CreateStyledDialog(title, 600, 340, body, buttons);
+        (double width, double height) = DialogSizeFor(text);
+        Window box = CreateStyledDialog(title, Math.Max(600, width), Math.Max(360, height), body, buttons);
         primaryButton.Click += (_, _) => box.Close("primary");
         closeButton.Click += (_, _) => box.Close("close");
         return await box.ShowDialog<string?>(this);
@@ -848,12 +881,17 @@ exit /b %INSTALL_EXIT%
 
         _mappings.Clear();
         OutputTableSelector.Items.Clear();
+        ReviewOutputTableSelector.Items.Clear();
         for (int index = 0; index < _outputTables.Count; index++)
         {
-            OutputTableSelector.Items.Add(TableLabel(index));
+            string label = TableLabel(index);
+            OutputTableSelector.Items.Add(label);
+            ReviewOutputTableSelector.Items.Add(label);
         }
         OutputTableSelector.SelectedIndex = 0;
+        ReviewOutputTableSelector.SelectedIndex = 0;
         RenderOutputTable();
+        RenderReviewOutputTable();
     }
 
     private void RefreshUploadedFilesList()
@@ -956,7 +994,7 @@ exit /b %INSTALL_EXIT%
     private string RenderPdfPreviewToPng(string path)
     {
         byte[] pdfBytes = File.ReadAllBytes(path);
-        using var docReader = DocLib.Instance.GetDocReader(pdfBytes, new PageDimensions(1600, 2200));
+        using var docReader = DocLib.Instance.GetDocReader(pdfBytes, new PageDimensions(2600, 3600));
         using var pageReader = docReader.GetPageReader(0);
         int width = pageReader.GetPageWidth();
         int height = pageReader.GetPageHeight();
@@ -1400,6 +1438,7 @@ exit /b %INSTALL_EXIT%
         int tableIndex = OutputTableSelector.SelectedIndex;
         if (tableIndex < 0 || tableIndex >= _outputTables.Count)
         {
+            RenderReviewOutputTable();
             return;
         }
 
@@ -1456,6 +1495,23 @@ exit /b %INSTALL_EXIT%
                 OutputPreviewGrid.Children.Add(border);
             }
         }
+        RenderReviewOutputTable();
+    }
+
+    private void RenderReviewOutputTable()
+    {
+        ClearGrid(ReviewOutputPreviewGrid);
+        int tableIndex = ReviewOutputTableSelector.SelectedIndex;
+        if (tableIndex < 0 || tableIndex >= _outputTables.Count)
+        {
+            tableIndex = OutputTableSelector.SelectedIndex;
+        }
+        if (tableIndex < 0 || tableIndex >= _outputTables.Count)
+        {
+            return;
+        }
+
+        RenderReadOnlyGrid(ReviewOutputPreviewGrid, _outputTables[tableIndex], TableLabel(tableIndex));
     }
 
     private static void ClearGrid(Grid grid)
@@ -1827,10 +1883,59 @@ exit /b %INSTALL_EXIT%
             Children = { closeButton }
         };
 
-        Window box = CreateStyledDialog(title, 760, 560, CreateDialogTextPanel(text), buttons);
+        (double width, double height) = DialogSizeFor(text);
+        Window box = CreateStyledDialog(title, width, height, CreateDialogTextPanel(text), buttons);
         closeButton.Click += (_, _) => box.Close();
 
         await box.ShowDialog(this);
+    }
+
+    private Window CreateProgressDialog(string title, string text)
+    {
+        var body = new Border
+        {
+            Background = DialogBrush("PreviewPanelBrush"),
+            BorderBrush = DialogBrush("PanelBorderBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(16),
+            Child = new StackPanel
+            {
+                Spacing = 14,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = text,
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = DialogBrush("BodyTextBrush")
+                    },
+                    new ProgressBar
+                    {
+                        IsIndeterminate = true,
+                        Height = 8,
+                        Foreground = DialogBrush("PrimaryBrush"),
+                        Background = DialogBrush("RailButtonBrush")
+                    }
+                }
+            }
+        };
+
+        return CreateStyledDialog(title, 460, 220, body, new StackPanel());
+    }
+
+    private static (double Width, double Height) DialogSizeFor(string text)
+    {
+        int lines = text.Count(character => character == '\n') + 1;
+        if (text.Length > 1600 || lines > 24)
+        {
+            return (760, 560);
+        }
+        if (text.Length > 700 || lines > 10)
+        {
+            return (640, 430);
+        }
+        return (520, 300);
     }
 
     private Window CreateStyledDialog(string title, double width, double height, Control body, Control buttons)
@@ -2075,6 +2180,14 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 3.6.1
+        - Improved image/PDF preview clarity with a larger high-resolution visual canvas.
+        - Added a final output preview to Review so users can inspect filled tables before saving/exporting.
+        - Improved PDF export with multi-page table rendering, borders, wrapped cell text, page numbers, and one bottom traceability barcode.
+        - Improved Word and Excel export formatting with clearer headings, table borders, spacing, and first-row styling.
+        - Added an indeterminate loading popup while Check for Updates is running.
+        - Short popup messages now open in smaller styled windows instead of oversized dialogs.
+
         Version 3.6.0
         - Removed the duplicated left sidebar and moved the app name/version into the top header.
         - Traceability and output/export actions now live in Review.
@@ -2300,7 +2413,7 @@ exit /b %INSTALL_EXIT%
 
     private sealed record MappingSnapshot(string SourceLabel, string SourceValue, int TableIndex, int RowIndex, int ColumnIndex, string Value, string DestinationLabel);
 
-    private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl);
+    private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl, string Notes);
 
     private sealed class AppSettings
     {

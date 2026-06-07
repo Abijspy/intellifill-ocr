@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Data.Sqlite;
 
@@ -54,6 +55,7 @@ public sealed class ExportService
 
         AddText(archive, "xl/workbook.xml", BuildWorkbook(tables));
         AddText(archive, "xl/_rels/workbook.xml.rels", BuildWorkbookRelationships(tables.Count));
+        AddText(archive, "xl/styles.xml", BuildXlsxStyles());
         for (int i = 0; i < tables.Count; i++)
         {
             AddText(archive, $"xl/worksheets/sheet{i + 1}.xml", BuildWorksheet(tables[i], traceabilityCode));
@@ -88,15 +90,16 @@ public sealed class ExportService
                         new XAttribute("Target", "word/document.xml")))).ToString(SaveOptions.DisableFormatting));
 
         var body = new XElement(Word + "body");
-        body.Add(Paragraph("IntelliFill OCR Filled Output", bold: true));
-        body.Add(Paragraph($"Traceability: {traceabilityCode}"));
+        body.Add(Paragraph("IntelliFill OCR Filled Output", bold: true, fontSize: 32));
+        body.Add(Paragraph($"Traceability ID: {traceabilityCode}", fontSize: 18, color: "475569"));
+        body.Add(Paragraph($"Generated: {DateTimeOffset.Now:yyyy-MM-dd HH:mm zzz}", fontSize: 16, color: "64748B"));
         foreach (OutputTable table in tables)
         {
-            body.Add(Paragraph(table.Label, bold: true));
+            body.Add(Paragraph(table.Label, bold: true, fontSize: 24));
             body.Add(BuildWordTable(table));
         }
-        body.Add(Paragraph($"Traceability barcode/code: {traceabilityCode}"));
-        body.Add(new XElement(Word + "sectPr"));
+        body.Add(Paragraph($"Traceability barcode/code: {traceabilityCode}", bold: true, fontSize: 18));
+        body.Add(SectionProperties());
 
         var document = new XDocument(new XElement(Word + "document", new XAttribute(XNamespace.Xmlns + "w", Word), body));
         AddText(archive, "word/document.xml", document.ToString(SaveOptions.DisableFormatting));
@@ -104,42 +107,152 @@ public sealed class ExportService
 
     public void ExportPdf(IReadOnlyList<OutputTable> tables, string path, string traceabilityCode)
     {
-        var content = new StringBuilder();
-        content.AppendLine("q");
-        content.AppendLine("BT /F1 16 Tf 50 790 Td (IntelliFill OCR Filled Output) Tj ET");
-        content.AppendLine($"BT /F1 9 Tf 50 772 Td ({PdfEscape("Traceability: " + traceabilityCode)}) Tj ET");
-
-        double y = 742;
+        var pages = new List<StringBuilder>();
+        StringBuilder page = NewPdfPage(traceabilityCode);
+        double y = 712;
         foreach (OutputTable table in tables)
         {
-            if (y < 120)
+            int columns = Math.Clamp(table.Rows.Select(row => row.Count).DefaultIfEmpty(1).Max(), 1, 8);
+            double tableWidth = 516;
+            double columnWidth = tableWidth / columns;
+            if (y < 135)
             {
-                break;
+                pages.Add(page);
+                page = NewPdfPage(traceabilityCode);
+                y = 712;
             }
-            content.AppendLine($"BT /F1 11 Tf 50 {Format(y)} Td ({PdfEscape(table.Label)}) Tj ET");
+
+            DrawPdfText(page, 48, y, "F2", 12, table.Label);
             y -= 18;
-            foreach (IReadOnlyList<string> row in table.Rows.Take(18))
+
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
             {
-                string line = string.Join("   |   ", row).Trim();
-                if (line.Length > 105)
+                IReadOnlyList<string> row = table.Rows[rowIndex];
+                var wrappedCells = new List<IReadOnlyList<string>>();
+                int maxLines = 1;
+                for (int column = 0; column < columns; column++)
                 {
-                    line = line[..105];
+                    string value = column < row.Count ? row[column] : string.Empty;
+                    IReadOnlyList<string> lines = WrapPdfText(value, columnWidth - 8, 8.2).Take(4).ToList();
+                    if (lines.Count == 0)
+                    {
+                        lines = new[] { string.Empty };
+                    }
+                    wrappedCells.Add(lines);
+                    maxLines = Math.Max(maxLines, lines.Count);
                 }
-                content.AppendLine($"BT /F1 8 Tf 50 {Format(y)} Td ({PdfEscape(line)}) Tj ET");
-                y -= 13;
-                if (y < 120)
+
+                double rowHeight = Math.Max(22, 14 + maxLines * 10);
+                if (y - rowHeight < 82)
                 {
-                    break;
+                    pages.Add(page);
+                    page = NewPdfPage(traceabilityCode);
+                    y = 712;
                 }
+
+                bool headerRow = rowIndex == 0;
+                for (int column = 0; column < columns; column++)
+                {
+                    double x = 48 + column * columnWidth;
+                    if (headerRow)
+                    {
+                        page.AppendLine("0.90 0.94 1 rg");
+                        page.AppendLine($"{Format(x)} {Format(y - rowHeight)} {Format(columnWidth)} {Format(rowHeight)} re f");
+                    }
+                    page.AppendLine("0.62 0.67 0.75 RG");
+                    page.AppendLine($"{Format(x)} {Format(y - rowHeight)} {Format(columnWidth)} {Format(rowHeight)} re S");
+                    for (int lineIndex = 0; lineIndex < wrappedCells[column].Count; lineIndex++)
+                    {
+                        DrawPdfText(page, x + 4, y - 12 - lineIndex * 9.8, headerRow ? "F2" : "F1", 8.2, wrappedCells[column][lineIndex]);
+                    }
+                }
+                y -= rowHeight;
             }
-            y -= 10;
+            y -= 16;
         }
 
-        DrawCode39(content, traceabilityCode, 180, 42, 38);
-        content.AppendLine($"BT /F1 8 Tf 236 28 Td ({PdfEscape(traceabilityCode)}) Tj ET");
-        content.AppendLine("Q");
+        pages.Add(page);
+        for (int index = 0; index < pages.Count; index++)
+        {
+            AddPdfFooter(pages[index], traceabilityCode, index + 1, pages.Count, includeBarcode: index == pages.Count - 1);
+        }
 
-        WriteSinglePagePdf(path, content.ToString());
+        WritePdf(path, pages.Select(builder => builder.ToString()).ToList());
+    }
+
+    private static StringBuilder NewPdfPage(string traceabilityCode)
+    {
+        var content = new StringBuilder();
+        content.AppendLine("q");
+        DrawPdfText(content, 48, 760, "F2", 18, "IntelliFill OCR Filled Output");
+        DrawPdfText(content, 48, 740, "F1", 9, $"Traceability ID: {traceabilityCode}");
+        DrawPdfText(content, 48, 726, "F1", 8, $"Generated: {DateTimeOffset.Now:yyyy-MM-dd HH:mm zzz}");
+        content.AppendLine("0.76 0.80 0.87 RG");
+        content.AppendLine("48 720 516 0.8 re f");
+        return content;
+    }
+
+    private static void AddPdfFooter(StringBuilder content, string traceabilityCode, int pageNumber, int pageCount, bool includeBarcode)
+    {
+        content.AppendLine("0.76 0.80 0.87 RG");
+        content.AppendLine("48 64 516 0.6 re f");
+        DrawPdfText(content, 48, 48, "F1", 7.5, $"Traceability ID: {traceabilityCode}");
+        DrawPdfText(content, 516, 48, "F1", 7.5, $"Page {pageNumber} of {pageCount}");
+        if (includeBarcode)
+        {
+            double barcodeWidth = MeasureCode39(traceabilityCode);
+            double barcodeX = Math.Max(48, (612 - barcodeWidth) / 2);
+            DrawCode39(content, traceabilityCode, barcodeX, 22, 24);
+            DrawPdfText(content, CenterTextX(traceabilityCode, 7.5), 12, "F1", 7.5, traceabilityCode);
+        }
+        content.AppendLine("Q");
+    }
+
+    private static void DrawPdfText(StringBuilder content, double x, double y, string font, double size, string text)
+    {
+        content.AppendLine($"BT /{font} {Format(size)} Tf {Format(x)} {Format(y)} Td ({PdfEscape(text)}) Tj ET");
+    }
+
+    private static IReadOnlyList<string> WrapPdfText(string value, double width, double fontSize)
+    {
+        value = string.IsNullOrWhiteSpace(value) ? string.Empty : Regex.Replace(value.Trim(), @"\s+", " ");
+        int maxCharacters = Math.Max(8, (int)Math.Floor(width / (fontSize * 0.48)));
+        var lines = new List<string>();
+        var current = new StringBuilder();
+        foreach (string word in value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (word.Length > maxCharacters)
+            {
+                if (current.Length > 0)
+                {
+                    lines.Add(current.ToString());
+                    current.Clear();
+                }
+                for (int index = 0; index < word.Length; index += maxCharacters)
+                {
+                    lines.Add(word.Substring(index, Math.Min(maxCharacters, word.Length - index)));
+                }
+                continue;
+            }
+
+            if (current.Length > 0 && current.Length + word.Length + 1 > maxCharacters)
+            {
+                lines.Add(current.ToString());
+                current.Clear();
+            }
+
+            if (current.Length > 0)
+            {
+                current.Append(' ');
+            }
+            current.Append(word);
+        }
+
+        if (current.Length > 0)
+        {
+            lines.Add(current.ToString());
+        }
+        return lines.Count == 0 ? new[] { string.Empty } : lines;
     }
 
     private static void DrawCode39(StringBuilder content, string value, double x, double y, double height)
@@ -169,6 +282,31 @@ public sealed class ExportService
         }
     }
 
+    private static double MeasureCode39(string value)
+    {
+        string normalized = "*" + new string(value.ToUpperInvariant().Where(ch => Code39Patterns.ContainsKey(ch)).ToArray()) + "*";
+        if (normalized.Length <= 2)
+        {
+            normalized = "*INTELLIFILL*";
+        }
+
+        const double narrow = 1.35;
+        const double wide = 3.1;
+        double width = 0;
+        foreach (char character in normalized)
+        {
+            string pattern = Code39Patterns[character];
+            width += pattern.Sum(part => part == 'w' ? wide : narrow) + narrow;
+        }
+        return width;
+    }
+
+    private static double CenterTextX(string value, double fontSize)
+    {
+        double width = value.Length * fontSize * 0.48;
+        return Math.Max(48, (612 - width) / 2);
+    }
+
     private static readonly Dictionary<char, string> Code39Patterns = new()
     {
         ['0'] = "nnnwwnwnn", ['1'] = "wnnwnnnnw", ['2'] = "nnwwnnnnw", ['3'] = "wnwwnnnnn",
@@ -184,17 +322,28 @@ public sealed class ExportService
         ['/'] = "nwnwnnnwn", ['+'] = "nwnnnwnwn", ['%'] = "nnnwnwnwn", ['*'] = "nwnnwnwnn"
     };
 
-    private static void WriteSinglePagePdf(string path, string content)
+    private static void WritePdf(string path, IReadOnlyList<string> pageContents)
     {
-        byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         var objects = new List<string>
         {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            $"<< /Length {contentBytes.Length} >>\nstream\n{content}\nendstream"
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"
         };
+
+        var pageIds = new List<int>();
+        foreach (string content in pageContents)
+        {
+            byte[] contentBytes = Encoding.ASCII.GetBytes(content);
+            int pageObjectId = objects.Count + 1;
+            int contentObjectId = pageObjectId + 1;
+            pageIds.Add(pageObjectId);
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {contentObjectId} 0 R >>");
+            objects.Add($"<< /Length {contentBytes.Length} >>\nstream\n{content}\nendstream");
+        }
+
+        objects[1] = $"<< /Type /Pages /Kids [{string.Join(" ", pageIds.Select(id => $"{id} 0 R"))}] /Count {pageIds.Count} >>";
 
         var builder = new StringBuilder("%PDF-1.4\n");
         var offsets = new List<int> { 0 };
@@ -228,7 +377,8 @@ public sealed class ExportService
             XNamespace.Get("http://schemas.openxmlformats.org/package/2006/content-types") + "Types",
             new XElement("Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
             new XElement("Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
-            new XElement("Override", new XAttribute("PartName", "/xl/workbook.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml")));
+            new XElement("Override", new XAttribute("PartName", "/xl/workbook.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml")),
+            new XElement("Override", new XAttribute("PartName", "/xl/styles.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml")));
         for (int i = 1; i <= sheetCount; i++)
         {
             types.Add(new XElement("Override", new XAttribute("PartName", $"/xl/worksheets/sheet{i}.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")));
@@ -261,57 +411,159 @@ public sealed class ExportService
                 new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"),
                 new XAttribute("Target", $"worksheets/sheet{i}.xml")));
         }
+        relationships.Add(new XElement(
+            Relationships + "Relationship",
+            new XAttribute("Id", $"rId{sheetCount + 1}"),
+            new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"),
+            new XAttribute("Target", "styles.xml")));
         return new XDocument(relationships).ToString(SaveOptions.DisableFormatting);
     }
 
     private static string BuildWorksheet(OutputTable table, string traceabilityCode)
     {
+        int columns = Math.Max(2, table.Rows.Select(row => row.Count).DefaultIfEmpty(1).Max());
+        var cols = new XElement(Spreadsheet + "cols");
+        for (int column = 1; column <= Math.Min(columns, 24); column++)
+        {
+            cols.Add(new XElement(Spreadsheet + "col", new XAttribute("min", column), new XAttribute("max", column), new XAttribute("width", "22"), new XAttribute("customWidth", "1")));
+        }
+
         var sheetData = new XElement(Spreadsheet + "sheetData");
         int rowIndex = 1;
-        sheetData.Add(BuildXlsxRow(rowIndex++, new[] { "Traceability", traceabilityCode }));
+        sheetData.Add(BuildXlsxRow(rowIndex++, new[] { "Traceability ID", traceabilityCode }, 2));
         sheetData.Add(BuildXlsxRow(rowIndex++, Array.Empty<string>()));
-        sheetData.Add(BuildXlsxRow(rowIndex++, new[] { table.Label }));
-        foreach (IReadOnlyList<string> row in table.Rows)
+        sheetData.Add(BuildXlsxRow(rowIndex++, new[] { table.Label }, 1));
+        for (int index = 0; index < table.Rows.Count; index++)
         {
-            sheetData.Add(BuildXlsxRow(rowIndex++, row));
+            sheetData.Add(BuildXlsxRow(rowIndex++, table.Rows[index], index == 0 ? 3 : 0));
         }
-        return new XDocument(new XElement(Spreadsheet + "worksheet", sheetData)).ToString(SaveOptions.DisableFormatting);
+        return new XDocument(new XElement(Spreadsheet + "worksheet", cols, sheetData)).ToString(SaveOptions.DisableFormatting);
     }
 
-    private static XElement BuildXlsxRow(int rowIndex, IReadOnlyList<string> values)
+    private static XElement BuildXlsxRow(int rowIndex, IReadOnlyList<string> values, int styleIndex = 0)
     {
         var row = new XElement(Spreadsheet + "row", new XAttribute("r", rowIndex));
         for (int column = 0; column < values.Count; column++)
         {
-            row.Add(new XElement(
+            var cell = new XElement(
                 Spreadsheet + "c",
                 new XAttribute("r", ColumnName(column + 1) + rowIndex),
                 new XAttribute("t", "inlineStr"),
-                new XElement(Spreadsheet + "is", new XElement(Spreadsheet + "t", values[column] ?? string.Empty))));
+                new XElement(Spreadsheet + "is", new XElement(Spreadsheet + "t", values[column] ?? string.Empty)));
+            if (styleIndex > 0)
+            {
+                cell.Add(new XAttribute("s", styleIndex));
+            }
+            row.Add(cell);
         }
         return row;
     }
 
+    private static string BuildXlsxStyles()
+    {
+        XNamespace ns = Spreadsheet;
+        var styles = new XElement(
+            ns + "styleSheet",
+            new XElement(
+                ns + "fonts",
+                new XAttribute("count", "3"),
+                new XElement(ns + "font", new XElement(ns + "sz", new XAttribute("val", "11")), new XElement(ns + "name", new XAttribute("val", "Calibri"))),
+                new XElement(ns + "font", new XElement(ns + "b"), new XElement(ns + "sz", new XAttribute("val", "13")), new XElement(ns + "name", new XAttribute("val", "Calibri"))),
+                new XElement(ns + "font", new XElement(ns + "b"), new XElement(ns + "sz", new XAttribute("val", "11")), new XElement(ns + "name", new XAttribute("val", "Calibri")))),
+            new XElement(
+                ns + "fills",
+                new XAttribute("count", "3"),
+                new XElement(ns + "fill", new XElement(ns + "patternFill", new XAttribute("patternType", "none"))),
+                new XElement(ns + "fill", new XElement(ns + "patternFill", new XAttribute("patternType", "gray125"))),
+                new XElement(ns + "fill", new XElement(ns + "patternFill", new XAttribute("patternType", "solid"), new XElement(ns + "fgColor", new XAttribute("rgb", "FFDDEBFF")), new XElement(ns + "bgColor", new XAttribute("indexed", "64"))))),
+            new XElement(
+                ns + "borders",
+                new XAttribute("count", "2"),
+                new XElement(ns + "border", new XElement(ns + "left"), new XElement(ns + "right"), new XElement(ns + "top"), new XElement(ns + "bottom"), new XElement(ns + "diagonal")),
+                new XElement(ns + "border", BorderSide("left"), BorderSide("right"), BorderSide("top"), BorderSide("bottom"), new XElement(ns + "diagonal"))),
+            new XElement(ns + "cellStyleXfs", new XAttribute("count", "1"), new XElement(ns + "xf", new XAttribute("numFmtId", "0"), new XAttribute("fontId", "0"), new XAttribute("fillId", "0"), new XAttribute("borderId", "0"))),
+            new XElement(
+                ns + "cellXfs",
+                new XAttribute("count", "4"),
+                new XElement(ns + "xf", new XAttribute("numFmtId", "0"), new XAttribute("fontId", "0"), new XAttribute("fillId", "0"), new XAttribute("borderId", "1"), new XAttribute("xfId", "0"), new XAttribute("applyBorder", "1")),
+                new XElement(ns + "xf", new XAttribute("numFmtId", "0"), new XAttribute("fontId", "1"), new XAttribute("fillId", "0"), new XAttribute("borderId", "0"), new XAttribute("xfId", "0"), new XAttribute("applyFont", "1")),
+                new XElement(ns + "xf", new XAttribute("numFmtId", "0"), new XAttribute("fontId", "2"), new XAttribute("fillId", "0"), new XAttribute("borderId", "0"), new XAttribute("xfId", "0"), new XAttribute("applyFont", "1")),
+                new XElement(ns + "xf", new XAttribute("numFmtId", "0"), new XAttribute("fontId", "2"), new XAttribute("fillId", "2"), new XAttribute("borderId", "1"), new XAttribute("xfId", "0"), new XAttribute("applyFont", "1"), new XAttribute("applyFill", "1"), new XAttribute("applyBorder", "1"))),
+            new XElement(ns + "cellStyles", new XAttribute("count", "1"), new XElement(ns + "cellStyle", new XAttribute("name", "Normal"), new XAttribute("xfId", "0"), new XAttribute("builtinId", "0"))));
+        return new XDocument(styles).ToString(SaveOptions.DisableFormatting);
+    }
+
+    private static XElement BorderSide(string name) =>
+        new(Spreadsheet + name, new XAttribute("style", "thin"), new XElement(Spreadsheet + "color", new XAttribute("rgb", "FF94A3B8")));
+
     private static XElement BuildWordTable(OutputTable table)
     {
-        var wordTable = new XElement(Word + "tbl");
-        foreach (IReadOnlyList<string> row in table.Rows)
+        int columns = Math.Max(1, table.Rows.Select(row => row.Count).DefaultIfEmpty(1).Max());
+        int cellWidth = Math.Max(900, 9000 / columns);
+        var wordTable = new XElement(
+            Word + "tbl",
+            new XElement(
+                Word + "tblPr",
+                new XElement(Word + "tblW", new XAttribute(Word + "w", "5000"), new XAttribute(Word + "type", "pct")),
+                new XElement(
+                    Word + "tblBorders",
+                    WordBorder("top"),
+                    WordBorder("left"),
+                    WordBorder("bottom"),
+                    WordBorder("right"),
+                    WordBorder("insideH"),
+                    WordBorder("insideV"))),
+            new XElement(Word + "tblGrid", Enumerable.Range(0, columns).Select(_ => new XElement(Word + "gridCol", new XAttribute(Word + "w", cellWidth)))));
+
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
         {
-            wordTable.Add(new XElement(Word + "tr", row.Select(value => new XElement(Word + "tc", Paragraph(value)))));
+            IReadOnlyList<string> row = table.Rows[rowIndex];
+            wordTable.Add(new XElement(
+                Word + "tr",
+                Enumerable.Range(0, columns).Select(column =>
+                {
+                    string value = column < row.Count ? row[column] : string.Empty;
+                    return new XElement(
+                        Word + "tc",
+                        new XElement(
+                            Word + "tcPr",
+                            new XElement(Word + "tcW", new XAttribute(Word + "w", cellWidth), new XAttribute(Word + "type", "dxa")),
+                            rowIndex == 0 ? new XElement(Word + "shd", new XAttribute(Word + "fill", "DDEBFF")) : null),
+                        Paragraph(value, bold: rowIndex == 0, fontSize: 17));
+                })));
         }
         return wordTable;
     }
 
-    private static XElement Paragraph(string text, bool bold = false)
+    private static XElement Paragraph(string text, bool bold = false, int fontSize = 20, string? color = null)
     {
         var run = new XElement(Word + "r");
+        var runProperties = new XElement(Word + "rPr");
         if (bold)
         {
-            run.Add(new XElement(Word + "rPr", new XElement(Word + "b")));
+            runProperties.Add(new XElement(Word + "b"));
         }
+        runProperties.Add(new XElement(Word + "sz", new XAttribute(Word + "val", fontSize)));
+        if (!string.IsNullOrWhiteSpace(color))
+        {
+            runProperties.Add(new XElement(Word + "color", new XAttribute(Word + "val", color)));
+        }
+        run.Add(runProperties);
         run.Add(new XElement(Word + "t", text ?? string.Empty));
-        return new XElement(Word + "p", run);
+        return new XElement(
+            Word + "p",
+            new XElement(Word + "pPr", new XElement(Word + "spacing", new XAttribute(Word + "after", "120"))),
+            run);
     }
+
+    private static XElement WordBorder(string name) =>
+        new(Word + name, new XAttribute(Word + "val", "single"), new XAttribute(Word + "sz", "6"), new XAttribute(Word + "color", "94A3B8"));
+
+    private static XElement SectionProperties() =>
+        new(
+            Word + "sectPr",
+            new XElement(Word + "pgSz", new XAttribute(Word + "w", "12240"), new XAttribute(Word + "h", "15840")),
+            new XElement(Word + "pgMar", new XAttribute(Word + "top", "720"), new XAttribute(Word + "right", "720"), new XAttribute(Word + "bottom", "720"), new XAttribute(Word + "left", "720"), new XAttribute(Word + "header", "360"), new XAttribute(Word + "footer", "360"), new XAttribute(Word + "gutter", "0")));
 
     private static string ColumnName(int column)
     {

@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.6.0"
+        default: "3.6.1"
   push:
     tags:
       - "v*"
@@ -172,12 +172,12 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Removed the duplicated left sidebar and moved traceability/export tools into Review.
-          - Moved status, logs, update checks, help, changelog, and path tools into Settings.
-          - Added real image/PDF visual preview rendering for OCR region selection.
-          - Region selection now crops the selected preview area and runs local Tesseract OCR when available.
-          - Added automatic Tesseract detection from common install locations and PATH.
-          - Removed legacy WinUI and PySide/Qt source files so the repo ships the Avalonia app only.
+          - Improved image/PDF preview clarity with a larger high-resolution visual canvas.
+          - Added a final output preview to the Review page before saving or exporting.
+          - Improved PDF export with multi-page tables, borders, wrapped cell text, page numbers, and a single bottom traceability barcode.
+          - Improved Word and Excel export formatting with clearer headings, table borders, and readable spacing.
+          - Added a loading progress popup while Check for Updates is running.
+          - Short popup messages now open in smaller styled windows instead of oversized dialogs.
           NOTES
 
       - name: Create or update GitHub release
