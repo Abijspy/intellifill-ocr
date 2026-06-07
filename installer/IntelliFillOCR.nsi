@@ -89,15 +89,7 @@ Section "${APP_NAME} application" SecApp
   WriteRegDWORD HKCU "${APP_REG_KEY}" "NoModify" 1
   WriteRegDWORD HKCU "${APP_REG_KEY}" "NoRepair" 1
 
-  DetailPrint "Cleaning downloaded update packages..."
-  Delete "$LOCALAPPDATA\IntelliFillOCR\Updates\IntelliFillOCR-*-setup-win-x64.exe"
-  StrCpy $0 "$LOCALAPPDATA\IntelliFillOCR\Updates"
-  StrLen $1 $0
-  StrCpy $2 "$EXEPATH" $1
-  ${If} $2 == $0
-    Delete /REBOOTOK "$EXEPATH"
-    RMDir "$LOCALAPPDATA\IntelliFillOCR\Updates"
-  ${EndIf}
+  DetailPrint "Setup complete. Update-package cleanup is handled after setup exits."
 SectionEnd
 
 Section /o "Install Tesseract OCR 5.5.0" SecTesseract

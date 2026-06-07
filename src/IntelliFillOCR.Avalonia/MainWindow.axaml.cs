@@ -24,7 +24,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.0";
+    private const string AppVersion = "3.7.1";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -791,11 +791,21 @@ if not exist "%INSTALLER%" (
   echo Installer missing: %INSTALLER%>>"%LOG%"
   exit /b 2
 )
+timeout /t 2 /nobreak >nul
 echo Launching installer.>>"%LOG%"
 start "IntelliFill OCR Setup" /wait "%INSTALLER%"
 set "INSTALL_EXIT=%ERRORLEVEL%"
 echo Installer finished with exit code %INSTALL_EXIT%.>>"%LOG%"
-del "%INSTALLER%" >>"%LOG%" 2>&1
+echo Cleaning downloaded installer after setup exits.>>"%LOG%"
+for /L %%I in (1,1,30) do (
+  del /f /q "%INSTALLER%" >>"%LOG%" 2>&1
+  if not exist "%INSTALLER%" goto cleanup_complete
+  echo Installer still locked. Cleanup retry %%I of 30.>>"%LOG%"
+  timeout /t 2 /nobreak >nul
+)
+echo Installer cleanup was deferred because the file stayed locked.>>"%LOG%"
+:cleanup_complete
+if not exist "%INSTALLER%" echo Downloaded installer package deleted.>>"%LOG%"
 del "%~f0" >nul 2>&1
 exit /b %INSTALL_EXIT%
 """;
@@ -2261,6 +2271,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.7.1
+        - Fixed update installs that could appear aborted after the app was already updated.
+        - Moved downloaded update-package cleanup out of the NSIS installer and into the detached updater handoff.
+        - Added retry logging when antivirus or Windows temporarily locks the downloaded installer package.
+        - Preserved update-launch.log so cleanup issues can be diagnosed without affecting setup.
 
         Version 3.7.0
         - Added the new OCR AutoFill brand logo to the app, installer icon, and GitHub README.

@@ -75,19 +75,19 @@ Publish the Windows Avalonia app:
 Build the Windows NSIS installer:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 3.7.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 3.7.1 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-3.7.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-3.7.1-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 3.7.0 linux-x64 Release
+bash scripts/package-linux.sh 3.7.1 linux-x64 Release
 ```
 
 ## GitHub Release Pipeline
@@ -110,8 +110,8 @@ It publishes:
 Publish by pushing a tag:
 
 ```powershell
-git tag v3.7.0
-git push origin v3.7.0
+git tag v3.7.1
+git push origin v3.7.1
 ```
 
 Or run the workflow manually from GitHub Actions and enter the version.

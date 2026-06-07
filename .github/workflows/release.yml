@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.7.0"
+        default: "3.7.1"
   push:
     tags:
       - "v*"
@@ -172,10 +172,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Added the new OCR AutoFill logo and Windows app icon.
-          - Updated the GitHub README to show the wide OCR AutoFill branding banner.
-          - Added the new wide banner image to the in-app About dialog.
-          - Bundled the new logo assets into the Avalonia application and installer package.
+          - Fixed update installs that could appear aborted after the app was already updated.
+          - Moved downloaded update-package cleanup out of NSIS and into the detached updater handoff.
+          - Added retry logging for update installer deletion when antivirus or Windows temporarily locks the file.
+          - Preserved the update-launch log so cleanup issues can be diagnosed without affecting setup.
           NOTES
 
       - name: Create or update GitHub release
