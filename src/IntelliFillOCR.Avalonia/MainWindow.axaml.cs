@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Avalonia;
@@ -24,7 +25,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.1";
+    private const string AppVersion = "3.7.2";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -145,10 +146,20 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        string extension = System.IO.Path.GetExtension(_selectedDocumentPreview.Path).ToLowerInvariant();
-        if (extension is not ".png" and not ".jpg" and not ".jpeg" and not ".pdf")
+        if (IsTableOnlyPreviewFormat(_selectedDocumentPreview.Path))
         {
-            SetStatus("Region selection is available for images and PDFs. For documents and spreadsheets, use parsed text or detected tables.");
+            SetStatus("Region selection is disabled for CSV/Excel table files. Use detected tables for those formats.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_previewBaseRasterPath) || !File.Exists(_previewBaseRasterPath))
+        {
+            RenderDocumentPreview(_selectedDocumentPreview);
+        }
+
+        if (string.IsNullOrWhiteSpace(_previewBaseRasterPath) || !File.Exists(_previewBaseRasterPath))
+        {
+            SetStatus("A visual preview is not available for this file.");
             return;
         }
 
@@ -282,6 +293,9 @@ public sealed partial class MainWindow : Window
     private async void ExportPdf_Click(object? sender, RoutedEventArgs e) =>
         await ExportAsync("PDF with traceability barcode", ".pdf", path => _exportService.ExportPdf(BuildOutputTables(), path, _traceabilityCode));
 
+    private void RefreshExportPdfPreview_Click(object? sender, RoutedEventArgs e) =>
+        RefreshExportPdfPreview();
+
     private async void DetectSignatures_Click(object? sender, RoutedEventArgs e)
     {
         string text = _sourcePreviews.Count == 0
@@ -389,6 +403,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void AutoDetectTesseract_Click(object? sender, RoutedEventArgs e)
+    {
+        string? detected = DetectTesseractPath();
+        if (string.IsNullOrWhiteSpace(detected))
+        {
+            SetStatus("Tesseract OCR was not auto-detected. Install Tesseract or choose tesseract.exe manually.");
+            return;
+        }
+
+        TesseractPathBox.Text = detected;
+        _settings.TesseractPath = detected;
+        SaveSettings();
+        StatusText.Text = PackageStatus();
+        SetStatus("Tesseract OCR auto-detected and saved: " + detected);
+        Log("Tesseract auto-detected by Settings button: " + detected);
+    }
+
     private async void BrowseDatabase_Click(object? sender, RoutedEventArgs e)
     {
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
@@ -422,6 +453,7 @@ public sealed partial class MainWindow : Window
     private void ShowReviewPage_Click(object? sender, RoutedEventArgs e)
     {
         RenderReviewOutputTable();
+        RefreshExportPdfPreview();
         ShowPage(ReviewPage, ReviewPageButton);
     }
 
@@ -967,7 +999,7 @@ exit /b %INSTALL_EXIT%
         _previewDisplayRasterPath = null;
         PreviewImage.IsVisible = false;
         PreviewMessage.IsVisible = true;
-        PreviewMessage.Text = "Preview will appear here for images and PDFs. Parsed text and detected tables are shown below.";
+        PreviewMessage.Text = "Preview will appear here for uploaded documents. CSV and Excel files use visual table preview without OCR region selection.";
 
         try
         {
@@ -986,6 +1018,13 @@ exit /b %INSTALL_EXIT%
                 RegionSelectionText.Text = "Use Select Region to draw PDF area.";
                 return;
             }
+
+            _previewBaseRasterPath = RenderTextDocumentPreviewToPng(preview);
+            RefreshPreviewImageSource();
+            RegionSelectionText.Text = IsTableOnlyPreviewFormat(preview.Path)
+                ? "CSV/Excel visual preview. Region selection disabled; use detected tables."
+                : "Use Select Region to draw document text area.";
+            return;
         }
         catch (Exception ex)
         {
@@ -993,7 +1032,7 @@ exit /b %INSTALL_EXIT%
             Log($"Preview render failed for {preview.Path}: {ex}");
         }
 
-        RegionSelectionText.Text = "Table/text document.";
+        RegionSelectionText.Text = "Preview unavailable.";
     }
 
     private string RenderImagePreviewToPng(string path)
@@ -1002,18 +1041,178 @@ exit /b %INSTALL_EXIT%
         return SaveCanvasPreview(source, "image");
     }
 
-    private string RenderPdfPreviewToPng(string path)
+    private string RenderPdfPreviewToPng(string path, int pageIndex = 0)
     {
         byte[] pdfBytes = File.ReadAllBytes(path);
         using var docReader = DocLib.Instance.GetDocReader(pdfBytes, new PageDimensions(2600, 3600));
-        using var pageReader = docReader.GetPageReader(0);
+        int pageCount = Math.Max(1, docReader.GetPageCount());
+        int safePageIndex = pageIndex < 0 ? pageCount - 1 : Math.Clamp(pageIndex, 0, pageCount - 1);
+        using var pageReader = docReader.GetPageReader(safePageIndex);
         int width = pageReader.GetPageWidth();
         int height = pageReader.GetPageHeight();
         byte[] rawBytes = pageReader.GetImage();
 
         using var source = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
         Marshal.Copy(rawBytes, 0, source.GetPixels(), Math.Min(rawBytes.Length, width * height * 4));
-        return SaveCanvasPreview(source, "pdf");
+        return SaveCanvasPreview(source, safePageIndex == 0 ? "pdf" : $"pdf-page-{safePageIndex + 1}");
+    }
+
+    private string RenderTextDocumentPreviewToPng(DocumentPreview preview)
+    {
+        int width = (int)PreviewBaseWidth;
+        int height = (int)PreviewBaseHeight;
+        using SKSurface surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul))
+            ?? throw new InvalidOperationException("Could not create the document preview drawing surface.");
+
+        SKCanvas canvas = surface.Canvas;
+        canvas.Clear(PreviewBackgroundColor());
+        using var pagePaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        using var borderPaint = new SKPaint { Color = new SKColor(148, 163, 184), IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2 };
+        using var titlePaint = new SKPaint { Color = new SKColor(15, 23, 42), IsAntialias = true };
+        using var metaPaint = new SKPaint { Color = new SKColor(71, 85, 105), IsAntialias = true };
+        using var bodyPaint = new SKPaint { Color = new SKColor(17, 24, 39), IsAntialias = true };
+        using var titleFont = new SKFont { Typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold), Size = 26 };
+        using var metaFont = new SKFont { Typeface = SKTypeface.FromFamilyName("Segoe UI"), Size = 15 };
+        using var bodyFont = new SKFont { Typeface = SKTypeface.FromFamilyName("Segoe UI"), Size = 18 };
+
+        var pageRect = new SKRect(78, 38, width - 78, height - 38);
+        canvas.DrawRoundRect(pageRect, 10, 10, pagePaint);
+        canvas.DrawRoundRect(pageRect, 10, 10, borderPaint);
+
+        float x = pageRect.Left + 34;
+        float y = pageRect.Top + 48;
+        float maxWidth = pageRect.Width - 68;
+        canvas.DrawText(System.IO.Path.GetFileName(preview.Path), x, y, titleFont, titlePaint);
+        y += 26;
+        canvas.DrawText("Generated visual preview for region selection", x, y, metaFont, metaPaint);
+        y += 34;
+
+        foreach (string rawLine in PreviewDocumentLines(preview))
+        {
+            foreach (string line in WrapPreviewLine(rawLine, bodyFont, bodyPaint, maxWidth))
+            {
+                if (y > pageRect.Bottom - 42)
+                {
+                    canvas.DrawText("Preview truncated. Use parsed text or tables below for the full document.", x, pageRect.Bottom - 20, metaFont, metaPaint);
+                    string truncatedPath = NewPreviewPath("document");
+                    SaveSurfacePng(surface, truncatedPath);
+                    return truncatedPath;
+                }
+
+                canvas.DrawText(line, x, y, bodyFont, bodyPaint);
+                y += 24;
+            }
+
+            y += 4;
+        }
+
+        string outputPath = NewPreviewPath("document");
+        SaveSurfacePng(surface, outputPath);
+        return outputPath;
+    }
+
+    private static IEnumerable<string> PreviewDocumentLines(DocumentPreview preview)
+    {
+        var yielded = false;
+        foreach (string line in preview.ParsedText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+        {
+            string normalized = Regex.Replace(line.Trim(), @"\s+", " ");
+            if (normalized.Length == 0)
+            {
+                continue;
+            }
+
+            yielded = true;
+            yield return normalized;
+        }
+
+        if (yielded)
+        {
+            yield break;
+        }
+
+        foreach (DocumentTable table in preview.Tables)
+        {
+            yield return table.Label;
+            foreach (IReadOnlyList<string> row in table.Rows.Take(40))
+            {
+                string text = Regex.Replace(string.Join("  |  ", row).Trim(), @"\s+", " ");
+                if (text.Length > 0)
+                {
+                    yield return text;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> WrapPreviewLine(string value, SKFont font, SKPaint paint, float maxWidth)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return string.Empty;
+            yield break;
+        }
+
+        var current = new StringBuilder();
+        foreach (string word in value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string candidate = current.Length == 0 ? word : current + " " + word;
+            if (font.MeasureText(candidate, paint) <= maxWidth)
+            {
+                current.Clear();
+                current.Append(candidate);
+                continue;
+            }
+
+            if (current.Length > 0)
+            {
+                yield return current.ToString();
+                current.Clear();
+            }
+
+            if (font.MeasureText(word, paint) <= maxWidth)
+            {
+                current.Append(word);
+                continue;
+            }
+
+            foreach (string chunk in BreakLongPreviewWord(word, font, paint, maxWidth))
+            {
+                yield return chunk;
+            }
+        }
+
+        if (current.Length > 0)
+        {
+            yield return current.ToString();
+        }
+    }
+
+    private static IEnumerable<string> BreakLongPreviewWord(string word, SKFont font, SKPaint paint, float maxWidth)
+    {
+        var current = new StringBuilder();
+        foreach (char character in word)
+        {
+            string candidate = current.ToString() + character;
+            if (current.Length > 0 && font.MeasureText(candidate, paint) > maxWidth)
+            {
+                yield return current.ToString();
+                current.Clear();
+            }
+
+            current.Append(character);
+        }
+
+        if (current.Length > 0)
+        {
+            yield return current.ToString();
+        }
+    }
+
+    private static bool IsTableOnlyPreviewFormat(string path)
+    {
+        string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        return extension is ".csv" or ".xlsx" or ".xls";
     }
 
     private string SaveCanvasPreview(SKBitmap source, string suffix)
@@ -1220,6 +1419,14 @@ exit /b %INSTALL_EXIT%
         string directory = System.IO.Path.Combine(_appDataPath, "PreviewCache");
         Directory.CreateDirectory(directory);
         return System.IO.Path.Combine(directory, $"preview-{Guid.NewGuid():N}-{suffix}.png");
+    }
+
+    private string NewPreviewCachePath(string suffix, string extension)
+    {
+        string directory = System.IO.Path.Combine(_appDataPath, "PreviewCache");
+        Directory.CreateDirectory(directory);
+        string normalizedExtension = extension.StartsWith('.') ? extension : "." + extension;
+        return System.IO.Path.Combine(directory, $"preview-{Guid.NewGuid():N}-{suffix}{normalizedExtension}");
     }
 
     private SKColor PreviewBackgroundColor()
@@ -1523,6 +1730,43 @@ exit /b %INSTALL_EXIT%
         }
 
         RenderReadOnlyGrid(ReviewOutputPreviewGrid, _outputTables[tableIndex], TableLabel(tableIndex));
+    }
+
+    private void RefreshExportPdfPreview()
+    {
+        if (_outputTables.Count == 0)
+        {
+            ExportPdfPreviewImage.Source = null;
+            ExportPdfPreviewImage.IsVisible = false;
+            ExportPdfPreviewMessage.Text = "Upload and fill a template to preview the generated PDF.";
+            ExportPdfPreviewMessage.IsVisible = true;
+            return;
+        }
+
+        string? pdfPath = null;
+        try
+        {
+            pdfPath = NewPreviewCachePath("export-preview", ".pdf");
+            _exportService.ExportPdf(BuildOutputTables(), pdfPath, _traceabilityCode);
+            string imagePath = RenderPdfPreviewToPng(pdfPath, pageIndex: -1);
+            using FileStream stream = File.OpenRead(imagePath);
+            ExportPdfPreviewImage.Source = new Bitmap(stream);
+            ExportPdfPreviewImage.IsVisible = true;
+            ExportPdfPreviewMessage.IsVisible = false;
+            SetStatus("PDF export preview refreshed.");
+        }
+        catch (Exception ex)
+        {
+            ExportPdfPreviewImage.Source = null;
+            ExportPdfPreviewImage.IsVisible = false;
+            ExportPdfPreviewMessage.Text = "Could not render the PDF export preview: " + ex.Message;
+            ExportPdfPreviewMessage.IsVisible = true;
+            Log("PDF export preview failed: " + ex);
+        }
+        finally
+        {
+            TryDeleteFile(pdfPath);
+        }
     }
 
     private static void ClearGrid(Grid grid)
@@ -2272,6 +2516,13 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 3.7.2
+        - Added visual preview and zoom/rotate support across uploaded formats, including generated CSV/Excel table previews.
+        - Kept OCR region selection available for PDF, image, Word, and text-style previews while disabling it for CSV/Excel table files.
+        - Added a default in-app PDF export preview on Review that renders the final page so the barcode is visible.
+        - Improved PDF barcode contrast with black bars, a white quiet zone, and clearer footer placement.
+        - Added a Settings button to auto-detect and save the local Tesseract OCR executable path.
+
         Version 3.7.1
         - Fixed update installs that could appear aborted after the app was already updated.
         - Moved downloaded update-package cleanup out of the NSIS installer and into the detached updater handoff.
@@ -2482,10 +2733,10 @@ exit /b %INSTALL_EXIT%
         Use Upload Template. CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG files are accepted. Every detected table appears in the template and output table selectors.
 
         2. Upload Sources
-        Use Upload Sources. Add up to five documents. The selected document preview, parsed text, and detected tables appear in Uploaded Documents.
+        Use Upload Sources. Add up to five documents. The selected document visual preview, parsed text, and detected tables appear in Sources.
 
         3. OCR Region Selection
-        Select an image or PDF, choose Select OCR Region, then drag a rectangle on the preview. Use zoom and rotate before selecting if the document is hard to read.
+        Select a PDF, image, Word, or text-style document, choose Select Region, then drag a rectangle on the preview. Use zoom, reset, and rotate before selecting if the document is hard to read. CSV and Excel files show a zoomable/rotatable table preview, but region OCR is disabled because those formats already provide native table data.
 
         4. Manual Mapping
         Select an extracted field, click a destination output cell, then choose Map Selected. Output cells remain editable before database save/export.
@@ -2500,10 +2751,10 @@ exit /b %INSTALL_EXIT%
         Save SQLite stores the traceability code, source metadata, extracted values, mappings, and timestamps.
 
         8. Exports
-        Export CSV, Excel, Word, or PDF. PDF includes one traceability barcode/code at the bottom center.
+        Export CSV, Excel, Word, or PDF. Review shows a default in-app PDF export preview, and PDF includes one high-contrast traceability barcode/code at the bottom center of the final page.
 
         9. Settings
-        Open the Settings page to choose the Tesseract executable, SQLite database path, theme, logs, updates, and database preview tools.
+        Open the Settings page to auto-detect or browse for the Tesseract executable, choose the SQLite database path, theme, logs, updates, and database preview tools.
         """;
     }
 

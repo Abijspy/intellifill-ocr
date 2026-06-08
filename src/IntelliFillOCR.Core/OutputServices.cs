@@ -187,30 +187,33 @@ public sealed class ExportService
         DrawPdfText(content, 48, 760, "F2", 18, "IntelliFill OCR Filled Output");
         DrawPdfText(content, 48, 740, "F1", 9, $"Traceability ID: {traceabilityCode}");
         DrawPdfText(content, 48, 726, "F1", 8, $"Generated: {DateTimeOffset.Now:yyyy-MM-dd HH:mm zzz}");
-        content.AppendLine("0.76 0.80 0.87 RG");
+        content.AppendLine("0.76 0.80 0.87 rg");
         content.AppendLine("48 720 516 0.8 re f");
         return content;
     }
 
     private static void AddPdfFooter(StringBuilder content, string traceabilityCode, int pageNumber, int pageCount, bool includeBarcode)
     {
-        content.AppendLine("0.76 0.80 0.87 RG");
-        content.AppendLine("48 64 516 0.6 re f");
-        DrawPdfText(content, 48, 48, "F1", 7.5, $"Traceability ID: {traceabilityCode}");
-        DrawPdfText(content, 516, 48, "F1", 7.5, $"Page {pageNumber} of {pageCount}");
+        content.AppendLine("0.76 0.80 0.87 rg");
+        content.AppendLine("48 58 516 0.6 re f");
+        DrawPdfText(content, 48, 65, "F1", 7.5, $"Traceability ID: {traceabilityCode}");
+        DrawPdfText(content, 516, 65, "F1", 7.5, $"Page {pageNumber} of {pageCount}");
         if (includeBarcode)
         {
             double barcodeWidth = MeasureCode39(traceabilityCode);
-            double barcodeX = Math.Max(48, (612 - barcodeWidth) / 2);
-            DrawCode39(content, traceabilityCode, barcodeX, 22, 24);
-            DrawPdfText(content, CenterTextX(traceabilityCode, 7.5), 12, "F1", 7.5, traceabilityCode);
+            double barcodeX = Math.Max(48, Math.Min((612 - barcodeWidth) / 2, 564 - barcodeWidth));
+            content.AppendLine("1 1 1 rg");
+            content.AppendLine($"{Format(barcodeX - 10)} 6 {Format(barcodeWidth + 20)} 48 re f");
+            content.AppendLine("0 0 0 rg");
+            DrawCode39(content, traceabilityCode, barcodeX, 20, 28);
+            DrawPdfText(content, CenterTextX(traceabilityCode, 7.8), 8, "F1", 7.8, traceabilityCode);
         }
         content.AppendLine("Q");
     }
 
     private static void DrawPdfText(StringBuilder content, double x, double y, string font, double size, string text)
     {
-        content.AppendLine($"BT /{font} {Format(size)} Tf {Format(x)} {Format(y)} Td ({PdfEscape(text)}) Tj ET");
+        content.AppendLine($"0 0 0 rg BT /{font} {Format(size)} Tf {Format(x)} {Format(y)} Td ({PdfEscape(text)}) Tj ET");
     }
 
     private static IReadOnlyList<string> WrapPdfText(string value, double width, double fontSize)
@@ -264,8 +267,8 @@ public sealed class ExportService
         }
 
         double currentX = x;
-        const double narrow = 1.35;
-        const double wide = 3.1;
+        const double narrow = 1.55;
+        const double wide = 3.65;
         foreach (char character in normalized)
         {
             string pattern = Code39Patterns[character];
@@ -290,8 +293,8 @@ public sealed class ExportService
             normalized = "*INTELLIFILL*";
         }
 
-        const double narrow = 1.35;
-        const double wide = 3.1;
+        const double narrow = 1.55;
+        const double wide = 3.65;
         double width = 0;
         foreach (char character in normalized)
         {

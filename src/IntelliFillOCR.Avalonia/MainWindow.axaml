@@ -154,7 +154,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -343,6 +343,24 @@
 
                                 <Border Classes="previewPanel">
                                     <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <StackPanel>
+                                                <TextBlock Text="PDF Export Preview" Classes="sectionTitle" />
+                                                <TextBlock Text="Rendered from the current output. The final page is shown so the traceability barcode is visible." Classes="muted" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Click="RefreshExportPdfPreview_Click" Content="Refresh Preview" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <ScrollViewer Grid.Row="1" MinHeight="360" MaxHeight="620" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                            <Grid MinHeight="340" Background="{DynamicResource PreviewCanvasBrush}">
+                                                <Image x:Name="ExportPdfPreviewImage" Stretch="Uniform" IsVisible="False" />
+                                                <TextBlock x:Name="ExportPdfPreviewMessage" Text="Upload and fill a template to preview the generated PDF." TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="720" Foreground="{DynamicResource MutedTextBrush}" />
+                                            </Grid>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="previewPanel">
+                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                                         <TextBlock Text="Validation Results" Classes="sectionTitle" />
                                         <TextBox x:Name="ValidationBox" Grid.Row="1" MinHeight="220" MaxHeight="360" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
                                     </Grid>
@@ -390,9 +408,10 @@
                                     <StackPanel Spacing="12">
                                         <TextBlock Text="Local Paths" Classes="sectionTitle" />
                                         <TextBlock Text="Tesseract OCR" Classes="kicker" />
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                             <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
-                                            <Button Grid.Column="1" Click="BrowseTesseract_Click" Content="Browse" />
+                                            <Button Grid.Column="1" Click="AutoDetectTesseract_Click" Content="Auto Detect" />
+                                            <Button Grid.Column="2" Click="BrowseTesseract_Click" Content="Browse" />
                                         </Grid>
                                         <TextBlock Text="SQLite Database" Classes="kicker" />
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
