@@ -25,7 +25,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.2";
+    private const string AppVersion = "3.7.3";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -2043,30 +2043,30 @@ exit /b %INSTALL_EXIT%
     {
         if (isDark)
         {
-            SetBrush("AppBackgroundBrush", "#0B1020");
-            SetBrush("ShellBrush", "#070A18");
-            SetBrush("ShellRailBrush", "#0D1122");
-            SetBrush("ShellCardBrush", "#151A2B");
-            SetBrush("ShellBorderBrush", "#29314A");
-            SetBrush("PanelBrush", "#111827");
-            SetBrush("SoftPanelBrush", "#182033");
-            SetBrush("PreviewPanelBrush", "#101827");
-            SetBrush("PanelBorderBrush", "#2B3550");
-            SetBrush("TitleTextBrush", "#F7F9FF");
-            SetBrush("BodyTextBrush", "#E5EAF6");
-            SetBrush("MutedTextBrush", "#A6B1C5");
-            SetBrush("ShellTitleTextBrush", "#F7F9FF");
-            SetBrush("ShellBodyTextBrush", "#D7DBEF");
-            SetBrush("ShellMutedTextBrush", "#AAB0CF");
-            SetBrush("PrimaryBrush", "#60A5FA");
+            SetBrush("AppBackgroundBrush", "#000000");
+            SetBrush("ShellBrush", "#070707");
+            SetBrush("ShellRailBrush", "#0D0D0E");
+            SetBrush("ShellCardBrush", "#121214");
+            SetBrush("ShellBorderBrush", "#2A2A2D");
+            SetBrush("PanelBrush", "#080808");
+            SetBrush("SoftPanelBrush", "#111113");
+            SetBrush("PreviewPanelBrush", "#0D0D0F");
+            SetBrush("PanelBorderBrush", "#2E2E32");
+            SetBrush("TitleTextBrush", "#FAFAFA");
+            SetBrush("BodyTextBrush", "#EDEDED");
+            SetBrush("MutedTextBrush", "#A8A8A8");
+            SetBrush("ShellTitleTextBrush", "#FAFAFA");
+            SetBrush("ShellBodyTextBrush", "#EDEDED");
+            SetBrush("ShellMutedTextBrush", "#A8A8A8");
+            SetBrush("PrimaryBrush", "#22D3EE");
             SetBrush("TealBrush", "#2DD4BF");
             SetBrush("TealTextBrush", "#031417");
-            SetBrush("RailButtonBrush", "#222A44");
-            SetBrush("RailButtonTextBrush", "#F2F5FF");
-            SetBrush("RailButtonBorderBrush", "#3A4565");
-            SetBrush("PreviewCanvasBrush", "#0B1220");
-            SetBrush("SelectionStrokeBrush", "#60A5FA");
-            SetBrush("SelectionFillBrush", "#3360A5FA");
+            SetBrush("RailButtonBrush", "#18181B");
+            SetBrush("RailButtonTextBrush", "#F4F4F5");
+            SetBrush("RailButtonBorderBrush", "#333337");
+            SetBrush("PreviewCanvasBrush", "#050505");
+            SetBrush("SelectionStrokeBrush", "#22D3EE");
+            SetBrush("SelectionFillBrush", "#3322D3EE");
             return;
         }
 
@@ -2515,6 +2515,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.7.3
+        - Reworked dark mode from blue-slate to a neutral black/charcoal theme.
+        - Modernized panels, buttons, tabs, text boxes, combo boxes, and list surfaces for a more consistent UI.
+        - Improved dark-mode contrast with high-clarity text, gray borders, and cyan/teal accents.
+        - Kept the existing document preview, OCR selection, mapping, export preview, and Settings workflows intact.
 
         Version 3.7.2
         - Added visual preview and zoom/rotate support across uploaded formats, including generated CSV/Excel table previews.

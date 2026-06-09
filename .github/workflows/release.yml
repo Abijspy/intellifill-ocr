@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.7.2"
+        default: "3.7.3"
   push:
     tags:
       - "v*"
@@ -172,11 +172,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Added visual preview and zoom/rotate support across uploaded formats, including generated table previews for CSV/Excel.
-          - Kept OCR region selection available for PDF, image, Word, and text-style previews while disabling it for CSV/Excel table files.
-          - Added a default in-app PDF export preview on Review, rendering the final page so the traceability barcode is visible.
-          - Improved PDF barcode contrast with black bars, a white quiet zone, and clearer footer placement.
-          - Added a Settings button to auto-detect and save the local Tesseract OCR executable path.
+          - Reworked dark mode from blue-slate to a neutral black/charcoal theme.
+          - Modernized panels, buttons, tabs, text boxes, combo boxes, and list surfaces for a more consistent UI.
+          - Improved dark-mode contrast with high-clarity text, gray borders, and cyan/teal accents.
+          - Kept the existing document preview, OCR selection, mapping, export preview, and Settings workflows intact.
           NOTES
 
       - name: Create or update GitHub release

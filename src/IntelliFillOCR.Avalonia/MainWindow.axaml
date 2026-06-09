@@ -56,22 +56,22 @@
             <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="18" />
-            <Setter Property="Padding" Value="16" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Padding" Value="18" />
         </Style>
         <Style Selector="Border.softPanel">
             <Setter Property="Background" Value="{DynamicResource SoftPanelBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="14" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="16" />
         </Style>
         <Style Selector="Border.previewPanel">
             <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="14" />
         </Style>
         <Style Selector="TextBlock.kicker">
             <Setter Property="FontSize" Value="12" />
@@ -98,12 +98,16 @@
         </Style>
         <Style Selector="Button">
             <Setter Property="MinHeight" Value="36" />
-            <Setter Property="Padding" Value="12,7" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.primary">
             <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
             <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.teal">
@@ -114,8 +118,8 @@
         <Style Selector="Button.rail">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="MinHeight" Value="36" />
-            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="14,8" />
             <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
@@ -131,16 +135,40 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.pageTab">
-            <Setter Property="MinHeight" Value="42" />
-            <Setter Property="Padding" Value="18,9" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="20,10" />
             <Setter Property="Background" Value="{DynamicResource RailButtonBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource RailButtonTextBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource RailButtonBorderBrush}" />
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="TextBox.mono">
             <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BodyTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BodyTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BodyTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </Window.Styles>
 
@@ -154,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.3" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
