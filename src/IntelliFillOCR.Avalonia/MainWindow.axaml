@@ -173,7 +173,7 @@
     </Window.Styles>
 
     <Grid Margin="16">
-        <Border Classes="panel">
+        <Border x:Name="AppShell" Classes="panel">
             <Grid RowDefinitions="Auto,*" RowSpacing="14">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                     <Image Source="avares://IntelliFillOCR/Assets/logo_512.png" Width="46" Height="46" Stretch="Uniform" VerticalAlignment="Center" />
@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.3" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.4" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 

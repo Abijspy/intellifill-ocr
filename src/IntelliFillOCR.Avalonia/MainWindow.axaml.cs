@@ -16,6 +16,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Docnet.Core;
 using Docnet.Core.Models;
 using IntelliFillOCR.Core;
@@ -25,12 +27,16 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.3";
+    private const string AppVersion = "3.7.4";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
     private const double PreviewMaxZoom = 3.0;
     private const double PreviewZoomStep = 0.25;
+    private const int ButtonAnimationDurationMs = 120;
+    private const int PageAnimationDurationMs = 180;
+    private const int DialogAnimationDurationMs = 150;
+    private const double DialogBlurRadius = 4.0;
 
     private readonly DocumentLoader _loader = new();
     private readonly ExportService _exportService = new();
@@ -59,10 +65,12 @@ public sealed partial class MainWindow : Window
     private string? _previewDisplayRasterPath;
     private AppSettings _settings = new();
     private string _traceabilityCode = CreateTraceabilityCode();
+    private bool _mainButtonAnimationsAttached;
 
     public MainWindow()
     {
         InitializeComponent();
+        ConfigureWindowTransparency();
         _appDataPath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "IntelliFillOCR");
@@ -78,7 +86,24 @@ public sealed partial class MainWindow : Window
         StatusText.Text = PackageStatus();
         TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
         Log("Avalonia application started.");
-        Opened += async (_, _) => await NotifyIfUpdateAvailableAsync();
+        Opened += async (_, _) =>
+        {
+            AttachMainButtonAnimations();
+            _ = AnimateControlAsync(AppShell, fromOpacity: 0.96, toOpacity: 1, fromY: 8, toY: 0, PageAnimationDurationMs);
+            await NotifyIfUpdateAvailableAsync();
+        };
+    }
+
+    private void ConfigureWindowTransparency()
+    {
+        TransparencyLevelHint = new[]
+        {
+            WindowTransparencyLevel.Mica,
+            WindowTransparencyLevel.AcrylicBlur,
+            WindowTransparencyLevel.Blur,
+            WindowTransparencyLevel.None
+        };
+        TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
     }
 
     private async void UploadTemplate_Click(object? sender, RoutedEventArgs e)
@@ -349,7 +374,7 @@ public sealed partial class MainWindow : Window
             SetStatus("Checking for updates...");
             await Task.Delay(250);
             ReleaseUpdate latest = await GetLatestReleaseAsync();
-            progressDialog.Close();
+            await CloseDialogAnimatedAsync(progressDialog);
             progressDialog = null;
             if (!IsNewerVersion(latest.Version, AppVersion))
             {
@@ -361,7 +386,10 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            progressDialog?.Close();
+            if (progressDialog is not null)
+            {
+                await CloseDialogAnimatedAsync(progressDialog);
+            }
             await ShowMessageAsync("Check for Updates", $"Could not check GitHub releases. Offline use is still supported.{Environment.NewLine}{Environment.NewLine}{ex.Message}");
         }
     }
@@ -464,6 +492,7 @@ public sealed partial class MainWindow : Window
     {
         Control[] pages = { TemplatePage, SourcesPage, MappingPage, ReviewPage, SettingsPage };
         Button[] buttons = { TemplatePageButton, SourcesPageButton, MappingPageButton, ReviewPageButton, SettingsPageButton };
+        bool pageWasVisible = page.IsVisible;
 
         foreach (Control candidate in pages)
         {
@@ -475,6 +504,130 @@ public sealed partial class MainWindow : Window
             button.Classes.Remove("primary");
         }
         selectedButton.Classes.Add("primary");
+
+        if (!pageWasVisible)
+        {
+            _ = AnimateControlAsync(page, fromOpacity: 0, toOpacity: 1, fromY: 12, toY: 0, PageAnimationDurationMs);
+        }
+    }
+
+    private void AttachMainButtonAnimations()
+    {
+        if (_mainButtonAnimationsAttached)
+        {
+            return;
+        }
+
+        foreach (Button button in this.GetVisualDescendants().OfType<Button>())
+        {
+            AttachClickAnimation(button);
+        }
+
+        _mainButtonAnimationsAttached = true;
+    }
+
+    private void AttachClickAnimation(Button button)
+    {
+        button.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+        button.Click -= ButtonAnimation_Click;
+        button.Click += ButtonAnimation_Click;
+    }
+
+    private void ButtonAnimation_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
+        {
+            _ = AnimateButtonPressAsync(button);
+        }
+    }
+
+    private Task AnimateButtonPressAsync(Button button)
+    {
+        var scale = new ScaleTransform(0.96, 0.96);
+        button.RenderTransform = scale;
+        return AnimateValueAsync(
+            ButtonAnimationDurationMs,
+            progress =>
+            {
+                double eased = EaseOutCubic(progress);
+                double value = 0.96 + 0.04 * eased;
+                scale.ScaleX = value;
+                scale.ScaleY = value;
+            },
+            () =>
+            {
+                scale.ScaleX = 1;
+                scale.ScaleY = 1;
+            });
+    }
+
+    private Task AnimateControlAsync(Control control, double fromOpacity, double toOpacity, double fromY, double toY, int durationMs)
+    {
+        var transform = new TranslateTransform(0, fromY);
+        control.RenderTransform = transform;
+        control.Opacity = fromOpacity;
+        return AnimateValueAsync(
+            durationMs,
+            progress =>
+            {
+                double eased = EaseOutCubic(progress);
+                control.Opacity = fromOpacity + (toOpacity - fromOpacity) * eased;
+                transform.Y = fromY + (toY - fromY) * eased;
+            },
+            () =>
+            {
+                control.Opacity = toOpacity;
+                transform.Y = toY;
+            });
+    }
+
+    private Task AnimateShellBlurAsync(double fromRadius, double toRadius, int durationMs)
+    {
+        var blur = new BlurEffect { Radius = fromRadius };
+        AppShell.Effect = blur;
+        return AnimateValueAsync(
+            durationMs,
+            progress =>
+            {
+                blur.Radius = fromRadius + (toRadius - fromRadius) * EaseOutCubic(progress);
+            },
+            () =>
+            {
+                blur.Radius = toRadius;
+                if (toRadius <= 0.05)
+                {
+                    AppShell.Effect = null;
+                }
+            });
+    }
+
+    private static Task AnimateValueAsync(int durationMs, Action<double> apply, Action complete)
+    {
+        var completion = new TaskCompletionSource();
+        DateTimeOffset start = DateTimeOffset.UtcNow;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        timer.Tick += (_, _) =>
+        {
+            double elapsed = (DateTimeOffset.UtcNow - start).TotalMilliseconds;
+            double progress = Math.Clamp(elapsed / Math.Max(1, durationMs), 0, 1);
+            apply(progress);
+            if (progress < 1)
+            {
+                return;
+            }
+
+            timer.Stop();
+            complete();
+            completion.TrySetResult();
+        };
+        timer.Start();
+        return completion.Task;
+    }
+
+    private static double EaseOutCubic(double progress)
+    {
+        double inverse = 1 - Math.Clamp(progress, 0, 1);
+        return 1 - inverse * inverse * inverse;
     }
 
     private void DocumentsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -874,8 +1027,8 @@ exit /b %INSTALL_EXIT%
 
         (double width, double height) = DialogSizeFor(text);
         Window box = CreateStyledDialog(title, Math.Max(600, width), Math.Max(360, height), body, buttons);
-        primaryButton.Click += (_, _) => box.Close("primary");
-        closeButton.Click += (_, _) => box.Close("close");
+        primaryButton.Click += async (_, _) => await CloseDialogAnimatedAsync(box, "primary");
+        closeButton.Click += async (_, _) => await CloseDialogAnimatedAsync(box, "close");
         return await box.ShowDialog<string?>(this);
     }
 
@@ -2037,20 +2190,21 @@ exit /b %INSTALL_EXIT%
         bool isDark = _settings.Theme == "Dark" ||
                       (_settings.Theme == "Default" && Application.Current.ActualThemeVariant == ThemeVariant.Dark);
         ApplyThemePalette(isDark);
+        TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
     }
 
     private void ApplyThemePalette(bool isDark)
     {
         if (isDark)
         {
-            SetBrush("AppBackgroundBrush", "#000000");
-            SetBrush("ShellBrush", "#070707");
-            SetBrush("ShellRailBrush", "#0D0D0E");
-            SetBrush("ShellCardBrush", "#121214");
-            SetBrush("ShellBorderBrush", "#2A2A2D");
-            SetBrush("PanelBrush", "#080808");
-            SetBrush("SoftPanelBrush", "#111113");
-            SetBrush("PreviewPanelBrush", "#0D0D0F");
+            SetBrush("AppBackgroundBrush", "#E0000000");
+            SetBrush("ShellBrush", "#D8070707");
+            SetBrush("ShellRailBrush", "#D80D0D0E");
+            SetBrush("ShellCardBrush", "#E0121214");
+            SetBrush("ShellBorderBrush", "#802A2A2D");
+            SetBrush("PanelBrush", "#E0080808");
+            SetBrush("SoftPanelBrush", "#E0111113");
+            SetBrush("PreviewPanelBrush", "#E00D0D0F");
             SetBrush("PanelBorderBrush", "#2E2E32");
             SetBrush("TitleTextBrush", "#FAFAFA");
             SetBrush("BodyTextBrush", "#EDEDED");
@@ -2061,23 +2215,23 @@ exit /b %INSTALL_EXIT%
             SetBrush("PrimaryBrush", "#22D3EE");
             SetBrush("TealBrush", "#2DD4BF");
             SetBrush("TealTextBrush", "#031417");
-            SetBrush("RailButtonBrush", "#18181B");
+            SetBrush("RailButtonBrush", "#D818181B");
             SetBrush("RailButtonTextBrush", "#F4F4F5");
             SetBrush("RailButtonBorderBrush", "#333337");
-            SetBrush("PreviewCanvasBrush", "#050505");
+            SetBrush("PreviewCanvasBrush", "#F0050505");
             SetBrush("SelectionStrokeBrush", "#22D3EE");
             SetBrush("SelectionFillBrush", "#3322D3EE");
             return;
         }
 
-        SetBrush("AppBackgroundBrush", "#EAF2FF");
-        SetBrush("ShellBrush", "#FBFCFF");
-        SetBrush("ShellRailBrush", "#EEF4FF");
-        SetBrush("ShellCardBrush", "#F2F5FE");
+        SetBrush("AppBackgroundBrush", "#EDEAF2FF");
+        SetBrush("ShellBrush", "#F2FBFCFF");
+        SetBrush("ShellRailBrush", "#F0EEF4FF");
+        SetBrush("ShellCardBrush", "#F0F2F5FE");
         SetBrush("ShellBorderBrush", "#DDE5F5");
-        SetBrush("PanelBrush", "#FBFCFF");
-        SetBrush("SoftPanelBrush", "#F2F5FE");
-        SetBrush("PreviewPanelBrush", "#F8FAFF");
+        SetBrush("PanelBrush", "#F2FBFCFF");
+        SetBrush("SoftPanelBrush", "#F0F2F5FE");
+        SetBrush("PreviewPanelBrush", "#F2F8FAFF");
         SetBrush("PanelBorderBrush", "#DDE5F5");
         SetBrush("TitleTextBrush", "#282B36");
         SetBrush("BodyTextBrush", "#2B2E3A");
@@ -2088,7 +2242,7 @@ exit /b %INSTALL_EXIT%
         SetBrush("PrimaryBrush", "#2563EB");
         SetBrush("TealBrush", "#14B8A6");
         SetBrush("TealTextBrush", "#071318");
-        SetBrush("RailButtonBrush", "#E8EEF9");
+        SetBrush("RailButtonBrush", "#EDE8EEF9");
         SetBrush("RailButtonTextBrush", "#263044");
         SetBrush("RailButtonBorderBrush", "#CDD8EC");
         SetBrush("PreviewCanvasBrush", "#EEF3FF");
@@ -2140,7 +2294,7 @@ exit /b %INSTALL_EXIT%
 
         (double width, double height) = DialogSizeFor(text);
         Window box = CreateStyledDialog(title, width, height, CreateDialogTextPanel(text), buttons);
-        closeButton.Click += (_, _) => box.Close();
+        closeButton.Click += async (_, _) => await CloseDialogAnimatedAsync(box);
 
         await box.ShowDialog(this);
     }
@@ -2195,7 +2349,7 @@ exit /b %INSTALL_EXIT%
         };
 
         Window box = CreateStyledDialog("About IntelliFill OCR", 740, 540, body, buttons);
-        closeButton.Click += (_, _) => box.Close();
+        closeButton.Click += async (_, _) => await CloseDialogAnimatedAsync(box);
         await box.ShowDialog(this);
     }
 
@@ -2299,7 +2453,22 @@ exit /b %INSTALL_EXIT%
         Grid.SetRow(body, 1);
         Grid.SetRow(buttons, 2);
 
-        return new Window
+        var dialogContent = new Border
+        {
+            Background = DialogBrush("AppBackgroundBrush"),
+            Padding = new Thickness(16),
+            Child = new Border
+            {
+                Background = DialogBrush("PanelBrush"),
+                BorderBrush = DialogBrush("PanelBorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(18),
+                Padding = new Thickness(18),
+                Child = contentGrid
+            }
+        };
+
+        var dialog = new Window
         {
             Title = title,
             Width = width,
@@ -2310,21 +2479,30 @@ exit /b %INSTALL_EXIT%
             FontFamily = FontFamily,
             Background = DialogBrush("AppBackgroundBrush"),
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new Border
+            TransparencyLevelHint = new[]
             {
-                Background = DialogBrush("AppBackgroundBrush"),
-                Padding = new Thickness(16),
-                Child = new Border
-                {
-                    Background = DialogBrush("PanelBrush"),
-                    BorderBrush = DialogBrush("PanelBorderBrush"),
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(18),
-                    Padding = new Thickness(18),
-                    Child = contentGrid
-                }
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.None
+            },
+            TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush"),
+            Content = dialogContent
+        };
+
+        dialog.Opened += (_, _) =>
+        {
+            _ = AnimateShellBlurAsync(0, DialogBlurRadius, DialogAnimationDurationMs);
+            _ = AnimateControlAsync(dialogContent, fromOpacity: 0, toOpacity: 1, fromY: 14, toY: 0, DialogAnimationDurationMs);
+        };
+        dialog.Closed += (_, _) =>
+        {
+            if (AppShell.Effect is not null)
+            {
+                _ = AnimateShellBlurAsync(DialogBlurRadius, 0, DialogAnimationDurationMs);
             }
         };
+
+        return dialog;
     }
 
     private Border CreateDialogTextPanel(string text)
@@ -2353,7 +2531,7 @@ exit /b %INSTALL_EXIT%
 
     private Button CreateDialogButton(string text, bool isPrimary, double minWidth)
     {
-        return new Button
+        var button = new Button
         {
             Content = text,
             MinWidth = minWidth,
@@ -2367,6 +2545,26 @@ exit /b %INSTALL_EXIT%
             BorderThickness = new Thickness(1),
             FontWeight = FontWeight.SemiBold
         };
+        AttachClickAnimation(button);
+        return button;
+    }
+
+    private async Task CloseDialogAnimatedAsync(Window dialog, object? result = null)
+    {
+        if (dialog.Content is Control content)
+        {
+            await AnimateControlAsync(content, fromOpacity: 1, toOpacity: 0, fromY: 0, toY: -10, DialogAnimationDurationMs);
+        }
+
+        await AnimateShellBlurAsync(DialogBlurRadius, 0, DialogAnimationDurationMs);
+        if (result is null)
+        {
+            dialog.Close();
+        }
+        else
+        {
+            dialog.Close(result);
+        }
     }
 
     private IBrush DialogBrush(string key)
@@ -2515,6 +2713,13 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.7.4
+        - Added Mica/Acrylic/Blur transparency hints with readable black-theme fallback surfaces.
+        - Added subtle click feedback animations for buttons.
+        - Added smooth page-switch animations for Template, Sources, Mapping, Review, and Settings.
+        - Added styled popup open/close animations with a main-window blur treatment while dialogs are active.
+        - Expanded User Guide and Feature Help into a detailed step-by-step guide for template upload, source preview, OCR region selection, mapping, validation, export, SQLite, updates, and troubleshooting.
 
         Version 3.7.3
         - Reworked dark mode from blue-slate to a neutral black/charcoal theme.
@@ -2733,34 +2938,124 @@ exit /b %INSTALL_EXIT%
     private static string HelpText()
     {
         return """
-        IntelliFill OCR Avalonia User Guide
+        IntelliFill OCR User Guide and Feature Help
 
-        1. Upload Template
-        Use Upload Template. CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG files are accepted. Every detected table appears in the template and output table selectors.
+        IntelliFill OCR is an offline desktop workflow for turning document content into filled template tables. It does not send files to cloud services. OCR runs through local Tesseract, parsed data is kept locally, and saved runs are stored in your selected SQLite database.
 
-        2. Upload Sources
-        Use Upload Sources. Add up to five documents. The selected document visual preview, parsed text, and detected tables appear in Sources.
+        Quick Start
+        1. Open Template and choose Upload Template.
+        2. Open Sources and choose Upload Sources.
+        3. Pick a source file, inspect the preview, then use zoom, rotate, and Select Region when you need OCR from a specific area.
+        4. Open Mapping, select an extracted field, click a destination cell, and choose Map Selected.
+        5. Use Auto Fill when the field labels are similar enough for automatic matching.
+        6. Open Review, check the output, validate it, then export or save to SQLite.
 
-        3. OCR Region Selection
-        Select a PDF, image, Word, or text-style document, choose Select Region, then drag a rectangle on the preview. Use zoom, reset, and rotate before selecting if the document is hard to read. CSV and Excel files show a zoomable/rotatable table preview, but region OCR is disabled because those formats already provide native table data.
+        Template Page
+        Upload Template accepts DOCX, PDF, PNG, JPG, JPEG, TXT, CSV, XLSX, and XLS files. The template is the document you want to fill. It can contain headings, logos, normal text, approval sections, signature areas, and one or more tables.
 
-        4. Manual Mapping
-        Select an extracted field, click a destination output cell, then choose Map Selected. Output cells remain editable before database save/export.
+        Detected Tables lists every table found in the template. If the template has multiple tables, use the table selector to move between them. Export keeps all output tables in one final document, so Table 1, Table 2, and later tables are not lost.
 
-        5. Auto Fill
-        Auto Fill compares blank template cells with extracted field labels using fuzzy matching and fills confident matches.
+        Template Preview shows the selected table in a read-only grid. The Output Table is a fillable copy of the template table. Blank cells and placeholder-like cells are treated as fill targets. Existing headings and labels remain unchanged unless you manually edit them.
 
-        6. Validation
-        Validate warns about blank fields, duplicate values, amount/date issues, and GST/GSTIN-like fields.
+        Sources Page
+        Upload Sources accepts up to five source documents. Sources can be images, PDFs, Word documents, Excel workbooks, CSV files, or text-style files.
 
-        7. SQLite
-        Save SQLite stores the traceability code, source metadata, extracted values, mappings, and timestamps.
+        The Files list shows uploaded sources. Select one file to refresh the visual preview, parsed text, extracted fields, and detected source tables.
 
-        8. Exports
-        Export CSV, Excel, Word, or PDF. Review shows a default in-app PDF export preview, and PDF includes one high-contrast traceability barcode/code at the bottom center of the final page.
+        Large Visual Preview is the working area for visual review. For image, PDF, Word, and text-style sources, use it to inspect the document and draw OCR regions. For Excel and CSV, the app shows a table-style preview because those formats already contain structured rows and columns.
 
-        9. Settings
-        Open the Settings page to auto-detect or browse for the Tesseract executable, choose the SQLite database path, theme, logs, updates, and database preview tools.
+        Preview Controls
+        - Zoom out and zoom in make small text easier to inspect.
+        - Reset returns the preview to the default scale and rotation.
+        - Rotate Left and Rotate Right help when scans were uploaded sideways.
+        - Select Region starts visual selection. Drag a rectangle over the exact part of the document you want to read.
+        - Extract Region OCR reads only the selected rectangle by using the local Tesseract executable configured in Settings.
+
+        OCR Region Selection
+        Use region OCR when the source is a scanned image, scanned PDF page, photo, receipt, signature area, stamp area, or a document where automatic parsing missed the required field.
+
+        A good OCR selection is tight but not too tight. Include the label and value when possible, leave a little white space around the text, and avoid selecting unrelated columns. If OCR confidence is low, zoom in, rotate the page correctly, then select the region again.
+
+        Parsed Text and Extracted Fields
+        Parsed Text shows readable text collected from the selected source. Extracted Fields are label/value candidates that can be mapped to output cells. Confidence shows how reliable the extraction or match appears.
+
+        Mapping Page
+        Manual mapping is the most controlled workflow:
+        1. Select an extracted field.
+        2. Click the destination cell in the output table.
+        3. Choose Map Selected.
+
+        The selected value is copied into the destination cell. You can still edit the cell before saving or exporting.
+
+        Auto Fill
+        Auto Fill compares source labels and template labels with fuzzy matching. It is useful for common cases such as Invoice No to Invoice Number, Cust Name to Customer Name, or Date to Invoice Date. Always review the output after Auto Fill because OCR text can be imperfect.
+
+        Template Learning
+        Save reusable mappings when the same document type will be processed again. A learned template lets the app suggest future mappings faster by comparing document labels and structure. The confidence score tells you whether the suggestion is strong enough to trust or needs review.
+
+        Validation Rules
+        Validation checks for common problems before export:
+        - Required fields left blank.
+        - Duplicate values where duplicates are suspicious.
+        - Invalid date or amount-like values.
+        - GST/GSTIN-style field format problems.
+        - Possible mismatch warnings when totals or key values do not look consistent.
+
+        Validation warnings do not stop you from exporting. They are there so you can review and correct the output first.
+
+        Review Page
+        Review is the final checkpoint. It contains the traceability ID, output actions, validation results, and export preview. Use this page before saving to SQLite or creating the final document.
+
+        Output Preview shows what will be saved or exported. PDF export preview appears in the app so you can check table readability, page breaks, and traceability barcode placement before sharing the result.
+
+        Traceability and Barcode
+        Each run has a traceability ID. PDF export places a single barcode and readable code at the bottom center of the output document. The barcode is meant for unique document identification and audit tracking. It should not appear multiple times on the same exported PDF page footer.
+
+        Export Options
+        - Export PDF creates a traceable PDF with filled tables and the bottom-center barcode.
+        - Export Word creates a DOCX output for document workflows that need later editing.
+        - Export Excel creates a workbook with the filled tables.
+        - Export CSV creates a simple table export for lightweight sharing or import into other systems.
+
+        Preserving Template Layout
+        For structured templates, the app tries to fill blank fields while keeping headings, labels, logos, approval areas, signature areas, and table structure intact. Complex merged/split rows are preserved where the source format and export format allow it. If a template is highly customized, review the export preview before sharing the final document.
+
+        SQLite Storage
+        Save SQLite stores the run locally. Saved information includes the traceability code, source file metadata, extracted values, mappings, output values, and timestamps. Use Preview Database in Settings to inspect the local database summary.
+
+        Settings Page
+        Settings contains system and maintenance tools:
+        - Tesseract OCR path: auto-detect or browse to tesseract.exe.
+        - SQLite database path: choose where the local database is stored.
+        - Theme: switch between default, light, and dark.
+        - Preview Database: inspect saved runs and counts.
+        - View Logs: open diagnostic logs.
+        - Check for Updates: look for a newer GitHub release and launch the installer when available.
+        - View Changelog: read the full version history.
+        - About: see app version and branding.
+
+        Tesseract OCR Setup
+        OCR requires Tesseract installed on the machine. If OCR does not run, open Settings and choose Auto Detect Tesseract. If detection fails, browse to the executable manually. On Windows this is commonly:
+        C:\Program Files\Tesseract-OCR\tesseract.exe
+
+        Troubleshooting
+        No preview appears:
+        Confirm the file was uploaded and selected in the Files list. Excel and CSV files use table previews. Image, PDF, Word, and text-style files support visual preview and region selection.
+
+        Region OCR button does nothing:
+        Make sure Select Region was used and a rectangle is visible. Then confirm Tesseract OCR is installed and the path is saved in Settings.
+
+        Text quality is poor:
+        Rotate the scan, zoom in, select only the needed area, and avoid shadows or handwritten text when possible. For scanned PDFs, select the exact region instead of relying only on full-page parsing.
+
+        Export looks wrong:
+        Review the output table first, then use the in-app PDF preview. Large or complex tables may need manual cell edits before export.
+
+        Update does not install:
+        Close IntelliFill OCR before running a downloaded installer manually. Antivirus can briefly hold new installer files; wait a moment and run the installer again if Windows reports the file is busy.
+
+        Best Practice
+        Map one document type carefully, validate it, save the mapping as a reusable template, and use Auto Fill only after checking the first few runs. This gives the fastest workflow while keeping the exported documents reliable.
         """;
     }
 
