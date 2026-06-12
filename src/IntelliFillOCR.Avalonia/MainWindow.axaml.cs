@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.4";
+    private const string AppVersion = "3.7.5";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -378,6 +378,8 @@ public sealed partial class MainWindow : Window
             progressDialog = null;
             if (!IsNewerVersion(latest.Version, AppVersion))
             {
+                string checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+                SetStatus($"No updates available. Installed version v{AppVersion} is current. Latest release: v{latest.Version}. Last checked: {checkedAt} local time.");
                 await ShowMessageAsync("Check for Updates", $"You are on the latest version ({AppVersion}).");
                 return;
             }
@@ -390,6 +392,8 @@ public sealed partial class MainWindow : Window
             {
                 await CloseDialogAnimatedAsync(progressDialog);
             }
+            SetStatus("Update check failed. Offline use is still available. See logs for details.");
+            Log("Manual update check failed: " + ex);
             await ShowMessageAsync("Check for Updates", $"Could not check GitHub releases. Offline use is still supported.{Environment.NewLine}{Environment.NewLine}{ex.Message}");
         }
     }
@@ -2713,6 +2717,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.7.5
+        - Refreshed Application Status after a manual update check finds no newer release.
+        - The status panel now records installed version, latest release version, and local checked time.
+        - Update-check failures now leave a clear offline-safe status message and write details to the log.
 
         Version 3.7.4
         - Added Mica/Acrylic/Blur transparency hints with readable black-theme fallback surfaces.

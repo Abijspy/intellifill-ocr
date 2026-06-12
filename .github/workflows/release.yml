@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.7.4"
+        default: "3.7.5"
   push:
     tags:
       - "v*"
@@ -171,11 +171,9 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Added Mica/Acrylic/Blur transparency hints with readable black-theme fallback surfaces.
-          - Added subtle click feedback animations for buttons.
-          - Added smooth page-switch animations for Template, Sources, Mapping, Review, and Settings.
-          - Added styled popup open/close animations with a main-window blur treatment while dialogs are active.
-          - Expanded User Guide and Feature Help into a detailed step-by-step guide for template upload, source preview, OCR region selection, mapping, validation, export, SQLite, updates, and troubleshooting.
+          - Refreshed Application Status after a manual update check finds no newer release.
+          - The status panel now records installed version, latest release version, and local checked time.
+          - Update-check failures now leave a clear offline-safe status message and write details to the log.
           NOTES
 
       - name: Create or update GitHub release
