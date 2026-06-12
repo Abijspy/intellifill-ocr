@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.7.5" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.8.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -465,17 +465,43 @@
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="Maintenance" Classes="sectionTitle" />
+                                        <Button Classes="rail" Click="RunHealthCheck_Click" Content="Run System Readiness Check" />
                                         <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
                                         <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
-                                        <Button Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                        <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
                                         <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
                                         <Button Classes="rail" Click="OpenChangelog_Click" Content="View Changelog" />
                                         <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
                                     </StackPanel>
                                 </Border>
+
+                                <Border Classes="previewPanel">
+                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <StackPanel>
+                                                <TextBlock Text="System Readiness" Classes="sectionTitle" />
+                                                <TextBlock Text="Local OCR, database, storage, and workflow readiness checks." Classes="muted" />
+                                            </StackPanel>
+                                            <Border x:Name="ReadinessBadge" Grid.Column="1" CornerRadius="12" Padding="12,6" VerticalAlignment="Center">
+                                                <TextBlock x:Name="ReadinessBadgeText" Text="Not checked" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBox x:Name="ReadinessBox" Grid.Row="1" MinHeight="180" MaxHeight="280" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Classes="mono" />
+                                    </Grid>
+                                </Border>
+
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="Application Status" Classes="sectionTitle" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <StackPanel>
+                                                <TextBlock Text="Application Status" Classes="sectionTitle" />
+                                                <TextBlock x:Name="StatusUpdatedText" Text="Not updated yet" Classes="muted" />
+                                            </StackPanel>
+                                            <Border x:Name="StatusBadge" Grid.Column="1" CornerRadius="12" Padding="12,6" VerticalAlignment="Center">
+                                                <TextBlock x:Name="StatusBadgeText" Text="Ready" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock x:Name="StatusHeadlineText" Text="Ready." Foreground="{DynamicResource BodyTextBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
                                         <ScrollViewer MinHeight="150" MaxHeight="280" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" />
                                         </ScrollViewer>

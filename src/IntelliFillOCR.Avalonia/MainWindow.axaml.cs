@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.7.5";
+    private const string AppVersion = "3.8.0";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -66,6 +66,9 @@ public sealed partial class MainWindow : Window
     private AppSettings _settings = new();
     private string _traceabilityCode = CreateTraceabilityCode();
     private bool _mainButtonAnimationsAttached;
+    private bool _isCheckingForUpdates;
+    private DateTimeOffset _lastStatusAt = DateTimeOffset.Now;
+    private string _lastUpdateCheckSummary = "Not checked in this session.";
 
     public MainWindow()
     {
@@ -83,7 +86,8 @@ public sealed partial class MainWindow : Window
         AutoDetectTesseractPath();
         ApplySettingsToUi();
         VersionBadgeText.Text = $"v{AppVersion}";
-        StatusText.Text = PackageStatus();
+        RefreshOperationalStatus("Ready.", StatusLevel.Ready, log: false);
+        RefreshReadinessReport();
         TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
         Log("Avalonia application started.");
         Opened += async (_, _) =>
@@ -364,14 +368,37 @@ public sealed partial class MainWindow : Window
         await ShowAboutAsync();
     }
 
+    private void RunHealthCheck_Click(object? sender, RoutedEventArgs e)
+    {
+        ReadinessReport report = RefreshReadinessReport(verifyWritableStorage: true);
+        string message = report.Level switch
+        {
+            StatusLevel.Success => "System readiness check passed. OCR, storage, and local application paths are ready.",
+            StatusLevel.Warning => "System readiness check completed with warnings. Review the readiness panel before production use.",
+            StatusLevel.Error => "System readiness check found blocking issues. Review the readiness panel before processing documents.",
+            _ => "System readiness check completed."
+        };
+        SetStatus(message, report.Level, refreshReadiness: false);
+        RefreshReadinessReport(verifyWritableStorage: true);
+    }
+
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
     {
+        if (_isCheckingForUpdates)
+        {
+            SetStatus("Update check is already running. Please wait for the current check to finish.", StatusLevel.Working);
+            return;
+        }
+
         Window? progressDialog = null;
+        _isCheckingForUpdates = true;
+        CheckForUpdatesButton.IsEnabled = false;
+        CheckForUpdatesButton.Content = "Checking for Updates...";
         try
         {
             progressDialog = CreateProgressDialog("Check for Updates", "Checking GitHub releases for a newer installer...");
             progressDialog.Show(this);
-            SetStatus("Checking for updates...");
+            SetStatus("Checking for updates...", StatusLevel.Working);
             await Task.Delay(250);
             ReleaseUpdate latest = await GetLatestReleaseAsync();
             await CloseDialogAnimatedAsync(progressDialog);
@@ -379,11 +406,14 @@ public sealed partial class MainWindow : Window
             if (!IsNewerVersion(latest.Version, AppVersion))
             {
                 string checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-                SetStatus($"No updates available. Installed version v{AppVersion} is current. Latest release: v{latest.Version}. Last checked: {checkedAt} local time.");
+                _lastUpdateCheckSummary = $"Current. Installed v{AppVersion}; latest release v{latest.Version}; checked {checkedAt} local time.";
+                SetStatus($"No updates available. Installed version v{AppVersion} is current. Latest release: v{latest.Version}. Last checked: {checkedAt} local time.", StatusLevel.Success);
                 await ShowMessageAsync("Check for Updates", $"You are on the latest version ({AppVersion}).");
                 return;
             }
 
+            _lastUpdateCheckSummary = $"Update available: v{latest.Version}.";
+            RefreshReadinessReport();
             await PromptForUpdateAsync(latest, isStartupNotice: false);
         }
         catch (Exception ex)
@@ -391,10 +421,24 @@ public sealed partial class MainWindow : Window
             if (progressDialog is not null)
             {
                 await CloseDialogAnimatedAsync(progressDialog);
+                progressDialog = null;
             }
-            SetStatus("Update check failed. Offline use is still available. See logs for details.");
+            string checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            _lastUpdateCheckSummary = $"Failed at {checkedAt} local time. Offline use remains available.";
+            SetStatus("Update check failed. Offline use is still available. See logs for details.", StatusLevel.Error);
             Log("Manual update check failed: " + ex);
             await ShowMessageAsync("Check for Updates", $"Could not check GitHub releases. Offline use is still supported.{Environment.NewLine}{Environment.NewLine}{ex.Message}");
+        }
+        finally
+        {
+            if (progressDialog is not null)
+            {
+                await CloseDialogAnimatedAsync(progressDialog);
+            }
+            _isCheckingForUpdates = false;
+            CheckForUpdatesButton.IsEnabled = true;
+            CheckForUpdatesButton.Content = "Check for Updates";
+            RefreshReadinessReport();
         }
     }
 
@@ -410,7 +454,6 @@ public sealed partial class MainWindow : Window
         };
         SaveSettings();
         ApplyTheme();
-        StatusText.Text = PackageStatus();
         SetStatus("Settings saved.");
     }
 
@@ -447,7 +490,6 @@ public sealed partial class MainWindow : Window
         TesseractPathBox.Text = detected;
         _settings.TesseractPath = detected;
         SaveSettings();
-        StatusText.Text = PackageStatus();
         SetStatus("Tesseract OCR auto-detected and saved: " + detected);
         Log("Tesseract auto-detected by Settings button: " + detected);
     }
@@ -764,11 +806,22 @@ public sealed partial class MainWindow : Window
             ReleaseUpdate latest = await GetLatestReleaseAsync();
             if (IsNewerVersion(latest.Version, AppVersion))
             {
+                _lastUpdateCheckSummary = $"Update available: v{latest.Version}.";
+                RefreshReadinessReport();
                 await PromptForUpdateAsync(latest, isStartupNotice: true);
+            }
+            else
+            {
+                string checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+                _lastUpdateCheckSummary = $"Current. Installed v{AppVersion}; latest release v{latest.Version}; checked {checkedAt} local time.";
+                RefreshReadinessReport();
             }
         }
         catch (Exception ex)
         {
+            string checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            _lastUpdateCheckSummary = $"Startup check skipped at {checkedAt} local time. Offline use remains available.";
+            RefreshReadinessReport();
             Log("Startup update check skipped: " + ex.Message);
         }
     }
@@ -850,7 +903,8 @@ public sealed partial class MainWindow : Window
         string? choice = await ShowChoiceAsync(title, body, primary, "Later");
         if (choice != "primary")
         {
-            SetStatus($"Update {latest.Version} is available.");
+            _lastUpdateCheckSummary = $"Update available: v{latest.Version}. User deferred installation.";
+            SetStatus($"Update {latest.Version} is available. Installation was deferred.", StatusLevel.Warning);
             return;
         }
 
@@ -862,7 +916,8 @@ public sealed partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                SetStatus("Update install failed: " + ex.Message);
+                _lastUpdateCheckSummary = $"Update v{latest.Version} download or launch failed.";
+                SetStatus("Update install failed: " + ex.Message, StatusLevel.Error);
                 Log("Update install failed: " + ex);
                 await ShowMessageAsync(
                     "Update Install Failed",
@@ -873,6 +928,8 @@ public sealed partial class MainWindow : Window
         }
 
         OpenUrl(latest.ReleaseUrl);
+        _lastUpdateCheckSummary = $"Update available: v{latest.Version}. Release page opened.";
+        SetStatus("Opened release page for update " + latest.Version, StatusLevel.Warning);
     }
 
     private static string LatestReleaseNotes(ReleaseUpdate latest)
@@ -891,6 +948,8 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(latest.DownloadUrl) || string.IsNullOrWhiteSpace(latest.AssetName))
         {
             OpenUrl(latest.ReleaseUrl);
+            _lastUpdateCheckSummary = $"Update available: v{latest.Version}. No direct installer asset was available; release page opened.";
+            SetStatus("Opened release page because no direct installer asset was available for this platform.", StatusLevel.Warning);
             return;
         }
 
@@ -904,7 +963,8 @@ public sealed partial class MainWindow : Window
             File.Delete(targetPath);
         }
 
-        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer...");
+        _lastUpdateCheckSummary = $"Downloading update v{latest.Version}.";
+        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer...", StatusLevel.Working);
         using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("IntelliFillOCR-Avalonia");
         client.Timeout = TimeSpan.FromMinutes(15);
@@ -935,7 +995,8 @@ public sealed partial class MainWindow : Window
                     if (progress >= lastProgress + 5 || progress == 100)
                     {
                         lastProgress = progress;
-                        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer... {progress}%");
+                        _lastUpdateCheckSummary = $"Downloading update v{latest.Version}: {progress}%.";
+                        SetStatus($"Downloading IntelliFill OCR {latest.Version} installer... {progress}%", StatusLevel.Working);
                     }
                 }
             }
@@ -949,7 +1010,8 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("Downloaded installer is missing or incomplete.");
         }
 
-        SetStatus($"Download complete. Launching update installer after IntelliFill OCR closes: {targetPath}");
+        _lastUpdateCheckSummary = $"Downloaded update v{latest.Version}. Installer handoff prepared.";
+        SetStatus($"Download complete. Launching update installer after IntelliFill OCR closes: {targetPath}", StatusLevel.Success);
         LaunchInstallerAfterExit(targetPath, updateDirectory, latest.Version);
         await Task.Delay(500);
         Close();
@@ -2261,16 +2323,209 @@ exit /b %INSTALL_EXIT%
 
     private string PackageStatus()
     {
-        string tesseract = string.IsNullOrWhiteSpace(_settings.TesseractPath) ? "Not selected" : _settings.TesseractPath;
-        return $"Version: {AppVersion}{Environment.NewLine}App folder: {AppContext.BaseDirectory}{Environment.NewLine}App data: {_appDataPath}{Environment.NewLine}Tesseract: {tesseract}{Environment.NewLine}SQLite: {_settings.DatabasePath}";
+        string tesseract = string.IsNullOrWhiteSpace(_settings.TesseractPath) ? "Not configured" : _settings.TesseractPath;
+        return string.Join(
+            Environment.NewLine,
+            $"Version: v{AppVersion}",
+            $"Install folder: {AppContext.BaseDirectory}",
+            $"App data: {_appDataPath}",
+            $"Tesseract OCR: {tesseract}",
+            $"SQLite database: {_settings.DatabasePath}",
+            $"Update status: {_lastUpdateCheckSummary}",
+            $"Template tables loaded: {_templateTables.Count}",
+            $"Source documents loaded: {_sourcePreviews.Count}",
+            $"Traceability ID: {_traceabilityCode}");
     }
 
     private string DefaultDatabasePath() => System.IO.Path.Combine(_appDataPath, "intellifill.sqlite3");
 
-    private void SetStatus(string message)
+    private void SetStatus(string message, StatusLevel? level = null, bool refreshReadiness = true)
     {
-        StatusText.Text = message + Environment.NewLine + Environment.NewLine + PackageStatus();
-        Log(message);
+        RefreshOperationalStatus(message, level ?? InferStatusLevel(message), log: true);
+        if (refreshReadiness)
+        {
+            RefreshReadinessReport();
+        }
+    }
+
+    private void RefreshOperationalStatus(string message, StatusLevel level, bool log)
+    {
+        _lastStatusAt = DateTimeOffset.Now;
+
+        StatusBadgeText.Text = StatusLabel(level);
+        StatusBadge.Background = StatusBrush(level);
+        StatusBadgeText.Foreground = Brushes.White;
+        StatusHeadlineText.Text = message;
+        StatusUpdatedText.Text = "Updated " + _lastStatusAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        StatusText.Text = string.Join(
+            Environment.NewLine,
+            $"State: {StatusLabel(level)}",
+            $"Last event: {message}",
+            $"Last updated: {_lastStatusAt:yyyy-MM-dd HH:mm:ss zzz}",
+            string.Empty,
+            PackageStatus());
+
+        if (log)
+        {
+            Log($"{StatusLabel(level)}: {message}");
+        }
+    }
+
+    private ReadinessReport RefreshReadinessReport(bool verifyWritableStorage = false)
+    {
+        ReadinessReport report = BuildReadinessReport(verifyWritableStorage);
+        ReadinessBox.Text = report.Text;
+        ReadinessBadgeText.Text = report.Badge;
+        ReadinessBadge.Background = StatusBrush(report.Level);
+        ReadinessBadgeText.Foreground = Brushes.White;
+        return report;
+    }
+
+    private ReadinessReport BuildReadinessReport(bool verifyWritableStorage)
+    {
+        var builder = new StringBuilder();
+        int blockingIssues = 0;
+        int warnings = 0;
+
+        builder.AppendLine("System readiness report");
+        builder.AppendLine("Generated: " + DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture));
+        builder.AppendLine();
+
+        AddReadinessLine(builder, "Application version", $"v{AppVersion}", true, "Installed version is known.", ref blockingIssues, ref warnings);
+        AddReadinessLine(builder, "Install folder", AppContext.BaseDirectory, Directory.Exists(AppContext.BaseDirectory), "Folder is present.", ref blockingIssues, ref warnings);
+
+        string appDataResult = verifyWritableStorage
+            ? ProbeWritableDirectory(_appDataPath)
+            : Directory.Exists(_appDataPath) ? "Folder exists." : "Folder will be created when settings are saved.";
+        bool appDataReady = verifyWritableStorage
+            ? appDataResult.StartsWith("Writable", StringComparison.OrdinalIgnoreCase)
+            : Directory.Exists(_appDataPath);
+        AddReadinessLine(builder, "App data folder", _appDataPath, appDataReady, appDataResult, ref blockingIssues, ref warnings);
+
+        bool tesseractReady = !string.IsNullOrWhiteSpace(_settings.TesseractPath) && File.Exists(_settings.TesseractPath);
+        string tesseractDetail = tesseractReady
+            ? _settings.TesseractPath
+            : "Not configured. Use Settings > Auto Detect or Browse before OCR region extraction.";
+        AddReadinessLine(builder, "Tesseract OCR", tesseractDetail, tesseractReady, tesseractReady ? "OCR executable is available." : "OCR extraction will be blocked until configured.", ref blockingIssues, ref warnings);
+
+        string databasePath = string.IsNullOrWhiteSpace(_settings.DatabasePath) ? DefaultDatabasePath() : _settings.DatabasePath;
+        string databaseDirectory = System.IO.Path.GetDirectoryName(databasePath) ?? ".";
+        string databaseResult = verifyWritableStorage
+            ? ProbeWritableDirectory(databaseDirectory)
+            : Directory.Exists(databaseDirectory) ? "Database folder exists." : "Database folder will be created on first save.";
+        bool databaseReady = verifyWritableStorage
+            ? databaseResult.StartsWith("Writable", StringComparison.OrdinalIgnoreCase)
+            : Directory.Exists(databaseDirectory);
+        AddReadinessLine(builder, "SQLite storage", databasePath, databaseReady, databaseResult, ref blockingIssues, ref warnings);
+
+        AddInformationalLine(builder, "SQLite database file", File.Exists(databasePath) ? "Existing database found." : "Database will be created on first Save SQLite.");
+        AddInformationalLine(builder, "Template state", _templateTables.Count > 0 ? $"{_templateTables.Count} table(s) loaded." : "No template loaded.");
+        AddInformationalLine(builder, "Source state", _sourcePreviews.Count > 0 ? $"{_sourcePreviews.Count} source document(s) loaded." : "No sources loaded.");
+        AddInformationalLine(builder, "Update check", _lastUpdateCheckSummary);
+
+        StatusLevel level = blockingIssues > 0 ? StatusLevel.Error : warnings > 0 ? StatusLevel.Warning : StatusLevel.Success;
+        string badge = blockingIssues > 0 ? "Action needed" : warnings > 0 ? "Review" : "Ready";
+        builder.AppendLine();
+        builder.AppendLine($"Summary: {blockingIssues} blocking issue(s), {warnings} warning(s).");
+        return new ReadinessReport(builder.ToString(), level, badge);
+    }
+
+    private static void AddReadinessLine(StringBuilder builder, string label, string value, bool ok, string detail, ref int blockingIssues, ref int warnings)
+    {
+        string marker = ok ? "[OK]" : "[ACTION]";
+        builder.AppendLine($"{marker} {label}");
+        builder.AppendLine($"    {value}");
+        builder.AppendLine($"    {detail}");
+        if (!ok)
+        {
+            blockingIssues++;
+        }
+    }
+
+    private static void AddInformationalLine(StringBuilder builder, string label, string detail)
+    {
+        builder.AppendLine($"[INFO] {label}");
+        builder.AppendLine($"    {detail}");
+    }
+
+    private static string ProbeWritableDirectory(string directoryPath)
+    {
+        try
+        {
+            Directory.CreateDirectory(directoryPath);
+            string testPath = System.IO.Path.Combine(directoryPath, ".intellifill-write-test");
+            File.WriteAllText(testPath, DateTimeOffset.Now.ToString("O", CultureInfo.InvariantCulture));
+            File.Delete(testPath);
+            return "Writable and ready.";
+        }
+        catch (Exception ex)
+        {
+            return "Not writable: " + ex.Message;
+        }
+    }
+
+    private static StatusLevel InferStatusLevel(string message)
+    {
+        string value = message.ToLowerInvariant();
+        if (value.Contains("failed", StringComparison.Ordinal) ||
+            value.Contains("error", StringComparison.Ordinal) ||
+            value.Contains("could not", StringComparison.Ordinal))
+        {
+            return StatusLevel.Error;
+        }
+
+        if (value.Contains("not found", StringComparison.Ordinal) ||
+            value.Contains("not auto-detected", StringComparison.Ordinal) ||
+            value.Contains("select ", StringComparison.Ordinal) ||
+            value.Contains("upload ", StringComparison.Ordinal) ||
+            value.Contains("disabled", StringComparison.Ordinal))
+        {
+            return StatusLevel.Warning;
+        }
+
+        if (value.Contains("checking", StringComparison.Ordinal) ||
+            value.Contains("downloading", StringComparison.Ordinal) ||
+            value.Contains("enabled", StringComparison.Ordinal))
+        {
+            return StatusLevel.Working;
+        }
+
+        if (value.Contains("saved", StringComparison.Ordinal) ||
+            value.Contains("loaded", StringComparison.Ordinal) ||
+            value.Contains("complete", StringComparison.Ordinal) ||
+            value.Contains("refreshed", StringComparison.Ordinal) ||
+            value.Contains("current", StringComparison.Ordinal) ||
+            value.Contains("exported", StringComparison.Ordinal) ||
+            value.Contains("auto-detected", StringComparison.Ordinal) ||
+            value.Contains("mapped", StringComparison.Ordinal) ||
+            value.Contains("available", StringComparison.Ordinal))
+        {
+            return StatusLevel.Success;
+        }
+
+        return StatusLevel.Ready;
+    }
+
+    private static string StatusLabel(StatusLevel level) => level switch
+    {
+        StatusLevel.Working => "Working",
+        StatusLevel.Success => "Success",
+        StatusLevel.Warning => "Warning",
+        StatusLevel.Error => "Error",
+        _ => "Ready"
+    };
+
+    private static IBrush StatusBrush(StatusLevel level)
+    {
+        string color = level switch
+        {
+            StatusLevel.Working => "#7C3AED",
+            StatusLevel.Success => "#15803D",
+            StatusLevel.Warning => "#B45309",
+            StatusLevel.Error => "#B91C1C",
+            _ => "#2563EB"
+        };
+        return new SolidColorBrush(Color.Parse(color));
     }
 
     private void Log(string message)
@@ -2718,6 +2973,13 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 3.8.0
+        - Upgraded Settings with an industrial-style Application Status model that tracks state, severity, timestamp, update status, loaded template/source counts, and traceability ID.
+        - Added a System Readiness panel for local OCR, SQLite storage, app data folder, template/source state, and update-check state.
+        - Added Run System Readiness Check to verify writable storage paths before production document processing.
+        - Hardened update checking with duplicate-click protection, disabled button state while checking, clear success/failure/deferred states, and readiness refresh after startup/manual checks.
+        - Removed direct status-text bypasses so all status changes use one consistent operational pipeline.
+
         Version 3.7.5
         - Refreshed Application Status after a manual update check finds no newer release.
         - The status panel now records installed version, latest release version, and local checked time.
@@ -3037,6 +3299,9 @@ exit /b %INSTALL_EXIT%
         - Tesseract OCR path: auto-detect or browse to tesseract.exe.
         - SQLite database path: choose where the local database is stored.
         - Theme: switch between default, light, and dark.
+        - Run System Readiness Check: verifies local app data and database folders are writable and confirms whether Tesseract OCR is configured.
+        - System Readiness: summarizes OCR readiness, SQLite readiness, loaded template/source state, and update-check state.
+        - Application Status: shows the current operational state, severity, timestamp, version, paths, traceability ID, and last update result.
         - Preview Database: inspect saved runs and counts.
         - View Logs: open diagnostic logs.
         - Check for Updates: look for a newer GitHub release and launch the installer when available.
@@ -3079,6 +3344,17 @@ exit /b %INSTALL_EXIT%
     private sealed record MappingSnapshot(string SourceLabel, string SourceValue, int TableIndex, int RowIndex, int ColumnIndex, string Value, string DestinationLabel);
 
     private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl, string Notes);
+
+    private sealed record ReadinessReport(string Text, StatusLevel Level, string Badge);
+
+    private enum StatusLevel
+    {
+        Ready,
+        Working,
+        Success,
+        Warning,
+        Error
+    }
 
     private sealed class AppSettings
     {
