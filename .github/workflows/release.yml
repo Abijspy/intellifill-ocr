@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "3.8.0"
+        default: "3.8.1"
   push:
     tags:
       - "v*"
@@ -171,11 +171,10 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Upgraded Settings with an industrial-style Application Status model that tracks state, severity, timestamp, update status, loaded template/source counts, and traceability ID.
-          - Added a System Readiness panel for local OCR, SQLite storage, app data folder, template/source state, and update-check state.
-          - Added Run System Readiness Check to verify writable storage paths before production document processing.
-          - Hardened update checking with duplicate-click protection, disabled button state while checking, clear success/failure/deferred states, and readiness refresh after startup/manual checks.
-          - Removed direct status-text bypasses so all status changes use one consistent operational pipeline.
+          - Removed repeated information between System Readiness and Application Status.
+          - System Readiness now focuses on environment checks: local OCR, app data storage, SQLite path, and update reachability.
+          - Application Status now focuses on the active document run: last operation, traceability ID, template/output/source counts, selected source, extracted fields, and mappings.
+          - Updated Settings panel descriptions so each section has a distinct purpose.
           NOTES
 
       - name: Create or update GitHub release

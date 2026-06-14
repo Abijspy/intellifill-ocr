@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.8.0";
+    private const string AppVersion = "3.8.1";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -2321,20 +2321,19 @@ exit /b %INSTALL_EXIT%
         Resources[key] = new SolidColorBrush(Color.Parse(color));
     }
 
-    private string PackageStatus()
+    private string CurrentRunStatus()
     {
-        string tesseract = string.IsNullOrWhiteSpace(_settings.TesseractPath) ? "Not configured" : _settings.TesseractPath;
+        string selectedSource = _selectedDocumentPreview is null ? "None selected" : _selectedDocumentPreview.Name;
         return string.Join(
             Environment.NewLine,
-            $"Version: v{AppVersion}",
-            $"Install folder: {AppContext.BaseDirectory}",
-            $"App data: {_appDataPath}",
-            $"Tesseract OCR: {tesseract}",
-            $"SQLite database: {_settings.DatabasePath}",
-            $"Update status: {_lastUpdateCheckSummary}",
-            $"Template tables loaded: {_templateTables.Count}",
-            $"Source documents loaded: {_sourcePreviews.Count}",
-            $"Traceability ID: {_traceabilityCode}");
+            "Current run",
+            $"Traceability ID: {_traceabilityCode}",
+            $"Template tables: {_templateTables.Count}",
+            $"Output tables: {_outputTables.Count}",
+            $"Source documents: {_sourcePreviews.Count}",
+            $"Selected source: {selectedSource}",
+            $"Extracted fields: {_extractedFields.Count}",
+            $"Mapped fields: {_mappings.Count}");
     }
 
     private string DefaultDatabasePath() => System.IO.Path.Combine(_appDataPath, "intellifill.sqlite3");
@@ -2363,7 +2362,7 @@ exit /b %INSTALL_EXIT%
             $"Last event: {message}",
             $"Last updated: {_lastStatusAt:yyyy-MM-dd HH:mm:ss zzz}",
             string.Empty,
-            PackageStatus());
+            CurrentRunStatus());
 
         if (log)
         {
@@ -2419,8 +2418,6 @@ exit /b %INSTALL_EXIT%
         AddReadinessLine(builder, "SQLite storage", databasePath, databaseReady, databaseResult, ref blockingIssues, ref warnings);
 
         AddInformationalLine(builder, "SQLite database file", File.Exists(databasePath) ? "Existing database found." : "Database will be created on first Save SQLite.");
-        AddInformationalLine(builder, "Template state", _templateTables.Count > 0 ? $"{_templateTables.Count} table(s) loaded." : "No template loaded.");
-        AddInformationalLine(builder, "Source state", _sourcePreviews.Count > 0 ? $"{_sourcePreviews.Count} source document(s) loaded." : "No sources loaded.");
         AddInformationalLine(builder, "Update check", _lastUpdateCheckSummary);
 
         StatusLevel level = blockingIssues > 0 ? StatusLevel.Error : warnings > 0 ? StatusLevel.Warning : StatusLevel.Success;
@@ -2973,6 +2970,12 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 3.8.1
+        - Removed repeated information between System Readiness and Application Status.
+        - System Readiness now focuses on environment checks: local OCR, app data storage, SQLite path, and update reachability.
+        - Application Status now focuses on the active document run: last operation, traceability ID, template/output/source counts, selected source, extracted fields, and mappings.
+        - Updated Settings panel descriptions so each section has a distinct purpose.
+
         Version 3.8.0
         - Upgraded Settings with an industrial-style Application Status model that tracks state, severity, timestamp, update status, loaded template/source counts, and traceability ID.
         - Added a System Readiness panel for local OCR, SQLite storage, app data folder, template/source state, and update-check state.
@@ -3300,8 +3303,8 @@ exit /b %INSTALL_EXIT%
         - SQLite database path: choose where the local database is stored.
         - Theme: switch between default, light, and dark.
         - Run System Readiness Check: verifies local app data and database folders are writable and confirms whether Tesseract OCR is configured.
-        - System Readiness: summarizes OCR readiness, SQLite readiness, loaded template/source state, and update-check state.
-        - Application Status: shows the current operational state, severity, timestamp, version, paths, traceability ID, and last update result.
+        - System Readiness: summarizes workstation/environment readiness such as OCR, app data storage, SQLite path, and update-check state.
+        - Application Status: shows the current run state such as last operation, traceability ID, loaded tables/sources, selected source, extracted fields, and mappings.
         - Preview Database: inspect saved runs and counts.
         - View Logs: open diagnostic logs.
         - Check for Updates: look for a newer GitHub release and launch the installer when available.

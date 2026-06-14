@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.8.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v3.8.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -480,7 +480,7 @@
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                             <StackPanel>
                                                 <TextBlock Text="System Readiness" Classes="sectionTitle" />
-                                                <TextBlock Text="Local OCR, database, storage, and workflow readiness checks." Classes="muted" />
+                                                <TextBlock Text="Environment checks for local OCR, storage, database path, and update reachability." Classes="muted" />
                                             </StackPanel>
                                             <Border x:Name="ReadinessBadge" Grid.Column="1" CornerRadius="12" Padding="12,6" VerticalAlignment="Center">
                                                 <TextBlock x:Name="ReadinessBadgeText" Text="Not checked" FontWeight="SemiBold" />
@@ -495,6 +495,7 @@
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                             <StackPanel>
                                                 <TextBlock Text="Application Status" Classes="sectionTitle" />
+                                                <TextBlock Text="Current run state, last operation, selected source, mappings, and traceability." Classes="muted" />
                                                 <TextBlock x:Name="StatusUpdatedText" Text="Not updated yet" Classes="muted" />
                                             </StackPanel>
                                             <Border x:Name="StatusBadge" Grid.Column="1" CornerRadius="12" Padding="12,6" VerticalAlignment="Center">
