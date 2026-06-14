@@ -1,0 +1,17 @@
+description: "Offline OCR document automation desktop app for template table filling, Tesseract extraction, SQLite storage, validation, and traceable PDF, Word, Excel, and CSV exports."
+homepage: "https://github.com/Abijspy/intellifill-ocr/releases"
+topics:
+  - ocr
+  - tesseract
+  - document-automation
+  - data-extraction
+  - offline-ocr
+  - avalonia
+  - desktop-app
+  - sqlite
+  - pdf
+  - docx
+  - excel
+  - barcode
+  - windows
+  - linux

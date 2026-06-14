@@ -10,6 +10,14 @@ IntelliFill OCR is an offline desktop application for OCR-assisted document extr
 
 The current app shell is built with Avalonia so the same UI can be distributed on Windows and Linux. It does not use cloud APIs.
 
+## About This Repository
+
+**Description:** Offline OCR document automation desktop app for template table filling, Tesseract extraction, SQLite storage, validation, and traceable PDF, Word, Excel, and CSV exports.
+
+**Suggested GitHub topics:** `ocr`, `tesseract`, `document-automation`, `data-extraction`, `offline-ocr`, `avalonia`, `desktop-app`, `sqlite`, `pdf`, `docx`, `excel`, `barcode`, `windows`, `linux`.
+
+**Best release entry point:** [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases)
+
 ## Current Features
 
 - Avalonia desktop UI for Windows and Linux.
