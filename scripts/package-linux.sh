@@ -33,16 +33,16 @@ cp -a "$PUBLISH/." "$PKG_ROOT/usr/share/intellifill-ocr/"
 # it as a system dependency produces RPMs that cannot be installed everywhere.
 # Bundle the exact libraries the published runtime was linked against instead.
 bundle_lttng_runtime() {
-  local coreclr="$PUBLISH/libcoreclr.so"
   local target_dir="$PKG_ROOT/usr/share/intellifill-ocr"
   local library source dependency
   local -a libraries
 
-  [ -f "$coreclr" ] || return 0
-
   mapfile -t libraries < <(
-    readelf -d "$coreclr" |
-      awk '/Shared library: \[liblttng-ust/ { gsub(/[\[\]]/, "", $NF); print $NF }'
+    while IFS= read -r -d '' file; do
+      readelf -d "$file" 2>/dev/null || true
+    done < <(find "$PUBLISH" -type f -print0) |
+      awk '/Shared library: \[liblttng-ust/ { gsub(/[\[\]]/, "", $NF); print $NF }' |
+      sort -u
   )
 
   for ((index = 0; index < ${#libraries[@]}; index++)); do
