@@ -27,8 +27,54 @@ PKG_ROOT="$OUT/pkgroot"
 rm -rf "$PKG_ROOT"
 mkdir -p "$PKG_ROOT/usr/share/intellifill-ocr" "$PKG_ROOT/usr/bin" "$PKG_ROOT/usr/share/applications"
 cp -a "$PUBLISH/." "$PKG_ROOT/usr/share/intellifill-ocr/"
+
+# The self-contained .NET runtime links to LTTng UST for diagnostics.  Its
+# SONAME differs between RPM distribution releases, so letting alien discover
+# it as a system dependency produces RPMs that cannot be installed everywhere.
+# Bundle the exact libraries the published runtime was linked against instead.
+bundle_lttng_runtime() {
+  local coreclr="$PUBLISH/libcoreclr.so"
+  local target_dir="$PKG_ROOT/usr/share/intellifill-ocr"
+  local library source dependency
+  local -a libraries
+
+  [ -f "$coreclr" ] || return 0
+
+  mapfile -t libraries < <(
+    readelf -d "$coreclr" |
+      awk '/Shared library: \[liblttng-ust/ { gsub(/[\[\]]/, "", $NF); print $NF }'
+  )
+
+  for ((index = 0; index < ${#libraries[@]}; index++)); do
+    library="${libraries[index]}"
+    source="$(ldconfig -p | awk -v library="$library" '$1 == library { print $NF; exit }')"
+    if [ -z "$source" ] || [ ! -e "$source" ]; then
+      echo "Required runtime library $library was not found on the packaging host." >&2
+      exit 1
+    fi
+
+    # Store the file under the SONAME requested by libcoreclr.  This avoids
+    # copying host-specific versioned filenames or dangling symlinks.
+    install -m 755 "$(readlink -f "$source")" "$target_dir/$library"
+
+    # LTTng UST itself depends on its matching common library.  Include the
+    # complete LTTng UST closure, but leave standard system libraries alone.
+    while IFS= read -r dependency; do
+      if [[ ! " ${libraries[*]} " =~ " $dependency " ]]; then
+        libraries+=("$dependency")
+      fi
+    done < <(
+      readelf -d "$(readlink -f "$source")" |
+        awk '/Shared library: \[liblttng-ust/ { gsub(/[\[\]]/, "", $NF); print $NF }'
+    )
+  done
+}
+
+bundle_lttng_runtime
+
 cat > "$PKG_ROOT/usr/bin/intellifill-ocr" <<'WRAPPER'
 #!/usr/bin/env bash
+export LD_LIBRARY_PATH="/usr/share/intellifill-ocr${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec /usr/share/intellifill-ocr/IntelliFillOCR "$@"
 WRAPPER
 chmod 755 "$PKG_ROOT/usr/bin/intellifill-ocr"
