@@ -73,6 +73,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ActualThemeVariantChanged += OnActualThemeVariantChanged;
         ConfigureWindowTransparency();
         _appDataPath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -2256,6 +2257,20 @@ exit /b %INSTALL_EXIT%
         bool isDark = _settings.Theme == "Dark" ||
                       (_settings.Theme == "Default" && Application.Current.ActualThemeVariant == ThemeVariant.Dark);
         ApplyThemePalette(isDark);
+        TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
+    }
+
+    // The Default choice follows the desktop's colour-scheme preference. GTK,
+    // Qt, and COSMIC can change that preference while this window is open, so
+    // update the brushes that are created from code as well as Fluent's XAML resources.
+    private void OnActualThemeVariantChanged(object? sender, EventArgs e)
+    {
+        if (_settings.Theme != "Default")
+        {
+            return;
+        }
+
+        ApplyThemePalette(ActualThemeVariant == ThemeVariant.Dark);
         TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
     }
 
