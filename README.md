@@ -39,6 +39,8 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 
 ## Install
 
+See [Linux package repositories](PACKAGE_REPOSITORIES.md) for APT/DNF installation and automatic updates.
+
 Windows users should download the NSIS setup installer from GitHub Releases:
 
 ```text

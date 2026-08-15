@@ -1,0 +1,57 @@
+name: Publish Linux package repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing GitHub Release version, without the v prefix
+        required: true
+        default: "3.9.3"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install repository tools
+        run: sudo apt-get update && sudo apt-get install -y apt-utils createrepo-c gnupg
+      - name: Download release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release-assets
+          gh release download "v${{ inputs.version }}" --repo "$GITHUB_REPOSITORY" --dir release-assets --pattern "*.deb" --pattern "*.rpm" --clobber
+      - name: Import package signing key
+        env:
+          PACKAGE_SIGNING_KEY: ${{ secrets.INTELLIFILL_PACKAGE_SIGNING_KEY }}
+        run: printf '%s' "$PACKAGE_SIGNING_KEY" | gpg --batch --import
+      - name: Build signed repositories
+        run: |
+          git clone --depth 1 --branch gh-pages "https://github.com/${GITHUB_REPOSITORY}.git" published-repository || mkdir published-repository
+          mkdir -p published-repository/apt/pool/main/i/intellifill-ocr published-repository/apt/dists/stable/main/binary-amd64 published-repository/rpm/x86_64 published-repository/keys
+          cp release-assets/*.deb published-repository/apt/pool/main/i/intellifill-ocr/
+          cp release-assets/*.rpm published-repository/rpm/x86_64/
+          cp package-repository/keys/intellifill-ocr-archive-keyring.gpg published-repository/keys/
+          ( cd published-repository/apt
+            apt-ftparchive packages pool > dists/stable/main/binary-amd64/Packages
+            gzip --no-name --force --keep dists/stable/main/binary-amd64/Packages
+            apt-ftparchive -o APT::FTPArchive::Release::Origin="IntelliFill OCR" -o APT::FTPArchive::Release::Label="IntelliFill OCR" -o APT::FTPArchive::Release::Suite=stable -o APT::FTPArchive::Release::Codename=stable -o APT::FTPArchive::Release::Architectures=amd64 -o APT::FTPArchive::Release::Components=main release dists/stable > dists/stable/Release
+            gpg --batch --yes --armor --detach-sign --output dists/stable/Release.gpg dists/stable/Release
+            gpg --batch --yes --clearsign --output dists/stable/InRelease dists/stable/Release )
+          createrepo_c --update published-repository/rpm/x86_64
+          gpg --batch --yes --armor --detach-sign --output published-repository/rpm/x86_64/repodata/repomd.xml.asc published-repository/rpm/x86_64/repodata/repomd.xml
+          printf '%s\n' '[intellifill-ocr]' 'name=IntelliFill OCR' 'baseurl=https://abijspy.github.io/intellifill-ocr/rpm/$basearch' 'enabled=1' 'gpgcheck=0' 'repo_gpgcheck=1' 'gpgkey=https://abijspy.github.io/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg' > published-repository/intellifill-ocr.repo
+      - name: Publish GitHub Pages branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd published-repository
+          git init
+          git add --all
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Publish Linux packages v${{ inputs.version }}" || exit 0
+          git branch -M gh-pages
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin gh-pages
