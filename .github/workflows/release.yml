@@ -12,6 +12,7 @@ on:
       - "v*"
 
 permissions:
+  actions: write
   contents: write
 
 env:
@@ -196,3 +197,10 @@ jobs:
           else
             gh release create "$RELEASE_TAG" "${assets[@]}" --title "IntelliFill OCR $RELEASE_VERSION" --notes-file release-notes.md --target "$GITHUB_SHA"
           fi
+
+      - name: Publish signed Linux package repositories
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-linux-repositories.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f version="$RELEASE_VERSION"
