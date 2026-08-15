@@ -1,0 +1,23 @@
+Architectures: amd64
+Codename: stable
+Components: main
+Date: Sat, 15 Aug 2026 14:46:46 +0000
+Label: IntelliFill OCR
+Origin: IntelliFill OCR
+Suite: stable
+MD5Sum:
+ d0b6a49b8bc3ea83990b5dc1ffa4d14b              154 Release
+ f401a5ad4df3c3b4613c1594a037366b              648 main/binary-amd64/Packages
+ 946de834eeb24de9c827e658dc433a68              455 main/binary-amd64/Packages.gz
+SHA1:
+ 47bed535b074858db645f2a1de961f19ffaf4c6b              154 Release
+ d65e4f85bb0c3b37f3f33e219e5581415920b2d9              648 main/binary-amd64/Packages
+ 960644502c4553396a599518ef22f7180480a25f              455 main/binary-amd64/Packages.gz
+SHA256:
+ 960f0b536fc01dc06313af2fe56802d679c651d5b388ee8b289a234cecf063d7              154 Release
+ cdcb39b58b207ae206621c9981070e1640c59c9fc0de3ce409cf95fad9fadd7f              648 main/binary-amd64/Packages
+ 3019eb1f7d20de3da35928f6582a7b573126445d5a7180368a1c34ebdc3fab83              455 main/binary-amd64/Packages.gz
+SHA512:
+ bd91b1cea4e5dd69fa2519e353b05ad77b85138961a133c297fb796bb131007d74dc35921552c634dd73379701a5499cc9ecf69974d0acee1fe00db2a1eaba52              154 Release
+ fd3e63c20e6e65ae0f8a9c8fecd1a1a8ee13f59be8ee8b9cef4634385a9f90da796d07e0a97b1a4a2928c40932afb96fa4f80870bbdb9a33c776020118c6cf1a              648 main/binary-amd64/Packages
+ 4ddb1cf1de3129fad417cf0e35abf713447b9bc70cea78820567dfee3c76d188ac615457660e0c317f922bcb74b0dfcae105a2ef11d90b2af6f888e8370d1412              455 main/binary-amd64/Packages.gz

@@ -1,0 +1,15 @@
+Package: intellifill-ocr
+Architecture: amd64
+Version: 3.9.3
+Priority: optional
+Section: utils
+Maintainer: IntelliFill OCR
+Depends: libx11-6, libice6, libsm6, libfontconfig1
+Filename: pool/main/i/intellifill-ocr/intellifill-ocr_3.9.3_amd64.deb
+Size: 36365082
+MD5sum: b1552973f4f0ace53f8928ffefbda927
+SHA1: ad8e277a4272c88c12437c17a7457bfb4a5b346d
+SHA256: 0c0d7fd5957ca172ed4d93eb10c98b7e5d0684b43b974421202c3a39ca293767
+SHA512: eff46b0d61da5a92f269ca2bd78dd038d634743485bf711756d5f93868b0ce79f42feaa0f7532b242638f2def9ada239ba2b52594b3d8c21c0899c15b43cf2e8
+Description: Offline OCR extraction, table filling, SQLite storage, and traceable exports.
+
