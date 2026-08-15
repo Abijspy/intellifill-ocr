@@ -12,7 +12,7 @@ The signed package repositories are hosted on GitHub Pages after the repository 
 ```bash
 curl -fsSL https://abijspy.github.io/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg | \
   sudo gpg --dearmor -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main" | \
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main" | \
   sudo tee /etc/apt/sources.list.d/intellifill-ocr.list
 sudo apt update
 sudo apt install intellifill-ocr

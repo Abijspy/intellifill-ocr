@@ -67,7 +67,7 @@ if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
   install -m 644 /usr/share/intellifill-ocr/repositories/intellifill-ocr.repo /etc/yum.repos.d/intellifill-ocr.repo
 else
   install -d /etc/apt/sources.list.d /usr/share/keyrings
-  printf '%s\n' 'deb [signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
+  printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
 fi
 POSTINST
 chmod 755 "$PKG_ROOT/DEBIAN/postinst"
