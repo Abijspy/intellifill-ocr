@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.9.2";
+    private const string AppVersion = "3.9.3";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -2984,6 +2984,10 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 3.9.3
+        - Fixed system-theme synchronization on Linux so the app updates immediately when GTK, Qt, or COSMIC switches between light and dark appearance.
+        - Added Noto Sans, Cantarell, and system Sans fallbacks for consistent Linux typography.
 
         Version 3.8.1
         - Removed repeated information between System Readiness and Application Status.

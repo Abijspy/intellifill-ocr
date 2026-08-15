@@ -171,10 +171,8 @@ jobs:
           # What's New in IntelliFill OCR $RELEASE_VERSION
 
           Version $RELEASE_VERSION
-          - Removed repeated information between System Readiness and Application Status.
-          - System Readiness now focuses on environment checks: local OCR, app data storage, SQLite path, and update reachability.
-          - Application Status now focuses on the active document run: last operation, traceability ID, template/output/source counts, selected source, extracted fields, and mappings.
-          - Updated Settings panel descriptions so each section has a distinct purpose.
+          - Fixed system-theme synchronization on Linux so the app updates immediately when GTK, Qt, or COSMIC switches between light and dark appearance.
+          - Added Noto Sans, Cantarell, and system Sans fallbacks for consistent Linux typography.
           NOTES
 
       - name: Create or update GitHub release
