@@ -1,23 +1,23 @@
 Architectures: amd64
 Codename: stable
 Components: main
-Date: Sat, 15 Aug 2026 15:28:47 +0000
+Date: Sat, 15 Aug 2026 15:40:04 +0000
 Label: IntelliFill OCR
 Origin: IntelliFill OCR
 Suite: stable
 MD5Sum:
- 8d1654273d6a1904d3583b36cf29cd04              154 Release
+ d69787129ab6e4af271d69604aa3ca73              154 Release
  689386290e2d7d94f22219f4f8ca44e8             1296 main/binary-amd64/Packages
  5ffa2ac924a6d58f66d462a9fd1d9e3c              645 main/binary-amd64/Packages.gz
 SHA1:
- edec35efc61cc029b9909f1f808c81f7b39b80eb              154 Release
+ b775eb7d2fab1690d25a4fb5d9e3f4d26d437102              154 Release
  a68e96c55e4d2390b5050dfeb14aee753c74a650             1296 main/binary-amd64/Packages
  a834a845428c05510eef0a0000e3678843d35fa5              645 main/binary-amd64/Packages.gz
 SHA256:
- 4b315abaf108f29e5eb77fd4d8fd4655693859b424105d9cf6b2799120c88027              154 Release
+ 9fed40cfccc4c4be0fb97d16401bc880aa5de741aef042df9c0bff8eb7bf45a8              154 Release
  15e0de872e398ae02a5cbddf4a721a5b01bd4bed0d8adba83c2a22bf1e296d3d             1296 main/binary-amd64/Packages
  63a5d46163f2146b6dac2d7733157a8a363a8f5c4e6a550752aa9ca69b14ce51              645 main/binary-amd64/Packages.gz
 SHA512:
- af96552d34b88eb139b90c33ad2025bb47512af037aca2206a90fb768baf086e89ea0c6a2ea44c2ecc4736c8a51aeb24ab319f3e6aff396f9dffba6415326806              154 Release
+ a4d28b54114a2bd8a9074dd3693c575562030fd43da8497be4762fc254a8464155459b80273de2674d67bfe40f46b365cc95cf7d6c6f5ee2e226e643ca86b9b6              154 Release
  b4f6747542234caca17264b15cb8bbae2b058186eee03521b9990d77aca28fc4423cc41329fcc96347582673d5b5278b04e871cf1430f33d5ab8b241c7e70ffd             1296 main/binary-amd64/Packages
  52b1cea8cbc1b6c8b63b5aec14f4d78100d62050f8d08a18bdba76dcf03cde20ce996d87c2082f9cadc2729b990dc8f8130f414e4d769f2528620edcd7e31c25              645 main/binary-amd64/Packages.gz
