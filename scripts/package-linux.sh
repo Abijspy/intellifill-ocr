@@ -31,7 +31,17 @@ tar -C "$PUBLISH" -czf "$TAR" .
 
 PKG_ROOT="$OUT/pkgroot"
 rm -rf "$PKG_ROOT"
-mkdir -p "$PKG_ROOT/usr/share/intellifill-ocr" "$PKG_ROOT/usr/bin" "$PKG_ROOT/usr/share/applications"
+mkdir -p "$PKG_ROOT/usr/share/intellifill-ocr" "$PKG_ROOT/usr/share/intellifill-ocr/repositories" "$PKG_ROOT/usr/share/keyrings" "$PKG_ROOT/usr/bin" "$PKG_ROOT/usr/share/applications"
+cp "$ROOT/package-repository/keys/intellifill-ocr-archive-keyring.gpg" "$PKG_ROOT/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg"
+cat > "$PKG_ROOT/usr/share/intellifill-ocr/repositories/intellifill-ocr.repo" <<'REPO'
+[intellifill-ocr]
+name=IntelliFill OCR
+baseurl=https://abijspy.github.io/intellifill-ocr/rpm/$basearch
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+gpgkey=https://abijspy.github.io/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg
+REPO
 cp -a "$PUBLISH/." "$PKG_ROOT/usr/share/intellifill-ocr/"
 cat > "$PKG_ROOT/usr/bin/intellifill-ocr" <<'WRAPPER'
 #!/usr/bin/env bash
@@ -49,6 +59,18 @@ Categories=Office;Utility;
 DESKTOP
 
 mkdir -p "$PKG_ROOT/DEBIAN"
+cat > "$PKG_ROOT/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+  install -d /etc/yum.repos.d
+  install -m 644 /usr/share/intellifill-ocr/repositories/intellifill-ocr.repo /etc/yum.repos.d/intellifill-ocr.repo
+else
+  install -d /etc/apt/sources.list.d /usr/share/keyrings
+  printf '%s\n' 'deb [signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
+fi
+POSTINST
+chmod 755 "$PKG_ROOT/DEBIAN/postinst"
 cat > "$PKG_ROOT/DEBIAN/control" <<CONTROL
 Package: intellifill-ocr
 Version: $VERSION
