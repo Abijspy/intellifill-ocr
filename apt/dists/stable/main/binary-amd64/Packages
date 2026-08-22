@@ -58,3 +58,18 @@ SHA256: d0eeb68b67815807041b47d899915e9c62f1c03635edba646a0db73a0df94b64
 SHA512: 523f9a29ea4dd9fb20630bf18e4da3f02a108a598630e6caa440ce383f24da188c7c3b715cfc037881fe3d8c91e98e1beba3c0095adf664d6943673c2de97b96
 Description: Offline OCR extraction, table filling, SQLite storage, and traceable exports.
 
+Package: intellifill-ocr
+Architecture: amd64
+Version: 3.9.8
+Priority: optional
+Section: utils
+Maintainer: IntelliFill OCR
+Depends: libx11-6, libice6, libsm6, libfontconfig1
+Filename: pool/main/i/intellifill-ocr/intellifill-ocr_3.9.8_amd64.deb
+Size: 36362028
+MD5sum: f115510aa3053d80474f4bfee4b5e987
+SHA1: 73ffdf00c9e98c6adfa3c33e73b84cef039849f1
+SHA256: 1db510d869c4ee16434cc7e98c705918d05258234a5e80c339c0ddab8cf56b45
+SHA512: 4c03d24a8c4b0ecaa86ee10878b9e59817ba7ce5bf311011a4647870c103133156661f52eae52941d9feffc6130561f25d2f4a6962932909495d990eae13c630
+Description: Offline OCR extraction, table filling, SQLite storage, and traceable exports.
+
