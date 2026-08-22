@@ -168,7 +168,7 @@ jobs:
       - name: Write release notes
         shell: bash
         run: |
-          scripts/write-release-notes.sh "" src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs > release-notes.md
+          scripts/write-release-notes.sh "$RELEASE_VERSION" src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs > release-notes.md
           test -s release-notes.md
 
       - name: Create or update GitHub release
