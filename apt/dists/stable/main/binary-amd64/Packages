@@ -36,10 +36,10 @@ Section: utils
 Maintainer: IntelliFill OCR
 Depends: libx11-6, libice6, libsm6, libfontconfig1
 Filename: pool/main/i/intellifill-ocr/intellifill-ocr_3.9.6_amd64.deb
-Size: 36363072
-MD5sum: fbd5a2e2e87f0668263658554cc64da9
-SHA1: 26384ac40959d1d84258b5d32dabad6319c4e578
-SHA256: d7250e7534a7bc54edc3d9916570c9a2a1292ab25f549759d5db968305425029
-SHA512: ffe7009259994119a2ab5c0d5aaaaf5e6c81e864d121ab99b904a1310ea2b8eeb11b86e2534279ec6b07587f28d6e1ed3f36d7e62ee515aa7489ea32dc9506f5
+Size: 36361858
+MD5sum: 7d854362cb95220e213d869469d0e9d3
+SHA1: be1d2dadc1399b7117d23fbebe770a39d8f03970
+SHA256: 0b725aaf8ac5866b0eaecd8cb8a33f597c894d04271732a4295c6d2946c480f2
+SHA512: fdc0c64a358d55530d70628245cc4c16d04b412fe97bb37d012d8a992dac5106fff289c0f970dc7524780b4d6d42903b24426a359b7539cac2fd2c9a60091969
 Description: Offline OCR extraction, table filling, SQLite storage, and traceable exports.
 
