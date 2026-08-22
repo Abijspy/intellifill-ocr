@@ -135,11 +135,11 @@ jobs:
           printf '%s\n' \
             '[intellifill-ocr]' \
             'name=IntelliFill OCR' \
-            'baseurl=https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/rpm/$basearch' \
+            'baseurl=https://packages.abishekprabakaran.com/rpm/$basearch' \
             'enabled=1' \
             'gpgcheck=0' \
             'repo_gpgcheck=1' \
-            'gpgkey=https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/keys/intellifill-ocr-archive-keyring.gpg' \
+            'gpgkey=https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg' \
             > published-repository/intellifill-ocr.repo
 
       - name: Publish GitHub Pages branch

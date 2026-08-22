@@ -4,15 +4,15 @@
 
 The signed package repositories are automatically rebuilt from each GitHub release. They are served from the repository's `gh-pages` branch using GitHub's HTTPS raw-content endpoint:
 
-- APT (Debian/Ubuntu): `https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/apt`
-- DNF (Fedora/RHEL): `https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/rpm/$basearch`
+- APT (Debian/Ubuntu): `https://packages.abishekprabakaran.com/apt`
+- DNF (Fedora/RHEL): `https://packages.abishekprabakaran.com/rpm/$basearch`
 
 ### Debian and Ubuntu
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/keys/intellifill-ocr-archive-keyring.gpg | \
+curl -fsSL https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg | \
   sudo gpg --dearmor -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/apt stable main" | \
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main" | \
   sudo tee /etc/apt/sources.list.d/intellifill-ocr.list
 sudo apt update
 sudo apt install intellifill-ocr
@@ -21,7 +21,7 @@ sudo apt install intellifill-ocr
 ### Fedora and RHEL
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/intellifill-ocr.repo \
+sudo curl -fsSL https://packages.abishekprabakaran.com/intellifill-ocr.repo \
   -o /etc/yum.repos.d/intellifill-ocr.repo
 sudo dnf install intellifill-ocr
 ```
