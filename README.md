@@ -6,6 +6,8 @@
 
 # IntelliFill OCR Desktop
 
+Licensed under the [GNU GPL v3.0](LICENSE).
+
 IntelliFill OCR is an offline desktop application for OCR-assisted document extraction, template table filling, validation, SQLite storage, and traceable exports.
 
 The current app shell is built with Avalonia so the same UI can be distributed on Windows and Linux. It does not use cloud APIs.
