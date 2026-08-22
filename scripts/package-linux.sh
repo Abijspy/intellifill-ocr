@@ -36,11 +36,11 @@ cp "$ROOT/package-repository/keys/intellifill-ocr-archive-keyring.gpg" "$PKG_ROO
 cat > "$PKG_ROOT/usr/share/intellifill-ocr/repositories/intellifill-ocr.repo" <<'REPO'
 [intellifill-ocr]
 name=IntelliFill OCR
-baseurl=https://abijspy.github.io/intellifill-ocr/rpm/$basearch
+baseurl=https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/rpm/$basearch
 enabled=1
 gpgcheck=0
 repo_gpgcheck=1
-gpgkey=https://abijspy.github.io/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg
+gpgkey=https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/keys/intellifill-ocr-archive-keyring.gpg
 REPO
 cp -a "$PUBLISH/." "$PKG_ROOT/usr/share/intellifill-ocr/"
 cat > "$PKG_ROOT/usr/bin/intellifill-ocr" <<'WRAPPER'
@@ -67,7 +67,7 @@ if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
   install -m 644 /usr/share/intellifill-ocr/repositories/intellifill-ocr.repo /etc/yum.repos.d/intellifill-ocr.repo
 else
   install -d /etc/apt/sources.list.d /usr/share/keyrings
-  printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://abijspy.github.io/intellifill-ocr/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
+  printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
 fi
 POSTINST
 chmod 755 "$PKG_ROOT/DEBIAN/postinst"
