@@ -2,7 +2,7 @@
 
 ## Linux package repositories
 
-The signed package repositories are hosted on GitHub Pages after the repository publisher runs:
+The signed package repositories are automatically rebuilt from each GitHub release. They are served from the repository's `gh-pages` branch using GitHub's HTTPS raw-content endpoint:
 
 - APT (Debian/Ubuntu): `https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/apt`
 - DNF (Fedora/RHEL): `https://raw.githubusercontent.com/Abijspy/intellifill-ocr/gh-pages/rpm/$basearch`
@@ -27,3 +27,31 @@ sudo dnf install intellifill-ocr
 ```
 
 After setup, update with `sudo apt upgrade` or `sudo dnf upgrade`.
+
+### Updating
+
+Once installed, normal system updates include IntelliFill OCR:
+
+```bash
+sudo apt update && sudo apt upgrade
+# or
+sudo dnf upgrade
+```
+
+### Architecture and security
+
+- The current repositories publish `amd64` / `x86_64` packages only.
+- APT uses a signed `InRelease` file and a pinned keyring; do not add `trusted=yes`.
+- DNF validates signed repository metadata (`repo_gpgcheck=1`).
+
+### Removing the repository
+
+```bash
+sudo rm -f /etc/apt/sources.list.d/intellifill-ocr.list
+sudo rm -f /etc/yum.repos.d/intellifill-ocr.repo
+sudo apt update  # Debian/Ubuntu only
+```
+
+### Custom domain
+
+A dedicated package subdomain can replace the raw GitHub URL once DNS is configured. Until then, the URLs above are the supported update endpoints.
