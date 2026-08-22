@@ -168,13 +168,8 @@ jobs:
       - name: Write release notes
         shell: bash
         run: |
-          cat > release-notes.md <<NOTES
-          # What's New in IntelliFill OCR $RELEASE_VERSION
-
-          Version $RELEASE_VERSION
-          - Fixed system-theme synchronization on Linux so the app updates immediately when GTK, Qt, or COSMIC switches between light and dark appearance.
-          - Added Noto Sans, Cantarell, and system Sans fallbacks for consistent Linux typography.
-          NOTES
+          scripts/write-release-notes.sh "" src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs > release-notes.md
+          test -s release-notes.md
 
       - name: Create or update GitHub release
         shell: bash
