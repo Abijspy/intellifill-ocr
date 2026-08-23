@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.0.1";
+    private const string AppVersion = "4.0.2";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -68,6 +68,8 @@ public sealed partial class MainWindow : Window
     private string _traceabilityCode = CreateTraceabilityCode();
     private bool _mainButtonAnimationsAttached;
     private bool _isCheckingForUpdates;
+    private bool _isApplyingSettingsToUi;
+    private bool _settingsReady;
     private DateTimeOffset _lastStatusAt = DateTimeOffset.Now;
     private string _lastUpdateCheckSummary = "Not checked in this session.";
 
@@ -85,6 +87,7 @@ public sealed partial class MainWindow : Window
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_logPath)!);
 
         _settings = LoadSettings();
+        _settingsReady = true;
         AutoDetectTesseractPath();
         ApplySettingsToUi();
         VersionBadgeText.Text = $"v{AppVersion}";
@@ -460,9 +463,23 @@ public sealed partial class MainWindow : Window
             2 => "Dark",
             _ => "Default"
         };
+        _settings.AccentColor = AccentNameForIndex(AccentColorComboBox.SelectedIndex);
         SaveSettings();
         ApplyTheme();
         SetStatus("Settings saved.");
+    }
+
+    private void AccentColor_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!_settingsReady || _isApplyingSettingsToUi)
+        {
+            return;
+        }
+
+        _settings.AccentColor = AccentNameForIndex(AccentColorComboBox.SelectedIndex);
+        ApplyAccentPalette();
+        SaveSettings();
+        SetStatus($"Button accent color changed to {_settings.AccentColor}.", StatusLevel.Success);
     }
 
     private async void BrowseTesseract_Click(object? sender, RoutedEventArgs e)
@@ -2237,16 +2254,45 @@ exit /b %INSTALL_EXIT%
 
     private void ApplySettingsToUi()
     {
-        TesseractPathBox.Text = _settings.TesseractPath;
-        DatabasePathBox.Text = _settings.DatabasePath;
-        ThemeComboBox.SelectedIndex = _settings.Theme switch
+        _isApplyingSettingsToUi = true;
+        try
         {
-            "Light" => 1,
-            "Dark" => 2,
-            _ => 0
-        };
+            TesseractPathBox.Text = _settings.TesseractPath;
+            DatabasePathBox.Text = _settings.DatabasePath;
+            ThemeComboBox.SelectedIndex = _settings.Theme switch
+            {
+                "Light" => 1,
+                "Dark" => 2,
+                _ => 0
+            };
+            AccentColorComboBox.SelectedIndex = AccentIndexForName(_settings.AccentColor);
+        }
+        finally
+        {
+            _isApplyingSettingsToUi = false;
+        }
         ApplyTheme();
     }
+
+    private static string AccentNameForIndex(int index) => index switch
+    {
+        1 => "Cyan",
+        2 => "Emerald",
+        3 => "Violet",
+        4 => "Rose",
+        5 => "Orange",
+        _ => "Blue"
+    };
+
+    private static int AccentIndexForName(string? name) => name switch
+    {
+        "Cyan" => 1,
+        "Emerald" => 2,
+        "Violet" => 3,
+        "Rose" => 4,
+        "Orange" => 5,
+        _ => 0
+    };
 
     private void ApplyTheme()
     {
@@ -2309,6 +2355,7 @@ exit /b %INSTALL_EXIT%
             SetBrush("PreviewCanvasBrush", "#F0050505");
             SetBrush("SelectionStrokeBrush", "#22D3EE");
             SetBrush("SelectionFillBrush", "#3322D3EE");
+            ApplyAccentPalette();
             return;
         }
 
@@ -2336,6 +2383,24 @@ exit /b %INSTALL_EXIT%
         SetBrush("PreviewCanvasBrush", "#EEF3FF");
         SetBrush("SelectionStrokeBrush", "#2563EB");
         SetBrush("SelectionFillBrush", "#332563EB");
+        ApplyAccentPalette();
+    }
+
+    private void ApplyAccentPalette()
+    {
+        string accent = _settings.AccentColor switch
+        {
+            "Cyan" => "#0E7490",
+            "Emerald" => "#047857",
+            "Violet" => "#7C3AED",
+            "Rose" => "#E11D48",
+            "Orange" => "#C2410C",
+            _ => "#2563EB"
+        };
+
+        SetBrush("PrimaryBrush", accent);
+        SetBrush("SelectionStrokeBrush", accent);
+        SetBrush("SelectionFillBrush", "#33" + accent[1..]);
     }
 
     private void SetBrush(string key, string color)
@@ -2992,6 +3057,12 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 4.0.2
+        - Added a persisted Button Accent Color selector with Blue, Cyan, Emerald, Violet, Rose, and Orange presets.
+        - Accent changes preview immediately across primary buttons, active tabs, dialog actions, and OCR selection highlights.
+        - Accent colors work consistently with system, light, and dark themes on Windows and Linux.
+        - Moved theme and accent controls out of Local Paths into a dedicated Appearance settings panel.
+
         Version 4.0.1
         - Fixed the missing IntelliFill OCR icon in Linux application menus by installing a freedesktop hicolor icon and pixmaps fallback.
         - Added desktop launcher icon metadata, startup notification, and window-class matching for GNOME, KDE, COSMIC, and other Linux desktops.
@@ -3338,7 +3409,7 @@ exit /b %INSTALL_EXIT%
         Settings contains system and maintenance tools:
         - Tesseract OCR path: auto-detect or browse to tesseract.exe.
         - SQLite database path: choose where the local database is stored.
-        - Theme: switch between default, light, and dark.
+        - Theme: switch between default, light, and dark, and choose a cross-platform button accent color.
         - Run System Readiness Check: verifies local app data and database folders are writable and confirms whether Tesseract OCR is configured.
         - System Readiness: summarizes workstation/environment readiness such as OCR, app data storage, SQLite path, and update-check state.
         - Application Status: shows the current run state such as last operation, traceability ID, loaded tables/sources, selected source, extracted fields, and mappings.
@@ -3401,5 +3472,6 @@ exit /b %INSTALL_EXIT%
         public string TesseractPath { get; set; } = string.Empty;
         public string DatabasePath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Default";
+        public string AccentColor { get; set; } = "Blue";
     }
 }

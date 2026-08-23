@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v4.0.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v4.0.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -446,12 +446,29 @@
                                             <TextBox x:Name="DatabasePathBox" PlaceholderText="SQLite database path" />
                                             <Button Grid.Column="1" Click="BrowseDatabase_Click" Content="Browse" />
                                         </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="softPanel">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Appearance" Classes="sectionTitle" />
+                                        <TextBlock Text="Choose the window theme and button accent used consistently on Windows and Linux." Classes="muted" />
                                         <TextBlock Text="Theme" Classes="kicker" />
                                         <ComboBox x:Name="ThemeComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left">
                                             <ComboBoxItem Content="Use system theme" />
                                             <ComboBoxItem Content="Light" />
                                             <ComboBoxItem Content="Dark" />
                                         </ComboBox>
+                                        <TextBlock Text="Button Accent Color" Classes="kicker" />
+                                        <ComboBox x:Name="AccentColorComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left" SelectionChanged="AccentColor_SelectionChanged">
+                                            <ComboBoxItem Content="Blue" />
+                                            <ComboBoxItem Content="Cyan" />
+                                            <ComboBoxItem Content="Emerald" />
+                                            <ComboBoxItem Content="Violet" />
+                                            <ComboBoxItem Content="Rose" />
+                                            <ComboBoxItem Content="Orange" />
+                                        </ComboBox>
+                                        <TextBlock Text="Changes primary buttons, active tabs, dialog actions, and selection highlights." Classes="muted" />
                                     </StackPanel>
                                 </Border>
 
