@@ -14,6 +14,12 @@
   font-size: 12px;
 }
 
+.button { gap: 9px; }
+.label i, .more i, .eyebrow i { margin-right: 6px; }
+.eyebrow i { font-size: 7px; vertical-align: 2px; }
+.feature-icon { display: block; margin-top: 34px; color: var(--green); font-size: 30px; filter: drop-shadow(0 8px 18px rgba(103, 246, 174, .18)); }
+.cards h3 { margin-top: 20px; }
+
 .showcase {
   border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, .012);
@@ -74,7 +80,8 @@
 .cli-feature code { color: var(--green); font: .92em/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .feature-list { display: grid; gap: 15px; margin: 30px 0 0; padding: 0; list-style: none; }
 .feature-list li { display: grid; grid-template-columns: 145px 1fr; gap: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
-.feature-list b { color: var(--text); }
+.feature-list b { display: flex; align-items: center; gap: 8px; color: var(--text); }
+.feature-list b i { width: 18px; color: var(--green); text-align: center; }
 .feature-list span { color: var(--muted); font-size: 14px; }
 .cli-command { transform: rotate(-.5deg); }
 .cli-command pre { min-height: auto; padding: 18px 22px; color: #d5eadf; }
@@ -87,6 +94,8 @@
 .platform-row { display: grid; grid-template-columns: 1.35fr .7fr 1fr 1fr; gap: 18px; padding: 16px 20px; border-top: 1px solid var(--line); align-items: center; }
 .platform-row:first-child { border-top: 0; }
 .platform-row span { color: var(--muted); }
+.platform-row b { display: flex; align-items: center; gap: 9px; }
+.platform-row b i { width: 18px; color: var(--green); text-align: center; }
 .platform-head { color: var(--green); background: rgba(103, 246, 174, .07); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .platform-head span { color: var(--green); }
 .support-note { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
@@ -105,6 +114,7 @@
 .faq { display: grid; gap: 10px; margin-top: 40px; }
 .faq details { border: 1px solid var(--line); border-radius: 14px; background: rgba(13, 26, 22, .78); }
 .faq summary { padding: 18px 20px; cursor: pointer; font-weight: 750; }
+.faq summary i { width: 22px; margin-right: 7px; color: var(--green); text-align: center; }
 .faq summary::marker { color: var(--green); }
 .faq p { margin: 0; padding: 0 20px 20px; color: var(--muted); }
 .help-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }

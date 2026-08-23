@@ -1,0 +1,10 @@
+{
+  "name": "intellifill-ocr-website",
+  "private": true,
+  "scripts": {
+    "vendor:fontawesome": "node scripts/vendor-fontawesome.mjs"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1"
+  }
+}
