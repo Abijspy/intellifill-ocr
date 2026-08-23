@@ -20,6 +20,8 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 
 **Best release entry point:** [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases)
 
+**Official website:** [abishekprabakaran.com/intellifill-ocr](https://abishekprabakaran.com/intellifill-ocr/)
+
 ## Current Features
 
 - Avalonia desktop UI for Windows and Linux.
@@ -87,19 +89,19 @@ Publish the Windows Avalonia app:
 Build the Windows NSIS installer:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 3.8.1 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 4.0.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-3.8.1-setup-win-x64.exe
+installer\out\IntelliFillOCR-4.0.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 3.8.1 linux-x64 Release
+bash scripts/package-linux.sh 4.0.0 linux-x64 Release
 ```
 
 ## GitHub Release Pipeline
@@ -122,8 +124,8 @@ It publishes:
 Publish by pushing a tag:
 
 ```powershell
-git tag v3.8.1
-git push origin v3.8.1
+git tag v4.0.0
+git push origin v4.0.0
 ```
 
 Or run the workflow manually from GitHub Actions and enter the version.
@@ -137,6 +139,7 @@ installer/IntelliFillOCR.nsi      NSIS Windows installer script
 scripts/                          Build, version, and packaging scripts
 assets/                           App icon and logo
 demo/                             Small CSV demo fixtures
+website/                          Static official project website
 ```
 
 ## Notes

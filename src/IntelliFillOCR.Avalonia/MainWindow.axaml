@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v3.8.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v4.0.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -469,6 +469,7 @@
                                         <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
                                         <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
                                         <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                        <Button Classes="rail" Click="OpenWebsite_Click" Content="Open Project Website" />
                                         <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
                                         <Button Classes="rail" Click="OpenChangelog_Click" Content="View Changelog" />
                                         <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />

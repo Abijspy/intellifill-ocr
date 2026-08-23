@@ -27,7 +27,8 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "3.9.3";
+    private const string AppVersion = "4.0.0";
+    private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -357,6 +358,12 @@ public sealed partial class MainWindow : Window
     private async void OpenHelp_Click(object? sender, RoutedEventArgs e)
     {
         await ShowMessageAsync("User Guide and Feature Help", HelpText());
+    }
+
+    private void OpenWebsite_Click(object? sender, RoutedEventArgs e)
+    {
+        OpenUrl(ProjectWebsiteUrl);
+        SetStatus("Opened the IntelliFill OCR project website.", StatusLevel.Success);
     }
 
     private async void OpenChangelog_Click(object? sender, RoutedEventArgs e)
@@ -2984,6 +2991,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 4.0.0
+        - Launched the official IntelliFill OCR website with downloads, Linux repository instructions, product details, and application screenshots.
+        - Added an Open Project Website action in Settings so users can reach the official site directly from the app.
+        - Added automatic Windows installer tracking to the website using the latest GitHub release.
+        - Updated GitHub release generation so each release shows only its matching version changelog.
 
         Version 3.9.3
         - Fixed system-theme synchronization on Linux so the app updates immediately when GTK, Qt, or COSMIC switches between light and dark appearance.
