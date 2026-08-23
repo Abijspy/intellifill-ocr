@@ -4,6 +4,7 @@
 !include "StrFunc.nsh"
 ${StrStr}
 ${StrRep}
+${UnStrRep}
 
 !ifndef APP_VERSION
   !define APP_VERSION "0.0.0"
@@ -143,8 +144,8 @@ Section "Uninstall"
   ${If} $0 == "$INSTDIR"
     WriteRegExpandStr HKCU "Environment" "Path" ""
   ${Else}
-    ${StrRep} $1 "$0" ";$INSTDIR" ""
-    ${StrRep} $0 "$1" "$INSTDIR;" ""
+    ${UnStrRep} $1 "$0" ";$INSTDIR" ""
+    ${UnStrRep} $0 "$1" "$INSTDIR;" ""
     WriteRegExpandStr HKCU "Environment" "Path" "$0"
   ${EndIf}
   SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
