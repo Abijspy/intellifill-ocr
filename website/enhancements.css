@@ -66,7 +66,28 @@
 .copy-button:hover { border-color: var(--green); background: rgba(103, 246, 174, .14); }
 .copy-button.copied { color: #04110b; background: var(--green); }
 
+.cli-feature {
+  border-block: 1px solid var(--line);
+  background: radial-gradient(circle at 85% 50%, rgba(103, 246, 174, .09), transparent 32rem), rgba(255, 255, 255, .018);
+}
+.cli-grid { display: grid; grid-template-columns: .95fr 1.05fr; align-items: center; gap: 70px; }
+.cli-feature code { color: var(--green); font: .92em/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.feature-list { display: grid; gap: 15px; margin: 30px 0 0; padding: 0; list-style: none; }
+.feature-list li { display: grid; grid-template-columns: 145px 1fr; gap: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+.feature-list b { color: var(--text); }
+.feature-list span { color: var(--muted); font-size: 14px; }
+.cli-command { transform: rotate(-.5deg); }
+.cli-command pre { min-height: auto; padding: 18px 22px; color: #d5eadf; }
+.format-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px; border-top: 1px solid var(--line); }
+.format-row span { padding: 5px 10px; border: 1px solid rgba(103, 246, 174, .25); border-radius: 99px; color: var(--green); background: rgba(103, 246, 174, .07); font: 700 11px/1.4 system-ui, sans-serif; }
+
+@media (max-width: 900px) {
+  .cli-grid { grid-template-columns: 1fr; gap: 42px; }
+  .cli-command { transform: none; }
+}
+
 @media (max-width: 640px) {
   .gallery { grid-template-columns: 1fr; }
   .gallery-featured { grid-column: auto; }
+  .feature-list li { grid-template-columns: 1fr; gap: 4px; }
 }
