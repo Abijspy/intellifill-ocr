@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v4.1.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v4.2.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -512,11 +512,33 @@
 
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="Maintenance" Classes="sectionTitle" />
+                                        <TextBlock Text="Diagnostics and Storage" Classes="sectionTitle" />
+                                        <TextBlock Text="Inspect local dependencies, database contents, and application logs." Classes="muted" />
                                         <Button Classes="rail" Click="RunHealthCheck_Click" Content="Run System Readiness Check" />
                                         <Button Classes="rail" Click="PreviewDatabase_Click" Content="Preview Database" />
                                         <Button Classes="rail" Click="ViewLogs_Click" Content="View Logs" />
-                                        <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="softPanel">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Software Updates" Classes="sectionTitle" />
+                                        <StackPanel x:Name="WindowsUpdatePanel" Spacing="8">
+                                            <TextBlock Text="Check GitHub Releases and launch the signed Windows installer." Classes="muted" />
+                                            <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
+                                        </StackPanel>
+                                        <StackPanel x:Name="LinuxUpdatePanel" Spacing="8" IsVisible="False">
+                                            <TextBlock Text="Linux updates are maintained by your system through APT or DNF. IntelliFill OCR can verify that its package repository is configured." Classes="muted" />
+                                            <TextBlock x:Name="LinuxRepositoryStatusText" Text="Repository status has not been checked." Foreground="{DynamicResource BodyTextBrush}" TextWrapping="Wrap" />
+                                            <Button Classes="rail" Click="CheckLinuxRepository_Click" Content="Check Linux Package Repository" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="softPanel">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Help and Project" Classes="sectionTitle" />
+                                        <TextBlock Text="Open documentation, release history, project information, and the official website." Classes="muted" />
                                         <Button Classes="rail" Click="OpenWebsite_Click" Content="Open Project Website" />
                                         <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
                                         <Button Classes="rail" Click="OpenChangelog_Click" Content="View Changelog" />

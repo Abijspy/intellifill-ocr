@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.1.0";
+    private const string AppVersion = "4.2.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -91,6 +91,7 @@ public sealed partial class MainWindow : Window
         _traceabilityCode = CreateTraceabilityCode();
         AutoDetectTesseractPath();
         ApplySettingsToUi();
+        ConfigurePlatformUpdateUi();
         VersionBadgeText.Text = $"v{AppVersion}";
         RefreshOperationalStatus("Ready.", StatusLevel.Ready, log: false);
         RefreshReadinessReport();
@@ -100,7 +101,10 @@ public sealed partial class MainWindow : Window
         {
             AttachMainButtonAnimations();
             _ = AnimateControlAsync(AppShell, fromOpacity: 0.96, toOpacity: 1, fromY: 8, toY: 0, PageAnimationDurationMs);
-            await NotifyIfUpdateAvailableAsync();
+            if (!OperatingSystem.IsLinux())
+            {
+                await NotifyIfUpdateAvailableAsync();
+            }
         };
     }
 
@@ -391,6 +395,192 @@ public sealed partial class MainWindow : Window
         };
         SetStatus(message, report.Level, refreshReadiness: false);
         RefreshReadinessReport(verifyWritableStorage: true);
+    }
+
+    private void ConfigurePlatformUpdateUi()
+    {
+        bool isLinux = OperatingSystem.IsLinux();
+        WindowsUpdatePanel.IsVisible = !isLinux;
+        LinuxUpdatePanel.IsVisible = isLinux;
+        if (!isLinux)
+        {
+            return;
+        }
+
+        LinuxRepositoryStatus repository = DetectLinuxRepository();
+        LinuxRepositoryStatusText.Text = repository.Message;
+        _lastUpdateCheckSummary = repository.IsConfigured
+            ? $"Managed by {repository.PackageManager}; IntelliFill OCR repository is configured."
+            : $"Managed by {repository.PackageManager}; IntelliFill OCR repository needs setup.";
+    }
+
+    private async void CheckLinuxRepository_Click(object? sender, RoutedEventArgs e)
+    {
+        LinuxRepositoryStatus repository = DetectLinuxRepository();
+        LinuxRepositoryStatusText.Text = repository.Message;
+        _lastUpdateCheckSummary = repository.IsConfigured
+            ? $"Managed by {repository.PackageManager}; repository verified {DateTime.Now:yyyy-MM-dd HH:mm} local time."
+            : $"Managed by {repository.PackageManager}; repository is not configured.";
+        RefreshReadinessReport();
+
+        if (repository.IsConfigured)
+        {
+            string updateCommand = repository.Kind == LinuxRepositoryKind.Apt
+                ? "sudo apt update && sudo apt upgrade"
+                : "sudo dnf upgrade";
+            SetStatus($"Linux package repository is configured. Updates are maintained by {repository.PackageManager}.", StatusLevel.Success);
+            await ShowMessageAsync("Linux Package Repository", $"{repository.Message}{Environment.NewLine}{Environment.NewLine}Update IntelliFill OCR with normal system updates:{Environment.NewLine}{updateCommand}");
+            return;
+        }
+
+        if (repository.Kind == LinuxRepositoryKind.Unsupported)
+        {
+            SetStatus("This Linux distribution is not supported by the automatic repository setup.", StatusLevel.Warning);
+            await ShowMessageAsync("Linux Package Repository", repository.Message);
+            return;
+        }
+
+        string? choice = await ShowChoiceAsync(
+            "Add Linux Package Repository",
+            $"{repository.Message}{Environment.NewLine}{Environment.NewLine}Add the official IntelliFill OCR repository for {repository.Distribution}? Your desktop will request administrator authentication. Future updates will then arrive through normal {repository.PackageManager} system updates.",
+            "Add Repository",
+            "Cancel");
+        if (choice != "primary")
+        {
+            return;
+        }
+
+        try
+        {
+            LinuxRepositoryStatusText.Text = $"Repository setup is running for {repository.Distribution}. Complete the administrator prompt.";
+            SetStatus("Linux repository setup is waiting for administrator authentication.", StatusLevel.Working);
+            await RunLinuxRepositorySetupAsync(repository.Kind);
+            LinuxRepositoryStatus refreshed = DetectLinuxRepository();
+            LinuxRepositoryStatusText.Text = refreshed.Message;
+            _lastUpdateCheckSummary = refreshed.IsConfigured
+                ? $"Managed by {refreshed.PackageManager}; repository configured successfully."
+                : $"Managed by {refreshed.PackageManager}; setup finished but repository verification failed.";
+            RefreshReadinessReport();
+            SetStatus(
+                refreshed.IsConfigured ? "Linux package repository added successfully. Future updates are handled by the system." : "Repository setup completed, but verification did not find the expected configuration.",
+                refreshed.IsConfigured ? StatusLevel.Success : StatusLevel.Warning);
+        }
+        catch (Exception ex)
+        {
+            Log("Linux repository setup failed to start: " + ex);
+            SetStatus("Could not start Linux repository setup: " + ex.Message, StatusLevel.Error);
+            await ShowMessageAsync("Repository Setup Failed", $"The administrator setup could not be started.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}Use the repository commands on the official project website instead.");
+        }
+    }
+
+    private static LinuxRepositoryStatus DetectLinuxRepository()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return new LinuxRepositoryStatus(LinuxRepositoryKind.Unsupported, "Not Linux", "system package manager", false, "Linux repository checks are available only on Linux.");
+        }
+
+        Dictionary<string, string> osRelease = ReadOsRelease();
+        string distribution = osRelease.TryGetValue("PRETTY_NAME", out string? prettyName) ? prettyName : "Linux";
+        if (RuntimeInformation.OSArchitecture != Architecture.X64)
+        {
+            return new LinuxRepositoryStatus(
+                LinuxRepositoryKind.Unsupported,
+                distribution,
+                "the system package manager",
+                false,
+                $"Detected {distribution} on {RuntimeInformation.OSArchitecture}. The IntelliFill OCR package repositories currently support x86_64/amd64 Linux only.");
+        }
+
+        string family = string.Join(' ',
+            osRelease.TryGetValue("ID", out string? id) ? id : string.Empty,
+            osRelease.TryGetValue("ID_LIKE", out string? idLike) ? idLike : string.Empty).ToLowerInvariant();
+
+        bool aptFamily = family.Contains("debian", StringComparison.Ordinal) || family.Contains("ubuntu", StringComparison.Ordinal) || File.Exists("/usr/bin/apt");
+        bool rpmFamily = family.Contains("fedora", StringComparison.Ordinal) || family.Contains("rhel", StringComparison.Ordinal) || family.Contains("centos", StringComparison.Ordinal) || family.Contains("suse", StringComparison.Ordinal) || File.Exists("/usr/bin/dnf");
+        if (aptFamily)
+        {
+            const string sourcePath = "/etc/apt/sources.list.d/intellifill-ocr.list";
+            const string keyPath = "/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg";
+            bool configured = FileContains(sourcePath, "packages.abishekprabakaran.com/apt") && File.Exists(keyPath);
+            string message = configured
+                ? $"Detected {distribution}. The APT repository and signing key are configured; updates are handled by apt upgrade."
+                : $"Detected {distribution}. The IntelliFill OCR APT repository or signing key is missing.";
+            return new LinuxRepositoryStatus(LinuxRepositoryKind.Apt, distribution, "APT", configured, message);
+        }
+
+        if (rpmFamily)
+        {
+            const string repoPath = "/etc/yum.repos.d/intellifill-ocr.repo";
+            bool configured = FileContains(repoPath, "packages.abishekprabakaran.com/rpm");
+            string message = configured
+                ? $"Detected {distribution}. The DNF repository is configured; updates are handled by dnf upgrade."
+                : $"Detected {distribution}. The IntelliFill OCR DNF repository is missing.";
+            return new LinuxRepositoryStatus(LinuxRepositoryKind.Rpm, distribution, "DNF", configured, message);
+        }
+
+        return new LinuxRepositoryStatus(
+            LinuxRepositoryKind.Unsupported,
+            distribution,
+            "the system package manager",
+            false,
+            $"Detected {distribution}, but automatic setup currently supports Debian/Ubuntu APT and Fedora/RHEL DNF distributions only.");
+    }
+
+    private static Dictionary<string, string> ReadOsRelease()
+    {
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (string line in File.ReadLines("/etc/os-release"))
+            {
+                int separator = line.IndexOf('=');
+                if (separator <= 0)
+                {
+                    continue;
+                }
+
+                values[line[..separator]] = line[(separator + 1)..].Trim().Trim('"');
+            }
+        }
+        catch
+        {
+            // The caller reports a generic Linux distribution when os-release is unavailable.
+        }
+        return values;
+    }
+
+    private static bool FileContains(string path, string expected)
+    {
+        try
+        {
+            return File.Exists(path) && File.ReadAllText(path).Contains(expected, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static async Task RunLinuxRepositorySetupAsync(LinuxRepositoryKind kind)
+    {
+        const string aptCommand = "install -d /usr/share/keyrings /etc/apt/sources.list.d && curl -fsSL https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg && printf '%s\\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list && apt-get update";
+        const string rpmCommand = "install -d /etc/yum.repos.d && curl -fsSL https://packages.abishekprabakaran.com/intellifill-ocr.repo -o /etc/yum.repos.d/intellifill-ocr.repo && dnf makecache";
+        string command = kind == LinuxRepositoryKind.Apt ? aptCommand : rpmCommand;
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "pkexec",
+            UseShellExecute = false
+        };
+        startInfo.ArgumentList.Add("sh");
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(command);
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("The administrator authentication process did not start. Install polkit/pkexec or use the website instructions.");
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Repository setup was cancelled or exited with code {process.ExitCode}.");
+        }
     }
 
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
@@ -3195,6 +3385,12 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 4.2.0
+        - Reorganized the former Maintenance controls into Diagnostics and Storage, Software Updates, and Help and Project sections.
+        - Added a Linux-only package repository check that detects Debian/Ubuntu APT and Fedora/RHEL DNF distributions.
+        - Added an administrator-authenticated option to configure a missing Linux repository and refresh its package metadata.
+        - Linux update status now clearly defers application updates to normal apt upgrade or dnf upgrade system maintenance.
+
         Version 4.1.0
         - Added Traceability ID settings with automatic timestamp, custom prefix plus timestamp, custom prefix plus random ID, and manual ID modes.
         - Added live ID previews and an Apply and Generate New ID action for the active run.
@@ -3552,7 +3748,7 @@ exit /b %INSTALL_EXIT%
         Save SQLite stores the run locally. Saved information includes the traceability code, source file metadata, extracted values, mappings, output values, and timestamps. Use Preview Database in Settings to inspect the local database summary.
 
         Settings Page
-        Settings contains system and maintenance tools:
+        Settings groups local configuration and support tools by purpose:
         - Tesseract OCR path: auto-detect or browse to tesseract.exe.
         - SQLite database path: choose where the local database is stored.
         - Theme: switch between default, light, and dark, and choose a cross-platform button accent color.
@@ -3561,7 +3757,8 @@ exit /b %INSTALL_EXIT%
         - Application Status: shows the current run state such as last operation, traceability ID, loaded tables/sources, selected source, extracted fields, and mappings.
         - Preview Database: inspect saved runs and counts.
         - View Logs: open diagnostic logs.
-        - Check for Updates: look for a newer GitHub release and launch the installer when available.
+        - Windows updates: look for a newer GitHub release and launch the installer when available.
+        - Linux updates: verify the IntelliFill OCR APT/DNF repository, add it when missing, and use normal system updates afterward.
         - View Changelog: read the full version history.
         - About: see app version and branding.
 
@@ -3602,6 +3799,8 @@ exit /b %INSTALL_EXIT%
 
     private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl, string Notes);
 
+    private sealed record LinuxRepositoryStatus(LinuxRepositoryKind Kind, string Distribution, string PackageManager, bool IsConfigured, string Message);
+
     private sealed record ReadinessReport(string Text, StatusLevel Level, string Badge);
 
     private enum StatusLevel
@@ -3611,6 +3810,13 @@ exit /b %INSTALL_EXIT%
         Success,
         Warning,
         Error
+    }
+
+    private enum LinuxRepositoryKind
+    {
+        Unsupported,
+        Apt,
+        Rpm
     }
 
     private sealed class AppSettings
