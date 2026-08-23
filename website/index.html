@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Private, offline OCR and document automation for Windows and Linux."><meta name="theme-color" content="#07110e"><title>IntelliFill OCR</title><link rel="stylesheet" href="styles.css"></head>
+<body><nav><div class="wrap nav"><a class="brand" href="#top"><b>IF</b> IntelliFill OCR</a><div class="links"><a href="#features">Features</a><a href="#install">Install</a><a href="https://github.com/Abijspy/intellifill-ocr/releases">Releases</a><a class="pill" href="https://github.com/Abijspy/intellifill-ocr">GitHub</a></div></div></nav>
+<main id="top"><header class="hero"><div class="wrap hero-grid"><div><span class="eyebrow">● Local-first document intelligence</span><h1>Make documents do the <em>busywork.</em></h1><p class="lead">Extract, review, validate, and export document data from one private desktop workspace. Your files stay on your machine.</p><div class="actions"><a class="button primary" href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Download latest ↓</a><a class="button" href="#install">Install on Linux</a></div></div><div class="terminal"><header><i></i><i></i><i></i><small>intellifill / local session</small></header><pre><mark>$</mark> intellifill scan invoice.pdf
+
+<b>Source</b>      invoice.pdf
+<b>OCR engine</b>  Tesseract / local
+<b>Tables</b>      2 detected
+<b>Fields</b>      18 matched
+
+<strong>━━━━━━━━━━━━━━━━━━━━ 100%
+✓ Review ready
+✓ Validation passed
+✓ Exported to XLSX + PDF</strong></pre></div></div></header>
+<section id="features"><div class="wrap"><span class="label">Built for real documents</span><h2>From scattered files to structured output.</h2><p class="intro">A practical desktop tool for invoices, forms, tables, and repeatable office workflows.</p><div class="cards"><article><small>01 / PRIVATE</small><h3>Work offline</h3><p>OCR, parsing, mapping, and storage run locally. No cloud API is required.</p></article><article><small>02 / VISUAL</small><h3>Review with context</h3><p>Preview files, select OCR regions, inspect tables, and edit values before saving.</p></article><article><small>03 / TRACEABLE</small><h3>Export confidently</h3><p>Validate business data before exporting to CSV, XLSX, DOCX, or PDF.</p></article></div></div></section>
+<section class="workflow"><div class="wrap"><span class="label">One focused workflow</span><h2>Documents in. Reliable data out.</h2><div class="steps"><article><b>1</b><h3>Add a template</h3><p>Use a spreadsheet, document, PDF, image, or CSV.</p></article><article><b>2</b><h3>Load sources</h3><p>Run local text, table, and OCR extraction.</p></article><article><b>3</b><h3>Review and fill</h3><p>Auto-match, map, and correct extracted values.</p></article><article><b>4</b><h3>Validate and export</h3><p>Check the result and create final files.</p></article></div></div></section>
+<section id="install"><div class="wrap install"><div><span class="label">Native Linux updates</span><h2>Install once. Update normally.</h2><p class="intro">Signed APT and DNF repositories update IntelliFill OCR alongside your system.</p><a class="more" href="https://github.com/Abijspy/intellifill-ocr/blob/main/PACKAGE_REPOSITORIES.md">Full repository instructions →</a></div><div class="command"><header><b>Debian / Ubuntu</b><small>amd64</small></header><pre>curl -fsSL https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg |
+  sudo gpg --dearmor -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
+
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main" |
+  sudo tee /etc/apt/sources.list.d/intellifill-ocr.list
+
+sudo apt update &amp;&amp; sudo apt install intellifill-ocr</pre><header><b>Fedora / RHEL</b><small>x86_64</small></header><pre>sudo curl -fsSL https://packages.abishekprabakaran.com/intellifill-ocr.repo \
+  -o /etc/yum.repos.d/intellifill-ocr.repo
+sudo dnf install intellifill-ocr</pre></div></div></section>
+<section class="cta"><div class="wrap box"><span class="label">Free and open source</span><h2>Give repetitive document work back to the machine.</h2><p>Available for Windows and Linux under the GNU GPL v3.0.</p><div class="actions"><a class="button primary" href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Get IntelliFill OCR</a><a class="button" href="https://github.com/Abijspy/intellifill-ocr">View source</a></div></div></section></main>
+<footer><div class="wrap"><span>© 2026 IntelliFill OCR</span><span><a href="https://github.com/Abijspy/intellifill-ocr/blob/main/LICENSE">GNU GPL v3.0</a> · <a href="https://github.com/Abijspy/intellifill-ocr/issues">Support</a></span></div></footer></body></html>
