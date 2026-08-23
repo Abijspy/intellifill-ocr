@@ -1,0 +1,72 @@
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 10px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .3));
+}
+
+.release-status {
+  display: block;
+  min-height: 20px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.showcase {
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, .012);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 42px;
+}
+
+.gallery figure {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, .22);
+}
+
+.gallery-featured { grid-column: 1 / -1; }
+.gallery a { display: block; overflow: hidden; background: #030705; }
+
+.gallery img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 8.67;
+  object-fit: cover;
+  object-position: top;
+  transition: transform .35s ease, filter .35s ease;
+}
+
+.gallery a:hover img { transform: scale(1.018); filter: brightness(1.08); }
+.gallery figcaption { display: flex; flex-direction: column; gap: 3px; padding: 17px 20px; }
+.gallery figcaption b { font-size: 17px; }
+.gallery figcaption span { color: var(--muted); font-size: 14px; }
+
+.command header b { display: flex; align-items: baseline; gap: 8px; }
+.copy-button {
+  appearance: none;
+  padding: 7px 12px;
+  border: 1px solid rgba(103, 246, 174, .3);
+  border-radius: 9px;
+  color: var(--green);
+  background: rgba(103, 246, 174, .08);
+  font: 700 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+.copy-button:hover { border-color: var(--green); background: rgba(103, 246, 174, .14); }
+.copy-button.copied { color: #04110b; background: var(--green); }
+
+@media (max-width: 640px) {
+  .gallery { grid-template-columns: 1fr; }
+  .gallery-featured { grid-column: auto; }
+}

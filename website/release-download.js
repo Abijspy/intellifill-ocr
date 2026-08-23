@@ -19,4 +19,29 @@
       buttons.forEach((button) => { button.href = fallback; });
       if (status) status.textContent = "Latest Windows installer on GitHub Releases";
     });
+
+  document.querySelectorAll("[data-copy-target]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const command = document.getElementById(button.dataset.copyTarget);
+      if (!command) return;
+
+      try {
+        await navigator.clipboard.writeText(command.innerText.trim());
+        const originalText = button.textContent;
+        button.textContent = "Copied!";
+        button.classList.add("copied");
+        window.setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove("copied");
+        }, 1600);
+      } catch {
+        button.textContent = "Select text";
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(command);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    });
+  });
 })();
