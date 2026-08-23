@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "4.2.0",
+    [string]$Version = "5.0.0",
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$OutputDir = "release",
@@ -11,6 +11,8 @@ $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $OutputPath = Join-Path $Root $OutputDir
 $PublishDir = Join-Path $OutputPath "avalonia-$RuntimeIdentifier\publish"
+$CliProject = Join-Path $Root "src\IntelliFillOCR.Cli\IntelliFillOCR.Cli.csproj"
+$CliPublishDir = Join-Path $PublishDir "cli"
 $InstallerOutDir = Join-Path $Root "installer\out"
 $Installer = Join-Path $InstallerOutDir "IntelliFillOCR-$Version-setup-$RuntimeIdentifier.exe"
 $NsiScript = Join-Path $Root "installer\IntelliFillOCR.nsi"
@@ -25,10 +27,23 @@ if (-not $SkipAvaloniaBuild) {
         -Configuration $Configuration `
         -RuntimeIdentifier $RuntimeIdentifier `
         -OutputDir (Join-Path $OutputDir "avalonia-$RuntimeIdentifier\publish")
+
+    dotnet publish $CliProject `
+        -c $Configuration `
+        -r $RuntimeIdentifier `
+        --self-contained true `
+        -p:PublishSingleFile=false `
+        -p:PublishDir="$CliPublishDir\"
+    if ($LASTEXITCODE -ne 0) {
+        throw "CLI publish failed with exit code $LASTEXITCODE."
+    }
 }
 
 if (-not (Test-Path (Join-Path $PublishDir "IntelliFillOCR.exe"))) {
     throw "Avalonia Windows publish output was not found: $PublishDir"
+}
+if (-not (Test-Path (Join-Path $CliPublishDir "intellifill.exe"))) {
+    throw "CLI Windows publish output was not found: $CliPublishDir"
 }
 
 New-Item -ItemType Directory -Path $InstallerOutDir -Force | Out-Null

@@ -230,6 +230,48 @@ Application settings and logs use the operating system's local application-data 
 6. Save the run to SQLite when an audit record is needed.
 7. Preview and export PDF, Word, Excel, or CSV output.
 
+## Command-Line Interface
+
+The Windows installer and Linux DEB/RPM packages include the `intellifill` command. It uses the same local document parser and export services as the desktop application. PDF and image scans are rasterized locally and processed with the installed Tesseract executable.
+
+Scan an invoice and create XLSX and PDF output in the current directory:
+
+```bash
+intellifill scan invoice.pdf
+```
+
+Choose formats and an output directory:
+
+```bash
+intellifill scan receipt.png --format csv,xlsx,docx,pdf --output ./exports
+```
+
+Select another Tesseract language or executable:
+
+```bash
+intellifill scan invoice.pdf --language eng --tesseract /usr/bin/tesseract
+```
+
+Scan without exporting, or return a machine-readable result for scripts:
+
+```bash
+intellifill scan report.docx --no-export
+intellifill scan invoice.pdf --no-export --json
+```
+
+Available options:
+
+| Option | Purpose |
+|---|---|
+| `-o, --output <directory>` | Select the export directory. |
+| `-f, --format <list>` | Select comma-separated `csv`, `xlsx`, `docx`, and `pdf` formats. |
+| `-l, --language <code>` | Select the installed Tesseract language; the default is `eng`. |
+| `--tesseract <path>` | Use an explicit Tesseract executable. |
+| `--no-export` | Extract and validate without writing exports. |
+| `--json` | Print structured JSON suitable for automation. |
+
+Run `intellifill --help` for command help or `intellifill --version` for the installed CLI version. On Windows, open a new terminal after installation so the updated user `PATH` is loaded.
+
 ## Troubleshooting
 
 ### APT reports that the repository has no Release file
@@ -282,19 +324,19 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 4.2.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 5.0.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-4.2.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-5.0.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 4.2.0 linux-x64 Release
+bash scripts/package-linux.sh 5.0.0 linux-x64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -313,8 +355,8 @@ The package-repository workflow then publishes signed APT metadata and DNF repos
 Create a release by pushing a version tag:
 
 ```bash
-git tag v4.2.0
-git push origin v4.2.0
+git tag v5.0.0
+git push origin v5.0.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.
@@ -323,6 +365,7 @@ The workflows can also be started manually from GitHub Actions with an explicit 
 
 ```text
 src/IntelliFillOCR.Avalonia/      Avalonia desktop application
+src/IntelliFillOCR.Cli/           Cross-platform intellifill command
 src/IntelliFillOCR.Core/          Document, export, and SQLite services
 installer/IntelliFillOCR.nsi      Windows NSIS installer
 scripts/                          Build, version, and packaging scripts

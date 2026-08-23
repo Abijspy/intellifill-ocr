@@ -29,9 +29,29 @@ $Files = @(
         Replacement = "<FileVersion>$AssemblyVersion</FileVersion>"
     },
     @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj"
+        Pattern = '<Version>[^<]+</Version>'
+        Replacement = "<Version>$Version</Version>"
+    },
+    @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj"
+        Pattern = '<AssemblyVersion>[^<]+</AssemblyVersion>'
+        Replacement = "<AssemblyVersion>$AssemblyVersion</AssemblyVersion>"
+    },
+    @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj"
+        Pattern = '<FileVersion>[^<]+</FileVersion>'
+        Replacement = "<FileVersion>$AssemblyVersion</FileVersion>"
+    },
+    @{
         Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs"
         Pattern = 'private const string AppVersion = "[^"]+";'
         Replacement = "private const string AppVersion = `"$Version`";"
+    },
+    @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Cli/Program.cs"
+        Pattern = 'private const string Version = "[^"]+";'
+        Replacement = "private const string Version = `"$Version`";"
     }
 )
 

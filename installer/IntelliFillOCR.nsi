@@ -1,5 +1,9 @@
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "WinMessages.nsh"
+!include "StrFunc.nsh"
+${StrStr}
+${StrRep}
 
 !ifndef APP_VERSION
   !define APP_VERSION "0.0.0"
@@ -70,6 +74,21 @@ Section "${APP_NAME} application" SecApp
   SetOutPath "$INSTDIR"
   File /r "${PUBLISH_DIR}\*.*"
 
+  DetailPrint "Registering the intellifill command..."
+  FileOpen $2 "$INSTDIR\intellifill.cmd" w
+  FileWrite $2 '@echo off$\r$\n"$INSTDIR\cli\intellifill.exe" %*$\r$\n'
+  FileClose $2
+  ReadRegStr $0 HKCU "Environment" "Path"
+  ${StrStr} $1 "$0" "$INSTDIR"
+  ${If} $1 == ""
+    ${If} $0 == ""
+      WriteRegExpandStr HKCU "Environment" "Path" "$INSTDIR"
+    ${Else}
+      WriteRegExpandStr HKCU "Environment" "Path" "$0;$INSTDIR"
+    ${EndIf}
+    SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+  ${EndIf}
+
   DetailPrint "Creating shortcuts..."
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
@@ -118,6 +137,17 @@ Section "Uninstall"
   Delete "$DESKTOP\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
   RMDir "$SMPROGRAMS\${APP_NAME}"
+
+  DetailPrint "Removing the intellifill command from the user PATH..."
+  ReadRegStr $0 HKCU "Environment" "Path"
+  ${If} $0 == "$INSTDIR"
+    WriteRegExpandStr HKCU "Environment" "Path" ""
+  ${Else}
+    ${StrRep} $1 "$0" ";$INSTDIR" ""
+    ${StrRep} $0 "$1" "$INSTDIR;" ""
+    WriteRegExpandStr HKCU "Environment" "Path" "$0"
+  ${EndIf}
+  SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   DetailPrint "Removing application files..."
   RMDir /r "$INSTDIR"

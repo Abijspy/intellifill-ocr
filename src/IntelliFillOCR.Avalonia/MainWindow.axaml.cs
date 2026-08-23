@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.2.0";
+    private const string AppVersion = "5.0.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -3384,6 +3384,13 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 5.0.0
+        - Added the cross-platform intellifill command-line interface for unattended and scripted document processing.
+        - Added local Tesseract scanning for images and every PDF page, native parsing for supported office documents, validation summaries, and traceability IDs.
+        - Added CSV, XLSX, DOCX, and PDF CLI exports, configurable output formats and OCR languages, no-export scans, and machine-readable JSON results.
+        - Integrated the CLI into Windows PATH and Linux /usr/bin packaging so desktop and command-line workflows install together.
+        - Added the official logo as the website favicon and expanded the main README with complete Windows, Linux, package-repository, CLI, security, and troubleshooting documentation.
 
         Version 4.2.0
         - Reorganized the former Maintenance controls into Diagnostics and Storage, Software Updates, and Help and Project sections.
