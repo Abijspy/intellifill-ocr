@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.0.0";
+    private const string AppVersion = "4.0.1";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -2991,6 +2991,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 4.0.1
+        - Fixed the missing IntelliFill OCR icon in Linux application menus by installing a freedesktop hicolor icon and pixmaps fallback.
+        - Added desktop launcher icon metadata, startup notification, and window-class matching for GNOME, KDE, COSMIC, and other Linux desktops.
+        - Refreshes desktop and icon caches after Linux package installation or removal when the relevant system tools are available.
 
         Version 4.0.0
         - Launched the official IntelliFill OCR website with downloads, Linux repository instructions, product details, and application screenshots.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-4.0.0}"
+VERSION="${1:-4.0.1}"
 RID="${2:-linux-x64}"
 CONFIGURATION="${3:-Release}"
 
@@ -31,7 +31,14 @@ tar -C "$PUBLISH" -czf "$TAR" .
 
 PKG_ROOT="$OUT/pkgroot"
 rm -rf "$PKG_ROOT"
-mkdir -p "$PKG_ROOT/usr/share/intellifill-ocr" "$PKG_ROOT/usr/share/intellifill-ocr/repositories" "$PKG_ROOT/usr/share/keyrings" "$PKG_ROOT/usr/bin" "$PKG_ROOT/usr/share/applications"
+mkdir -p \
+  "$PKG_ROOT/usr/share/intellifill-ocr" \
+  "$PKG_ROOT/usr/share/intellifill-ocr/repositories" \
+  "$PKG_ROOT/usr/share/keyrings" \
+  "$PKG_ROOT/usr/bin" \
+  "$PKG_ROOT/usr/share/applications" \
+  "$PKG_ROOT/usr/share/icons/hicolor/512x512/apps" \
+  "$PKG_ROOT/usr/share/pixmaps"
 cp "$ROOT/package-repository/keys/intellifill-ocr-archive-keyring.gpg" "$PKG_ROOT/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg"
 cat > "$PKG_ROOT/usr/share/intellifill-ocr/repositories/intellifill-ocr.repo" <<'REPO'
 [intellifill-ocr]
@@ -48,14 +55,19 @@ cat > "$PKG_ROOT/usr/bin/intellifill-ocr" <<'WRAPPER'
 exec /usr/share/intellifill-ocr/IntelliFillOCR "$@"
 WRAPPER
 chmod 755 "$PKG_ROOT/usr/bin/intellifill-ocr"
+install -m 644 "$ROOT/assets/logo_512.png" "$PKG_ROOT/usr/share/icons/hicolor/512x512/apps/intellifill-ocr.png"
+install -m 644 "$ROOT/assets/logo_512.png" "$PKG_ROOT/usr/share/pixmaps/intellifill-ocr.png"
 cat > "$PKG_ROOT/usr/share/applications/intellifill-ocr.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=IntelliFill OCR
 Comment=Offline OCR extraction and table filling
 Exec=/usr/bin/intellifill-ocr
+Icon=intellifill-ocr
 Terminal=false
-Categories=Office;Utility;
+Categories=Office;
+StartupNotify=true
+StartupWMClass=IntelliFillOCR
 DESKTOP
 
 mkdir -p "$PKG_ROOT/DEBIAN"
@@ -69,8 +81,25 @@ else
   install -d /etc/apt/sources.list.d /usr/share/keyrings
   printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
 fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+fi
 POSTINST
 chmod 755 "$PKG_ROOT/DEBIAN/postinst"
+cat > "$PKG_ROOT/DEBIAN/postrm" <<'POSTRM'
+#!/bin/sh
+set -e
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+fi
+POSTRM
+chmod 755 "$PKG_ROOT/DEBIAN/postrm"
 cat > "$PKG_ROOT/DEBIAN/control" <<CONTROL
 Package: intellifill-ocr
 Version: $VERSION
