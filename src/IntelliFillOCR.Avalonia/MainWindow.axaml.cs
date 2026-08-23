@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.0.3";
+    private const string AppVersion = "4.1.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -3195,7 +3195,7 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
-        Version 4.0.3
+        Version 4.1.0
         - Added Traceability ID settings with automatic timestamp, custom prefix plus timestamp, custom prefix plus random ID, and manual ID modes.
         - Added live ID previews and an Apply and Generate New ID action for the active run.
         - Centralized traceability creation so template imports, SQLite saves, filenames, exports, previews, and barcodes always share one validated ID.
