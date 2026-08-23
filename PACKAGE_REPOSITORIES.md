@@ -43,6 +43,7 @@ sudo dnf upgrade
 ### Architecture and security
 
 - The current repositories publish `amd64` / `x86_64` packages only.
+- APT and DNF repositories retain the three newest published package versions. Older installers remain available from [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases).
 - APT uses a signed `InRelease` file and a pinned keyring; do not add `trusted=yes`.
 - DNF validates signed repository metadata (`repo_gpgcheck=1`).
 

@@ -73,14 +73,42 @@ jobs:
             published-repository/rpm/x86_64 \
             published-repository/keys
 
+          # Repository metadata is rebuilt from the retained package files.
+          rm -rf published-repository/rpm/x86_64/repodata
+
           cp release-assets/*.deb \
             published-repository/apt/pool/main/i/intellifill-ocr/
 
           cp release-assets/*.rpm \
             published-repository/rpm/x86_64/
 
+          mapfile -t deb_packages < <(
+            find published-repository/apt/pool/main/i/intellifill-ocr \
+              -maxdepth 1 -type f -name '*.deb' | sort -V
+          )
+          if [ "${#deb_packages[@]}" -gt 3 ]; then
+            for package in "${deb_packages[@]:0:${#deb_packages[@]}-3}"; do
+              rm -f -- "$package"
+            done
+          fi
+
+          mapfile -t rpm_packages < <(
+            find published-repository/rpm/x86_64 \
+              -maxdepth 1 -type f -name '*.rpm' | sort -V
+          )
+          if [ "${#rpm_packages[@]}" -gt 3 ]; then
+            for package in "${rpm_packages[@]:0:${#rpm_packages[@]}-3}"; do
+              rm -f -- "$package"
+            done
+          fi
+
           cp package-repository/keys/intellifill-ocr-archive-keyring.gpg \
             published-repository/keys/
+
+          deb_count=$(find published-repository/apt/pool/main/i/intellifill-ocr -maxdepth 1 -type f -name '*.deb' | wc -l)
+          rpm_count=$(find published-repository/rpm/x86_64 -maxdepth 1 -type f -name '*.rpm' | wc -l)
+          test "$deb_count" -ge 1 && test "$deb_count" -le 3
+          test "$rpm_count" -ge 1 && test "$rpm_count" -le 3
 
           (
             cd published-repository/apt
@@ -121,7 +149,7 @@ jobs:
               dists/stable/Release
           )
 
-          createrepo_c --update \
+          createrepo_c \
             published-repository/rpm/x86_64
 
           gpg \
