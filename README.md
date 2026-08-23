@@ -38,6 +38,7 @@ The current app shell is built with Avalonia so the same UI can be distributed o
 - SQLite save and database preview.
 - Application log viewer.
 - Settings for Tesseract path, SQLite path, and light/dark/system appearance.
+- Traceability ID modes for automatic timestamps, custom prefixes, compact random IDs, and validated manual IDs.
 - Exports to CSV, formatted XLSX, formatted DOCX, and multi-page PDF.
 - PDF exports include one bottom traceability barcode/code on the final page.
 
@@ -89,19 +90,19 @@ Publish the Windows Avalonia app:
 Build the Windows NSIS installer:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 4.0.2 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 4.0.3 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-4.0.2-setup-win-x64.exe
+installer\out\IntelliFillOCR-4.0.3-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 4.0.2 linux-x64 Release
+bash scripts/package-linux.sh 4.0.3 linux-x64 Release
 ```
 
 ## GitHub Release Pipeline
@@ -124,8 +125,8 @@ It publishes:
 Publish by pushing a tag:
 
 ```powershell
-git tag v4.0.2
-git push origin v4.0.2
+git tag v4.0.3
+git push origin v4.0.3
 ```
 
 Or run the workflow manually from GitHub Actions and enter the version.

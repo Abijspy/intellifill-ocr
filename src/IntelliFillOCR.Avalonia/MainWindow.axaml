@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v4.0.2" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v4.0.3" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -426,7 +426,7 @@
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                                         <StackPanel>
                                             <TextBlock Text="Settings" Classes="sectionTitle" />
-                                            <TextBlock Text="Local OCR, database, theme, logs, updates, and storage tools." Classes="muted" />
+                                            <TextBlock Text="Local OCR, database, appearance, traceability, logs, updates, and storage tools." Classes="muted" />
                                         </StackPanel>
                                         <Button Grid.Column="1" Classes="primary" Click="ApplyTheme_Click" Content="Save Settings" VerticalAlignment="Center" />
                                     </Grid>
@@ -469,6 +469,37 @@
                                             <ComboBoxItem Content="Orange" />
                                         </ComboBox>
                                         <TextBlock Text="Changes primary buttons, active tabs, dialog actions, and selection highlights." Classes="muted" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="softPanel">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Traceability IDs" Classes="sectionTitle" />
+                                        <TextBlock Text="Choose how each imported template starts a new audit ID. The same ID is used by SQLite, filenames, exports, previews, and barcodes." Classes="muted" />
+                                        <TextBlock Text="ID Mode" Classes="kicker" />
+                                        <ComboBox x:Name="TraceabilityModeComboBox" SelectedIndex="0" MaxWidth="320" HorizontalAlignment="Left" SelectionChanged="TraceabilityMode_SelectionChanged">
+                                            <ComboBoxItem Content="Automatic timestamp" />
+                                            <ComboBoxItem Content="Custom prefix + timestamp" />
+                                            <ComboBoxItem Content="Custom prefix + random ID" />
+                                            <ComboBoxItem Content="Manual ID" />
+                                        </ComboBox>
+                                        <StackPanel x:Name="TraceabilityPrefixPanel" Spacing="6" IsVisible="False">
+                                            <TextBlock Text="Custom Prefix" Classes="kicker" />
+                                            <TextBox x:Name="TraceabilityPrefixBox" MaxLength="6" MaxWidth="320" HorizontalAlignment="Left" PlaceholderText="Example: INV" TextChanged="TraceabilityText_TextChanged" />
+                                            <TextBlock Text="Up to 6 letters or numbers. A timestamp or random suffix keeps each generated ID unique." Classes="muted" />
+                                        </StackPanel>
+                                        <StackPanel x:Name="ManualTraceabilityPanel" Spacing="6" IsVisible="False">
+                                            <TextBlock Text="Manual Traceability ID" Classes="kicker" />
+                                            <TextBox x:Name="ManualTraceabilityIdBox" MaxLength="24" MaxWidth="420" HorizontalAlignment="Left" PlaceholderText="Example: INVOICE-2026-001" TextChanged="TraceabilityText_TextChanged" />
+                                            <TextBlock Text="Manual IDs must be unique for every SQLite run. Supported characters: A-Z, 0-9, hyphen, and period." Classes="muted" />
+                                        </StackPanel>
+                                        <Border Classes="previewPanel" MaxWidth="520" HorizontalAlignment="Left">
+                                            <StackPanel Spacing="5">
+                                                <TextBlock Text="PREVIEW" Classes="kicker" />
+                                                <TextBlock x:Name="TraceabilityPreviewText" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Button Classes="primary" Click="GenerateTraceabilityId_Click" Content="Apply and Generate New ID" MaxWidth="260" HorizontalAlignment="Left" />
                                     </StackPanel>
                                 </Border>
 

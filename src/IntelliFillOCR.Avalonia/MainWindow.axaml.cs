@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "4.0.2";
+    private const string AppVersion = "4.0.3";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -65,7 +65,7 @@ public sealed partial class MainWindow : Window
     private string? _previewBaseRasterPath;
     private string? _previewDisplayRasterPath;
     private AppSettings _settings = new();
-    private string _traceabilityCode = CreateTraceabilityCode();
+    private string _traceabilityCode = string.Empty;
     private bool _mainButtonAnimationsAttached;
     private bool _isCheckingForUpdates;
     private bool _isApplyingSettingsToUi;
@@ -88,6 +88,7 @@ public sealed partial class MainWindow : Window
 
         _settings = LoadSettings();
         _settingsReady = true;
+        _traceabilityCode = CreateTraceabilityCode();
         AutoDetectTesseractPath();
         ApplySettingsToUi();
         VersionBadgeText.Text = $"v{AppVersion}";
@@ -127,8 +128,7 @@ public sealed partial class MainWindow : Window
         {
             DocumentPreview preview = _loader.Load(path);
             _templatePreview = preview;
-            _traceabilityCode = CreateTraceabilityCode();
-            TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
+            SetTraceabilityCode(CreateTraceabilityCode());
             TemplatePathBox.Text = path;
             LoadTemplatePreview(preview);
             ResetOutputFromTemplate(preview);
@@ -464,6 +464,12 @@ public sealed partial class MainWindow : Window
             _ => "Default"
         };
         _settings.AccentColor = AccentNameForIndex(AccentColorComboBox.SelectedIndex);
+        ReadTraceabilitySettingsFromUi();
+        if (!ValidateTraceabilitySettings(out string traceabilityError))
+        {
+            SetStatus(traceabilityError, StatusLevel.Error);
+            return;
+        }
         SaveSettings();
         ApplyTheme();
         SetStatus("Settings saved.");
@@ -480,6 +486,40 @@ public sealed partial class MainWindow : Window
         ApplyAccentPalette();
         SaveSettings();
         SetStatus($"Button accent color changed to {_settings.AccentColor}.", StatusLevel.Success);
+    }
+
+    private void TraceabilityMode_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        RefreshTraceabilitySettingsPreview();
+
+    private void TraceabilityText_TextChanged(object? sender, TextChangedEventArgs e) =>
+        RefreshTraceabilitySettingsPreview();
+
+    private void RefreshTraceabilitySettingsPreview()
+    {
+        if (!_settingsReady || _isApplyingSettingsToUi)
+        {
+            return;
+        }
+
+        UpdateTraceabilitySettingsUi();
+    }
+
+    private void GenerateTraceabilityId_Click(object? sender, RoutedEventArgs e)
+    {
+        ReadTraceabilitySettingsFromUi();
+        if (!TryCreateTraceabilityCode(out string code, out string error))
+        {
+            SetStatus(error, StatusLevel.Error);
+            return;
+        }
+
+        SaveSettings();
+        SetTraceabilityCode(code);
+        ExportPdfPreviewImage.Source = null;
+        ExportPdfPreviewImage.IsVisible = false;
+        ExportPdfPreviewMessage.Text = "Traceability ID changed. Select Refresh Preview to render the updated PDF barcode.";
+        ExportPdfPreviewMessage.IsVisible = true;
+        SetStatus($"New traceability ID applied: {code}", StatusLevel.Success);
     }
 
     private async void BrowseTesseract_Click(object? sender, RoutedEventArgs e)
@@ -2266,12 +2306,112 @@ exit /b %INSTALL_EXIT%
                 _ => 0
             };
             AccentColorComboBox.SelectedIndex = AccentIndexForName(_settings.AccentColor);
+            TraceabilityModeComboBox.SelectedIndex = TraceabilityModeIndex(_settings.TraceabilityMode);
+            TraceabilityPrefixBox.Text = _settings.TraceabilityPrefix;
+            ManualTraceabilityIdBox.Text = _settings.ManualTraceabilityId;
         }
         finally
         {
             _isApplyingSettingsToUi = false;
         }
+        UpdateTraceabilitySettingsUi();
         ApplyTheme();
+    }
+
+    private void ReadTraceabilitySettingsFromUi()
+    {
+        _settings.TraceabilityMode = TraceabilityModeComboBox.SelectedIndex switch
+        {
+            1 => "PrefixTimestamp",
+            2 => "PrefixRandom",
+            3 => "Manual",
+            _ => "Automatic"
+        };
+        _settings.TraceabilityPrefix = NormalizeTraceabilityPrefix(TraceabilityPrefixBox.Text);
+        _settings.ManualTraceabilityId = NormalizeManualTraceabilityId(ManualTraceabilityIdBox.Text);
+    }
+
+    private void UpdateTraceabilitySettingsUi()
+    {
+        int modeIndex = TraceabilityModeComboBox.SelectedIndex;
+        TraceabilityPrefixPanel.IsVisible = modeIndex is 1 or 2;
+        ManualTraceabilityPanel.IsVisible = modeIndex == 3;
+
+        string prefix = NormalizeTraceabilityPrefix(TraceabilityPrefixBox.Text);
+        string manual = NormalizeManualTraceabilityId(ManualTraceabilityIdBox.Text);
+        TraceabilityPreviewText.Text = modeIndex switch
+        {
+            1 => $"{DefaultTraceabilityPrefix(prefix)}{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+            2 => $"{DefaultTraceabilityPrefix(prefix)}A1B2C3D4E5F6",
+            3 => string.IsNullOrWhiteSpace(manual) ? "Enter a unique manual ID" : manual,
+            _ => $"IF{DateTime.UtcNow:yyyyMMddHHmmssfff}"
+        };
+    }
+
+    private static int TraceabilityModeIndex(string? mode) => mode switch
+    {
+        "PrefixTimestamp" => 1,
+        "PrefixRandom" => 2,
+        "Manual" => 3,
+        _ => 0
+    };
+
+    private static string NormalizeTraceabilityPrefix(string? value)
+    {
+        string normalized = Regex.Replace((value ?? string.Empty).ToUpperInvariant(), "[^A-Z0-9]", string.Empty);
+        return normalized.Length > 6 ? normalized[..6] : normalized;
+    }
+
+    private static string NormalizeManualTraceabilityId(string? value)
+    {
+        string normalized = Regex.Replace((value ?? string.Empty).Trim().ToUpperInvariant(), "[^A-Z0-9.-]", string.Empty);
+        return normalized.Length > 24 ? normalized[..24] : normalized;
+    }
+
+    private static string DefaultTraceabilityPrefix(string prefix) => string.IsNullOrWhiteSpace(prefix) ? "IF" : prefix;
+
+    private bool ValidateTraceabilitySettings(out string error)
+    {
+        if (_settings.TraceabilityMode == "Manual" &&
+            !Regex.IsMatch(_settings.ManualTraceabilityId, "[A-Z0-9]"))
+        {
+            error = "Enter a manual traceability ID containing at least one letter or number.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private bool TryCreateTraceabilityCode(out string code, out string error)
+    {
+        if (!ValidateTraceabilitySettings(out error))
+        {
+            code = string.Empty;
+            return false;
+        }
+
+        string prefix = DefaultTraceabilityPrefix(NormalizeTraceabilityPrefix(_settings.TraceabilityPrefix));
+        code = _settings.TraceabilityMode switch
+        {
+            "PrefixTimestamp" => prefix + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture),
+            "PrefixRandom" => prefix + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            "Manual" => NormalizeManualTraceabilityId(_settings.ManualTraceabilityId),
+            _ => "IF" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture)
+        };
+        return true;
+    }
+
+    private string CreateTraceabilityCode()
+    {
+        return TryCreateTraceabilityCode(out string code, out _) ? code :
+            "IF" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
+    }
+
+    private void SetTraceabilityCode(string code)
+    {
+        _traceabilityCode = code;
+        TraceabilityText.Text = $"Traceability ID: {_traceabilityCode}";
     }
 
     private static string AccentNameForIndex(int index) => index switch
@@ -3050,12 +3190,16 @@ exit /b %INSTALL_EXIT%
 
     private static JsonSerializerOptions JsonOptions() => new() { WriteIndented = true, PropertyNameCaseInsensitive = true };
 
-    private static string CreateTraceabilityCode() => "IF" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-
     private static string ChangelogText()
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 4.0.3
+        - Added Traceability ID settings with automatic timestamp, custom prefix plus timestamp, custom prefix plus random ID, and manual ID modes.
+        - Added live ID previews and an Apply and Generate New ID action for the active run.
+        - Centralized traceability creation so template imports, SQLite saves, filenames, exports, previews, and barcodes always share one validated ID.
+        - Normalized custom IDs to filename-safe Code 39 characters and capped them at 24 characters for readable export barcodes.
 
         Version 4.0.2
         - Added a persisted Button Accent Color selector with Blue, Cyan, Emerald, Violet, Rose, and Orange presets.
@@ -3391,7 +3535,9 @@ exit /b %INSTALL_EXIT%
         Output Preview shows what will be saved or exported. PDF export preview appears in the app so you can check table readability, page breaks, and traceability barcode placement before sharing the result.
 
         Traceability and Barcode
-        Each run has a traceability ID. PDF export places a single barcode and readable code at the bottom center of the output document. The barcode is meant for unique document identification and audit tracking. It should not appear multiple times on the same exported PDF page footer.
+        Each run has one traceability ID shared by SQLite, output filenames, CSV, Excel, Word, PDF, previews, and barcodes. Settings offers automatic timestamp, custom prefix with timestamp, custom prefix with random ID, and exact manual ID modes. Importing a new template generates the next ID from the saved mode. Manual IDs must be unique for each database run.
+
+        PDF export places a single barcode and readable code at the bottom center of the output document. IDs are normalized to filename-safe Code 39 characters and limited to 24 characters so the barcode remains readable. It should not appear multiple times on the same exported PDF page footer.
 
         Export Options
         - Export PDF creates a traceable PDF with filled tables and the bottom-center barcode.
@@ -3473,5 +3619,8 @@ exit /b %INSTALL_EXIT%
         public string DatabasePath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Default";
         public string AccentColor { get; set; } = "Blue";
+        public string TraceabilityMode { get; set; } = "Automatic";
+        public string TraceabilityPrefix { get; set; } = "IF";
+        public string ManualTraceabilityId { get; set; } = string.Empty;
     }
 }
