@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://abishekprabakaran.com/intellifill-ocr/">Website</a> ·
   <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Latest release</a> ·
-  <a href="LICENSE">GNU GPL v3.0</a>
+  <a href="LICENSE">MIT License</a>
 </p>
 
 [![IntelliFill OCR Builder](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml/badge.svg)](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml)
@@ -362,4 +362,4 @@ website/                          Static official project website
 
 ## License
 
-IntelliFill OCR is free software licensed under the [GNU General Public License v3.0](LICENSE).
+IntelliFill OCR is free software licensed under the [MIT License](LICENSE).
