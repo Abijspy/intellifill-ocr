@@ -1,7 +1,8 @@
 param(
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
-    [string]$OutputDir = "release\avalonia-win-x64\publish"
+    [string]$OutputDir = "release\avalonia-win-x64\publish",
+    [string]$Platform = "Windows"
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +17,7 @@ dotnet publish $Project `
     -c $Configuration `
     -r $RuntimeIdentifier `
     --self-contained true `
+    -p:IntelliFillPlatform=$Platform `
     -p:PublishSingleFile=false `
     -p:PublishDir="$PublishDir\"
 

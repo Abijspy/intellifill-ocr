@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "5.0.0";
+    private const string AppVersion = "5.1.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -67,7 +67,9 @@ public sealed partial class MainWindow : Window
     private AppSettings _settings = new();
     private string _traceabilityCode = string.Empty;
     private bool _mainButtonAnimationsAttached;
+#if !INTELLIFILL_LINUX
     private bool _isCheckingForUpdates;
+#endif
     private bool _isApplyingSettingsToUi;
     private bool _settingsReady;
     private DateTimeOffset _lastStatusAt = DateTimeOffset.Now;
@@ -101,10 +103,11 @@ public sealed partial class MainWindow : Window
         {
             AttachMainButtonAnimations();
             _ = AnimateControlAsync(AppShell, fromOpacity: 0.96, toOpacity: 1, fromY: 8, toY: 0, PageAnimationDurationMs);
-            if (!OperatingSystem.IsLinux())
-            {
-                await NotifyIfUpdateAvailableAsync();
-            }
+#if !INTELLIFILL_LINUX
+            await NotifyIfUpdateAvailableAsync();
+#else
+            await Task.CompletedTask;
+#endif
         };
     }
 
@@ -397,6 +400,7 @@ public sealed partial class MainWindow : Window
         RefreshReadinessReport(verifyWritableStorage: true);
     }
 
+#if !INTELLIFILL_WINDOWS
     private void ConfigurePlatformUpdateUi()
     {
         bool isLinux = OperatingSystem.IsLinux();
@@ -454,7 +458,7 @@ public sealed partial class MainWindow : Window
         {
             LinuxRepositoryStatusText.Text = $"Repository setup is running for {repository.Distribution}. Complete the administrator prompt.";
             SetStatus("Linux repository setup is waiting for administrator authentication.", StatusLevel.Working);
-            await RunLinuxRepositorySetupAsync(repository.Kind);
+            await RunLinuxRepositorySetupAsync();
             LinuxRepositoryStatus refreshed = DetectLinuxRepository();
             LinuxRepositoryStatusText.Text = refreshed.Message;
             _lastUpdateCheckSummary = refreshed.IsConfigured
@@ -562,19 +566,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private static async Task RunLinuxRepositorySetupAsync(LinuxRepositoryKind kind)
+    private static async Task RunLinuxRepositorySetupAsync()
     {
-        const string aptCommand = "install -d /usr/share/keyrings /etc/apt/sources.list.d && curl -fsSL https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg && printf '%s\\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list && apt-get update";
-        const string rpmCommand = "install -d /etc/yum.repos.d && curl -fsSL https://packages.abishekprabakaran.com/intellifill-ocr.repo -o /etc/yum.repos.d/intellifill-ocr.repo && dnf makecache";
-        string command = kind == LinuxRepositoryKind.Apt ? aptCommand : rpmCommand;
+        string bundledScript = System.IO.Path.Combine(AppContext.BaseDirectory, "repositories", "install-linux-repository.sh");
+        string script = File.Exists(bundledScript)
+            ? bundledScript
+            : "/usr/share/intellifill-ocr/repositories/install-linux-repository.sh";
+        if (!File.Exists(script))
+        {
+            throw new FileNotFoundException("The Linux repository setup script is missing. Reinstall IntelliFill OCR or use the website installer script.", script);
+        }
         var startInfo = new ProcessStartInfo
         {
             FileName = "pkexec",
             UseShellExecute = false
         };
-        startInfo.ArgumentList.Add("sh");
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(command);
+        startInfo.ArgumentList.Add("bash");
+        startInfo.ArgumentList.Add(script);
         using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("The administrator authentication process did not start. Install polkit/pkexec or use the website instructions.");
         await process.WaitForExitAsync();
         if (process.ExitCode != 0)
@@ -582,7 +590,17 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException($"Repository setup was cancelled or exited with code {process.ExitCode}.");
         }
     }
+#else
+    private void ConfigurePlatformUpdateUi()
+    {
+        WindowsUpdatePanel.IsVisible = true;
+        LinuxUpdatePanel.IsVisible = false;
+    }
 
+    private void CheckLinuxRepository_Click(object? sender, RoutedEventArgs e) { }
+#endif
+
+#if !INTELLIFILL_LINUX
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e)
     {
         if (_isCheckingForUpdates)
@@ -642,6 +660,9 @@ public sealed partial class MainWindow : Window
             RefreshReadinessReport();
         }
     }
+#else
+    private void CheckForUpdates_Click(object? sender, RoutedEventArgs e) { }
+#endif
 
     private void ApplyTheme_Click(object? sender, RoutedEventArgs e)
     {
@@ -1053,6 +1074,7 @@ public sealed partial class MainWindow : Window
         Process.Start(new ProcessStartInfo(_selectedDocumentPreview.Path) { UseShellExecute = true });
     }
 
+#if !INTELLIFILL_LINUX
     private async Task NotifyIfUpdateAvailableAsync()
     {
         await Task.Delay(1200);
@@ -1331,6 +1353,8 @@ exit /b %INSTALL_EXIT%
             throw new InvalidOperationException("Windows did not start the update handoff process.");
         }
     }
+
+#endif
 
     private async Task<string?> ShowChoiceAsync(string title, string text, string primaryText, string closeText)
     {
@@ -3385,6 +3409,12 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 5.1.0
+        - Split update features at publish time so Windows packages omit Linux repository code and Linux packages omit the Windows installer updater.
+        - Added a reusable Bash repository installer that detects Debian/Ubuntu APT or Fedora/RHEL DNF and rejects unsupported architectures.
+        - The Linux app and package post-install flow now run the packaged repository script instead of maintaining duplicate embedded setup commands.
+        - Replaced manual website and README repository configuration with a short, reviewable installer-script workflow.
+
         Version 5.0.0
         - Added the cross-platform intellifill command-line interface for unattended and scripted document processing.
         - Added local Tesseract scanning for images and every PDF page, native parsing for supported office documents, validation summaries, and traceability IDs.
@@ -3804,9 +3834,13 @@ exit /b %INSTALL_EXIT%
 
     private sealed record MappingSnapshot(string SourceLabel, string SourceValue, int TableIndex, int RowIndex, int ColumnIndex, string Value, string DestinationLabel);
 
+#if !INTELLIFILL_LINUX
     private sealed record ReleaseUpdate(string Version, string Tag, string ReleaseUrl, string AssetName, string DownloadUrl, string Notes);
+#endif
 
+#if !INTELLIFILL_WINDOWS
     private sealed record LinuxRepositoryStatus(LinuxRepositoryKind Kind, string Distribution, string PackageManager, bool IsConfigured, string Message);
+#endif
 
     private sealed record ReadinessReport(string Text, StatusLevel Level, string Badge);
 
@@ -3819,12 +3853,14 @@ exit /b %INSTALL_EXIT%
         Error
     }
 
+#if !INTELLIFILL_WINDOWS
     private enum LinuxRepositoryKind
     {
         Unsupported,
         Apt,
         Rpm
     }
+#endif
 
     private sealed class AppSettings
     {

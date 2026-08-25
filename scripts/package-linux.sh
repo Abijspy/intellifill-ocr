@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-5.0.0}"
+VERSION="${1:-5.1.0}"
 RID="${2:-linux-x64}"
 CONFIGURATION="${3:-Release}"
 
@@ -19,6 +19,7 @@ dotnet publish "$PROJECT" \
   -c "$CONFIGURATION" \
   -r "$RID" \
   --self-contained true \
+  -p:IntelliFillPlatform=Linux \
   -p:PublishSingleFile=false \
   -p:PublishDir="$PUBLISH/"
 
@@ -35,6 +36,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec "$SCRIPT_DIR/cli/intellifill" "$@"
 CLI_WRAPPER
 chmod 755 "$PUBLISH/intellifill"
+install -d -m 0755 "$PUBLISH/repositories"
+install -m 0755 "$ROOT/scripts/install-linux-repository.sh" "$PUBLISH/repositories/install-linux-repository.sh"
 
 # This optional .NET diagnostic provider is linked to the retired
 # liblttng-ust.so.0 ABI. It is not used by IntelliFill OCR at runtime, but its
@@ -95,13 +98,7 @@ mkdir -p "$PKG_ROOT/DEBIAN"
 cat > "$PKG_ROOT/DEBIAN/postinst" <<'POSTINST'
 #!/bin/sh
 set -e
-if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
-  install -d /etc/yum.repos.d
-  install -m 644 /usr/share/intellifill-ocr/repositories/intellifill-ocr.repo /etc/yum.repos.d/intellifill-ocr.repo
-else
-  install -d /etc/apt/sources.list.d /usr/share/keyrings
-  printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main' > /etc/apt/sources.list.d/intellifill-ocr.list
-fi
+bash /usr/share/intellifill-ocr/repositories/install-linux-repository.sh || true
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database /usr/share/applications || true
 fi

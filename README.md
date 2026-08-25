@@ -94,52 +94,37 @@ Repository endpoints:
 - DNF: `https://packages.abishekprabakaran.com/rpm/$basearch`
 - Signing key: `https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg`
 
-### Debian and Ubuntu with APT
+### Automatic APT/DNF repository installer
 
-Install the signing key and repository definition:
+Download and inspect the distro-detecting installer, then run it with administrator access:
 
 ```bash
-sudo install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
-sudo curl -fsSL \
-  https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg \
-  -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] https://packages.abishekprabakaran.com/apt stable main" | \
-  sudo tee /etc/apt/sources.list.d/intellifill-ocr.list >/dev/null
-sudo apt update
+curl -fsSL \
+  https://abishekprabakaran.com/intellifill-ocr/install-linux-repository.sh \
+  -o /tmp/intellifill-repository.sh
+less /tmp/intellifill-repository.sh
+sudo bash /tmp/intellifill-repository.sh
+```
+
+The script detects Debian/Ubuntu APT or Fedora/RHEL DNF, rejects unsupported architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
+
+```bash
 sudo apt install intellifill-ocr
+# or
+sudo dnf install intellifill-ocr
 ```
 
 Update later with normal system maintenance:
 
 ```bash
-sudo apt update
-sudo apt upgrade
-```
-
-The explicit `arch=amd64` setting prevents APT from requesting unsupported i386 package indexes.
-
-### Fedora and RHEL with DNF
-
-Install the repository definition and application:
-
-```bash
-sudo install -d -m 0755 /etc/yum.repos.d
-sudo curl -fsSL \
-  https://packages.abishekprabakaran.com/intellifill-ocr.repo \
-  -o /etc/yum.repos.d/intellifill-ocr.repo
-sudo dnf makecache
-sudo dnf install intellifill-ocr
-```
-
-Update later with:
-
-```bash
+sudo apt update && sudo apt upgrade
+# or
 sudo dnf upgrade
 ```
 
 ### Automatic repository setup from the app
 
-Version 4.2.0 and newer provides **Settings → Software Updates → Check Linux Package Repository**. It detects Debian/Ubuntu or Fedora/RHEL, verifies the expected repository configuration, and offers to add a missing repository through the desktop administrator-authentication prompt.
+Version 5.1.0 and newer provides **Settings → Software Updates → Check Linux Package Repository**. It verifies the repository and launches the same packaged Bash installer through desktop administrator authentication when setup is needed.
 
 The app does not download or replace Linux packages itself. After repository setup, APT or DNF remains responsible for checking, installing, rolling back, and auditing system packages.
 
@@ -159,7 +144,7 @@ Fedora/RHEL:
 sudo dnf install ./intellifill-ocr-<version>-1.x86_64.rpm
 ```
 
-The packaged installer adds the official repository automatically. If the repository was unavailable during installation, use the in-app repository check or the manual commands above.
+The packaged installer adds the official repository automatically. If the repository was unavailable during installation, use the in-app repository check or the repository installer script above.
 
 ### Portable Linux archive
 
@@ -324,19 +309,19 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 5.0.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 5.1.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-5.0.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-5.1.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 5.0.0 linux-x64 Release
+bash scripts/package-linux.sh 5.1.0 linux-x64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -355,8 +340,8 @@ The package-repository workflow then publishes signed APT metadata and DNF repos
 Create a release by pushing a version tag:
 
 ```bash
-git tag v5.0.0
-git push origin v5.0.0
+git tag v5.1.0
+git push origin v5.1.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.

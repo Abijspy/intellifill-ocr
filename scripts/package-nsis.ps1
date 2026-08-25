@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "5.0.0",
+    [string]$Version = "5.1.0",
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$OutputDir = "release",
@@ -26,7 +26,8 @@ if (-not $SkipAvaloniaBuild) {
     & (Join-Path $Root "scripts\build-avalonia.ps1") `
         -Configuration $Configuration `
         -RuntimeIdentifier $RuntimeIdentifier `
-        -OutputDir (Join-Path $OutputDir "avalonia-$RuntimeIdentifier\publish")
+        -OutputDir (Join-Path $OutputDir "avalonia-$RuntimeIdentifier\publish") `
+        -Platform Windows
 
     dotnet publish $CliProject `
         -c $Configuration `
