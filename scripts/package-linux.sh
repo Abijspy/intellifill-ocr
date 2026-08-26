@@ -12,6 +12,7 @@ CLI_PROJECT="$ROOT/src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj"
 OUT="$ROOT/release/linux"
 PUBLISH="$ROOT/release/avalonia-$RID/publish"
 CLI_PUBLISH="$PUBLISH/cli"
+APPSTREAM_ID="com.abishekprabakaran.IntelliFillOCR"
 
 mkdir -p "$OUT" "$PUBLISH"
 
@@ -40,6 +41,13 @@ install -d -m 0755 "$PUBLISH/repositories"
 install -m 0755 "$ROOT/scripts/install-linux-repository.sh" "$PUBLISH/repositories/install-linux-repository.sh"
 install -d -m 0755 "$PUBLISH/packaging"
 install -m 0644 "$ROOT/assets/logo_512.png" "$PUBLISH/packaging/intellifill-ocr.png"
+python3 "$ROOT/scripts/generate-linux-metadata.py" \
+  "$VERSION" \
+  "$ROOT/src/IntelliFillOCR.Avalonia/MainWindow.axaml.cs" \
+  "$ROOT/packaging/linux/$APPSTREAM_ID.metainfo.xml.in" \
+  "$ROOT/packaging/linux/changelog.in" \
+  "$PUBLISH/packaging/$APPSTREAM_ID.metainfo.xml" \
+  "$PUBLISH/packaging/changelog"
 cat > "$PUBLISH/packaging/intellifill-ocr.desktop" <<'PORTABLE_DESKTOP'
 [Desktop Entry]
 Type=Application
@@ -70,6 +78,8 @@ mkdir -p \
   "$PKG_ROOT/usr/share/keyrings" \
   "$PKG_ROOT/usr/bin" \
   "$PKG_ROOT/usr/share/applications" \
+  "$PKG_ROOT/usr/share/metainfo" \
+  "$PKG_ROOT/usr/share/doc/intellifill-ocr" \
   "$PKG_ROOT/usr/share/icons/hicolor/512x512/apps" \
   "$PKG_ROOT/usr/share/pixmaps"
 cp "$ROOT/package-repository/keys/intellifill-ocr-archive-keyring.gpg" "$PKG_ROOT/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg"
@@ -95,6 +105,9 @@ CLI_WRAPPER
 chmod 755 "$PKG_ROOT/usr/bin/intellifill"
 install -m 644 "$ROOT/assets/logo_512.png" "$PKG_ROOT/usr/share/icons/hicolor/512x512/apps/intellifill-ocr.png"
 install -m 644 "$ROOT/assets/logo_512.png" "$PKG_ROOT/usr/share/pixmaps/intellifill-ocr.png"
+install -m 644 "$PUBLISH/packaging/$APPSTREAM_ID.metainfo.xml" "$PKG_ROOT/usr/share/metainfo/$APPSTREAM_ID.metainfo.xml"
+install -m 644 "$PUBLISH/packaging/changelog" "$PKG_ROOT/usr/share/doc/intellifill-ocr/changelog"
+gzip -n -9 -c "$PUBLISH/packaging/changelog" > "$PKG_ROOT/usr/share/doc/intellifill-ocr/changelog.Debian.gz"
 cat > "$PKG_ROOT/usr/share/applications/intellifill-ocr.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
@@ -140,7 +153,14 @@ Priority: optional
 Architecture: amd64
 Maintainer: IntelliFill OCR
 Depends: libx11-6, libice6, libsm6, libfontconfig1
-Description: Offline OCR extraction, table filling, SQLite storage, and traceable exports.
+Homepage: https://abishekprabakaran.com/intellifill-ocr/
+Description: Offline OCR document automation and traceable exports
+ IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
+ documents, and text files. It fills templates, validates business data, stores
+ SQLite audit history, and exports PDF, Word, Excel, and CSV files.
+ .
+ The package includes both the graphical desktop application and the complete
+ intellifill command-line workflow for unattended automation.
 CONTROL
 
 DEB="$OUT/intellifill-ocr_${VERSION}_amd64.deb"

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.abishekprabakaran.IntelliFillOCR</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>IntelliFill OCR</name>
+  <summary>Offline OCR, template filling, validation, and traceable exports</summary>
+  <description>
+    <p>IntelliFill OCR turns PDFs, images, spreadsheets, documents, and text files into reviewed structured output without uploading documents to a cloud service.</p>
+    <p>Use the visual desktop workflow or the bundled command line to extract content, map fields into templates, validate business data, preserve SQLite audit history, and export PDF, Word, Excel, or CSV files.</p>
+  </description>
+  <launchable type="desktop-id">intellifill-ocr.desktop</launchable>
+  <url type="homepage">https://abishekprabakaran.com/intellifill-ocr/</url>
+  <url type="bugtracker">https://github.com/Abijspy/intellifill-ocr/issues</url>
+  <url type="vcs-browser">https://github.com/Abijspy/intellifill-ocr</url>
+  <url type="contribute">https://github.com/Abijspy/intellifill-ocr</url>
+  <developer id="com.abishekprabakaran">
+    <name>Abishek Prabakaran</name>
+  </developer>
+  <categories>
+    <category>Office</category>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>OCR</keyword>
+    <keyword>document</keyword>
+    <keyword>invoice</keyword>
+    <keyword>spreadsheet</keyword>
+    <keyword>Tesseract</keyword>
+  </keywords>
+  <icon type="stock">intellifill-ocr</icon>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://abishekprabakaran.com/intellifill-ocr/images/source-workspace.png</image>
+      <caption>Review source documents and select OCR regions</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://abishekprabakaran.com/intellifill-ocr/images/field-mapping.png</image>
+      <caption>Map extracted fields into template cells</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="@VERSION@" date="@DATE@">
+      <url type="details">https://github.com/Abijspy/intellifill-ocr/releases/tag/v@VERSION@</url>
+      <description>
+        <p>Changes in this release:</p>
+        <ul>
+@RELEASE_ITEMS@
+        </ul>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

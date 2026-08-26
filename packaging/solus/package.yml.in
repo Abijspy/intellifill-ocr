@@ -19,4 +19,6 @@ install    : |
     ln -s /usr/share/intellifill-ocr/cli/intellifill $installdir/usr/bin/intellifill
     install -Dm00644 $workdir/packaging/intellifill-ocr.desktop $installdir/usr/share/applications/intellifill-ocr.desktop
     install -Dm00644 $workdir/packaging/intellifill-ocr.png $installdir/usr/share/icons/hicolor/512x512/apps/intellifill-ocr.png
+    install -Dm00644 $workdir/packaging/com.abishekprabakaran.IntelliFillOCR.metainfo.xml $installdir/usr/share/metainfo/com.abishekprabakaran.IntelliFillOCR.metainfo.xml
+    install -Dm00644 $workdir/packaging/changelog $installdir/usr/share/doc/intellifill-ocr/changelog
     rm -rf $installdir/usr/share/intellifill-ocr/packaging

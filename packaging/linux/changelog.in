@@ -1,0 +1,5 @@
+intellifill-ocr (@VERSION@) stable; urgency=medium
+
+@CHANGELOG_ITEMS@
+
+ -- Abishek Prabakaran <Abijspy@users.noreply.github.com>  @DEB_DATE@
