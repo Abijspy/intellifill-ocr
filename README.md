@@ -31,7 +31,7 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 - CSV, XLSX, DOCX, and multi-page PDF exports.
 - Configurable traceability IDs shared by database records, filenames, previews, exports, and barcodes.
 - System, light, and dark themes with selectable cross-platform accent colors.
-- Windows installer updates and native APT/DNF update integration on Linux.
+- Windows installer updates and native APT, DNF, pacman, and Solus eopkg packaging on Linux.
 
 ## Supported Platforms
 
@@ -40,6 +40,8 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 | Windows 10/11 | x64 | NSIS setup `.exe` | In-app release check |
 | Debian/Ubuntu | amd64 | APT repository or `.deb` | `apt upgrade` |
 | Fedora/RHEL | x86_64 | DNF repository or `.rpm` | `dnf upgrade` |
+| Arch/Manjaro | x86_64 | pacman repository or `.pkg.tar.zst` | `pacman -Syu` |
+| Solus | x86_64 | Native `.eopkg` recipe | `eopkg upgrade` after repository acceptance |
 | Other x64 Linux | x64 | Portable `.tar.gz` | Replace with a newer release |
 
 The current packaged releases do not support ARM, ARM64, x86/i386, or 32-bit Linux.
@@ -86,15 +88,16 @@ Open **Settings → Apps → Installed apps**, select **IntelliFill OCR**, and c
 
 ## Linux Installation
 
-The recommended Linux installation uses the official package repository. Once configured, IntelliFill OCR updates alongside the rest of the system through APT or DNF. The repositories retain the three newest package versions; older artifacts remain available from [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases).
+The recommended Linux installation uses the official package repository. Once configured, IntelliFill OCR updates alongside the rest of the system through APT, DNF, or pacman. The repositories retain the three newest package versions; older artifacts remain available from [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases).
 
 Repository endpoints:
 
 - APT: `https://packages.abishekprabakaran.com/apt`
 - DNF: `https://packages.abishekprabakaran.com/rpm/$basearch`
+- pacman: `https://packages.abishekprabakaran.com/arch/$arch`
 - Signing key: `https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg`
 
-### Automatic APT/DNF repository installer
+### Automatic APT/DNF/pacman repository installer
 
 Download and inspect the distro-detecting installer, then run it with administrator access:
 
@@ -106,12 +109,14 @@ less /tmp/intellifill-repository.sh
 sudo bash /tmp/intellifill-repository.sh
 ```
 
-The script detects Debian/Ubuntu APT or Fedora/RHEL DNF, rejects unsupported architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
+The script detects Debian/Ubuntu APT, Fedora/RHEL DNF, or Arch/Manjaro pacman, rejects unsupported architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
 
 ```bash
 sudo apt install intellifill-ocr
 # or
 sudo dnf install intellifill-ocr
+# or
+sudo pacman -S intellifill-ocr
 ```
 
 Update later with normal system maintenance:
@@ -120,15 +125,17 @@ Update later with normal system maintenance:
 sudo apt update && sudo apt upgrade
 # or
 sudo dnf upgrade
+# or
+sudo pacman -Syu
 ```
 
 ### Automatic repository setup from the app
 
 Version 5.1.0 and newer provides **Settings → Software Updates → Check Linux Package Repository**. It verifies the repository and launches the same packaged Bash installer through desktop administrator authentication when setup is needed.
 
-The app does not download or replace Linux packages itself. After repository setup, APT or DNF remains responsible for checking, installing, rolling back, and auditing system packages.
+The app does not download or replace Linux packages itself. After repository setup, APT, DNF, or pacman remains responsible for checking, installing, rolling back, and auditing system packages.
 
-### Install a downloaded DEB or RPM
+### Install a downloaded DEB, RPM, or pacman package
 
 If you do not want to configure a repository, download a package from the [latest release](https://github.com/Abijspy/intellifill-ocr/releases/latest).
 
@@ -144,6 +151,14 @@ Fedora/RHEL:
 sudo dnf install ./intellifill-ocr-<version>-1.x86_64.rpm
 ```
 
+Arch/Manjaro:
+
+```bash
+sudo pacman -U ./intellifill-ocr-<version>-1-x86_64.pkg.tar.zst
+```
+
+Solus uses its native `solbuild`/`ypkg` toolchain. Generate the version-pinned recipe from the release tarball and build the `.eopkg` as documented in [`packaging/solus/README.md`](packaging/solus/README.md). Publication in the official Solus repository requires review by the Solus packaging team.
+
 The packaged installer adds the official repository automatically. If the repository was unavailable during installation, use the in-app repository check or the repository installer script above.
 
 ### Portable Linux archive
@@ -152,7 +167,7 @@ The release also includes `IntelliFillOCR-<version>-linux-x64.tar.gz`. Extract i
 
 ### Linux desktop launcher and icon
 
-DEB and RPM packages install:
+DEB, RPM, and pacman packages install:
 
 ```text
 /usr/bin/intellifill-ocr
@@ -182,6 +197,15 @@ Fedora/RHEL:
 ```bash
 sudo dnf remove intellifill-ocr
 sudo rm -f /etc/yum.repos.d/intellifill-ocr.repo
+```
+
+Arch/Manjaro:
+
+```bash
+sudo pacman -R intellifill-ocr
+sudo sed -i '\|Include = /etc/pacman.d/intellifill-ocr.conf|d' /etc/pacman.conf
+sudo rm -f /etc/pacman.d/intellifill-ocr.conf
+sudo pacman -Sy
 ```
 
 Removing the package does not delete exports or user-selected database files.
@@ -273,7 +297,7 @@ Then run `sudo apt update`. If the error continues, check the [Actions page](htt
 
 Ensure the source includes `arch=amd64`. Remove older IntelliFill OCR source entries that omit the architecture restriction.
 
-### APT or DNF does not find a newly released update
+### APT, DNF, or pacman does not find a newly released update
 
 The release builder completes before the package-repository publisher. Wait for both GitHub Actions workflows to finish, then refresh metadata:
 
@@ -281,6 +305,8 @@ The release builder completes before the package-repository publisher. Wait for 
 sudo apt update
 # or
 sudo dnf clean metadata && sudo dnf makecache
+# or
+sudo pacman -Syy
 ```
 
 ### OCR is unavailable
@@ -289,7 +315,7 @@ Install Tesseract, then use **Settings → Local Paths → Auto Detect**. Confir
 
 ### Linux repository setup cannot request administrator access
 
-The in-app setup uses `pkexec`. Install the distribution's PolicyKit integration or use the manual APT/DNF commands in this README.
+The in-app setup uses `pkexec`. Install the distribution's PolicyKit integration or run the repository installer script from this README with `sudo`.
 
 ## Build Locally
 
@@ -298,7 +324,7 @@ Requirements:
 - .NET 8 SDK
 - Tesseract OCR for region-extraction testing
 - NSIS 3.x for Windows installer builds
-- `dpkg-deb`, RPM tools, and `alien` for Linux package builds
+- `dpkg-deb`, RPM tools, `alien`, `bsdtar`, and `zstd` for Linux package builds
 
 Build the application:
 
@@ -309,19 +335,19 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 5.1.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 5.2.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-5.1.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-5.2.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 5.1.0 linux-x64 Release
+bash scripts/package-linux.sh 5.2.0 linux-x64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -333,15 +359,17 @@ The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produc
 - Windows NSIS setup EXE
 - Debian/Ubuntu DEB
 - Fedora/RHEL RPM
+- Arch/Manjaro pacman package
+- Solus native eopkg recipe
 - Portable Linux tarball
 
-The package-repository workflow then publishes signed APT metadata and DNF repository metadata to the `gh-pages` deployment, retaining the three newest Linux package versions.
+The package-repository workflow then publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository to the `gh-pages` deployment, retaining the three newest Linux package versions.
 
 Create a release by pushing a version tag:
 
 ```bash
-git tag v5.1.0
-git push origin v5.1.0
+git tag v5.2.0
+git push origin v5.2.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.

@@ -6,7 +6,7 @@ on:
       version:
         description: Existing GitHub Release version, without the v prefix
         required: true
-        default: "5.1.0"
+        default: "5.2.0"
 
 permissions:
   contents: write
@@ -34,6 +34,7 @@ jobs:
             --dir release-assets \
             --pattern "*.deb" \
             --pattern "*.rpm" \
+            --pattern "*.pkg.tar.zst" \
             --clobber
 
       - name: Import package signing key
@@ -71,6 +72,7 @@ jobs:
             published-repository/apt/pool/main/i/intellifill-ocr \
             published-repository/apt/dists/stable/main/binary-amd64 \
             published-repository/rpm/x86_64 \
+            published-repository/arch/x86_64 \
             published-repository/keys
 
           # Repository metadata is rebuilt from the retained package files.
@@ -81,6 +83,9 @@ jobs:
 
           cp release-assets/*.rpm \
             published-repository/rpm/x86_64/
+
+          cp release-assets/*.pkg.tar.zst \
+            published-repository/arch/x86_64/
 
           mapfile -t deb_packages < <(
             find published-repository/apt/pool/main/i/intellifill-ocr \
@@ -102,13 +107,25 @@ jobs:
             done
           fi
 
+          mapfile -t arch_packages < <(
+            find published-repository/arch/x86_64 \
+              -maxdepth 1 -type f -name '*.pkg.tar.zst' | sort -V
+          )
+          if [ "${#arch_packages[@]}" -gt 3 ]; then
+            for package in "${arch_packages[@]:0:${#arch_packages[@]}-3}"; do
+              rm -f -- "$package" "$package.sig"
+            done
+          fi
+
           cp package-repository/keys/intellifill-ocr-archive-keyring.gpg \
             published-repository/keys/
 
           deb_count=$(find published-repository/apt/pool/main/i/intellifill-ocr -maxdepth 1 -type f -name '*.deb' | wc -l)
           rpm_count=$(find published-repository/rpm/x86_64 -maxdepth 1 -type f -name '*.rpm' | wc -l)
+          arch_count=$(find published-repository/arch/x86_64 -maxdepth 1 -type f -name '*.pkg.tar.zst' | wc -l)
           test "$deb_count" -ge 1 && test "$deb_count" -le 3
           test "$rpm_count" -ge 1 && test "$rpm_count" -le 3
+          test "$arch_count" -ge 1 && test "$arch_count" -le 3
 
           (
             cd published-repository/apt
@@ -159,6 +176,15 @@ jobs:
             --detach-sign \
             --output published-repository/rpm/x86_64/repodata/repomd.xml.asc \
             published-repository/rpm/x86_64/repodata/repomd.xml
+
+          for package in published-repository/arch/x86_64/*.pkg.tar.zst; do
+            gpg --batch --yes --detach-sign --output "$package.sig" "$package"
+          done
+
+          docker run --rm \
+            -v "$PWD/published-repository/arch/x86_64:/repo" \
+            archlinux:base-devel \
+            bash -lc 'cd /repo && repo-add intellifill-ocr.db.tar.gz ./*.pkg.tar.zst'
 
           printf '%s\n' \
             '[intellifill-ocr]' \

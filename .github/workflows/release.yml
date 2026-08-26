@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "5.1.0"
+        default: "5.2.0"
   push:
     tags:
       - "v*"
@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm alien
+          sudo apt-get install -y rpm alien libarchive-tools zstd
 
       - name: Stamp application version
         shell: pwsh
@@ -116,7 +116,11 @@ jobs:
 
       - name: Build Linux packages
         shell: bash
-        run: bash scripts/package-linux.sh "$RELEASE_VERSION" linux-x64 Release
+        run: |
+          bash scripts/package-linux.sh "$RELEASE_VERSION" linux-x64 Release
+          bash scripts/prepare-solus-package.sh \
+            "$RELEASE_VERSION" \
+            "release/linux/IntelliFillOCR-$RELEASE_VERSION-linux-x64.tar.gz"
 
       - name: Collect Linux assets
         shell: bash
@@ -125,6 +129,9 @@ jobs:
           cp release/linux/*.tar.gz release-assets/
           cp release/linux/*.deb release-assets/
           cp release/linux/*.rpm release-assets/
+          cp release/linux/*.pkg.tar.zst release-assets/
+          cp packaging/solus/package.yml \
+            "release-assets/intellifill-ocr-$RELEASE_VERSION-solus-package.yml"
 
       - name: Upload Linux assets
         uses: actions/upload-artifact@v6

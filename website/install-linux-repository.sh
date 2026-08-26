@@ -5,10 +5,11 @@ REPOSITORY_HOST="https://packages.abishekprabakaran.com"
 APT_SOURCE="/etc/apt/sources.list.d/intellifill-ocr.list"
 APT_KEYRING="/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg"
 DNF_SOURCE="/etc/yum.repos.d/intellifill-ocr.repo"
+PACMAN_SOURCE="/etc/pacman.d/intellifill-ocr.conf"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: sudo bash install-linux-repository.sh"
-  echo "Detects an APT or DNF Linux distribution and installs the IntelliFill OCR package repository."
+  echo "Detects an APT, DNF, or pacman Linux distribution and installs the IntelliFill OCR package repository."
   exit 0
 fi
 
@@ -46,6 +47,31 @@ if [[ -r /etc/os-release ]]; then
 fi
 family=" $distribution_id $distribution_like "
 
+if [[ "$family" == *arch* || "$family" == *manjaro* ]] || command -v pacman >/dev/null 2>&1; then
+  echo "Detected $distribution (pacman)."
+  install -d -m 0755 /etc/pacman.d
+  key_file="$(mktemp)"
+  trap 'rm -f "$key_file"' EXIT
+  curl -fsSL "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" -o "$key_file"
+  fingerprint="$(gpg --show-keys --with-colons "$key_file" | awk -F: '$1 == "fpr" { print $10; exit }')"
+  [[ -n "$fingerprint" ]] || { echo "Could not read the repository signing-key fingerprint." >&2; exit 5; }
+  pacman-key --add "$key_file"
+  pacman-key --lsign-key "$fingerprint"
+  rm -f "$key_file"
+  trap - EXIT
+  cat > "$PACMAN_SOURCE" <<REPOSITORY
+[intellifill-ocr]
+SigLevel = Required DatabaseOptional
+Server = $REPOSITORY_HOST/arch/\$arch
+REPOSITORY
+  if ! grep -qF "Include = $PACMAN_SOURCE" /etc/pacman.conf; then
+    printf '\n%s\n' "Include = $PACMAN_SOURCE" >> /etc/pacman.conf
+  fi
+  pacman -Sy
+  echo "Repository installed. Use: sudo pacman -S intellifill-ocr"
+  exit 0
+fi
+
 if [[ "$family" == *debian* || "$family" == *ubuntu* ]] || command -v apt-get >/dev/null 2>&1; then
   echo "Detected $distribution (APT)."
   install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
@@ -76,5 +102,11 @@ REPOSITORY
   exit 0
 fi
 
-echo "Unsupported distribution: $distribution. Automatic setup supports Debian/Ubuntu APT and Fedora/RHEL DNF systems." >&2
+if [[ "$family" == *solus* ]] || command -v eopkg >/dev/null 2>&1; then
+  echo "Detected $distribution (eopkg). IntelliFill OCR includes a native Solus package recipe, but a public eopkg repository is not published yet." >&2
+  echo "Build packaging/solus/package.yml with solbuild, then install the resulting package with: sudo eopkg it ./intellifill-ocr-*.eopkg" >&2
+  exit 6
+fi
+
+echo "Unsupported distribution: $distribution. Automatic repository setup supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman systems." >&2
 exit 4

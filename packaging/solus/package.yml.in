@@ -1,0 +1,22 @@
+# Native Solus ypkg recipe. Replace @VERSION@ and @SHA256@ for a tagged release.
+name       : intellifill-ocr
+version    : '@VERSION@'
+release    : 1
+source     :
+    - https://github.com/Abijspy/intellifill-ocr/releases/download/v@VERSION@/IntelliFillOCR-@VERSION@-linux-x64.tar.gz : '@SHA256@'
+homepage   : https://abishekprabakaran.com/intellifill-ocr/
+license    : GPL-3.0-only
+component  : office
+summary    : Offline OCR extraction and table filling
+description: |
+    IntelliFill OCR extracts text and tables locally, maps fields into templates,
+    validates results, stores traceability records, and exports completed files.
+install    : |
+    install -dm00755 $installdir/usr/share/intellifill-ocr
+    cp -a $workdir/. $installdir/usr/share/intellifill-ocr/
+    install -dm00755 $installdir/usr/bin
+    ln -s /usr/share/intellifill-ocr/IntelliFillOCR $installdir/usr/bin/intellifill-ocr
+    ln -s /usr/share/intellifill-ocr/cli/intellifill $installdir/usr/bin/intellifill
+    install -Dm00644 $workdir/packaging/intellifill-ocr.desktop $installdir/usr/share/applications/intellifill-ocr.desktop
+    install -Dm00644 $workdir/packaging/intellifill-ocr.png $installdir/usr/share/icons/hicolor/512x512/apps/intellifill-ocr.png
+    rm -rf $installdir/usr/share/intellifill-ocr/packaging

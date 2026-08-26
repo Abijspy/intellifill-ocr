@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-5.1.0}"
+VERSION="${1:-5.2.0}"
 RID="${2:-linux-x64}"
 CONFIGURATION="${3:-Release}"
 
@@ -38,6 +38,20 @@ CLI_WRAPPER
 chmod 755 "$PUBLISH/intellifill"
 install -d -m 0755 "$PUBLISH/repositories"
 install -m 0755 "$ROOT/scripts/install-linux-repository.sh" "$PUBLISH/repositories/install-linux-repository.sh"
+install -d -m 0755 "$PUBLISH/packaging"
+install -m 0644 "$ROOT/assets/logo_512.png" "$PUBLISH/packaging/intellifill-ocr.png"
+cat > "$PUBLISH/packaging/intellifill-ocr.desktop" <<'PORTABLE_DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=IntelliFill OCR
+Comment=Offline OCR extraction and table filling
+Exec=/usr/bin/intellifill-ocr
+Icon=intellifill-ocr
+Terminal=false
+Categories=Office;
+StartupNotify=true
+StartupWMClass=IntelliFillOCR
+PORTABLE_DESKTOP
 
 # This optional .NET diagnostic provider is linked to the retired
 # liblttng-ust.so.0 ABI. It is not used by IntelliFill OCR at runtime, but its
@@ -131,6 +145,53 @@ CONTROL
 
 DEB="$OUT/intellifill-ocr_${VERSION}_amd64.deb"
 dpkg-deb --build "$PKG_ROOT" "$DEB"
+
+if ! command -v bsdtar >/dev/null 2>&1 || ! command -v zstd >/dev/null 2>&1; then
+  echo "bsdtar and zstd are required to create the Arch Linux package." >&2
+  exit 1
+fi
+
+ARCH_ROOT="$OUT/archroot"
+rm -rf "$ARCH_ROOT"
+mkdir -p "$ARCH_ROOT"
+cp -a "$PKG_ROOT/usr" "$ARCH_ROOT/"
+rm -rf "$ARCH_ROOT/usr/share/keyrings" \
+  "$ARCH_ROOT/usr/share/intellifill-ocr/repositories/intellifill-ocr.repo" \
+  "$ARCH_ROOT/usr/share/intellifill-ocr/packaging"
+cat > "$ARCH_ROOT/.PKGINFO" <<PKGINFO
+pkgname = intellifill-ocr
+pkgbase = intellifill-ocr
+pkgver = $VERSION-1
+pkgdesc = Offline OCR extraction, table filling, SQLite storage, and traceable exports
+url = https://abishekprabakaran.com/intellifill-ocr/
+builddate = $(date +%s)
+packager = IntelliFill OCR
+size = $(du -sb "$ARCH_ROOT/usr" | cut -f1)
+arch = x86_64
+license = GPL-3.0-only
+depend = libx11
+depend = libice
+depend = libsm
+depend = fontconfig
+PKGINFO
+cat > "$ARCH_ROOT/.INSTALL" <<'ARCH_INSTALL'
+post_install() {
+  /usr/share/intellifill-ocr/repositories/install-linux-repository.sh || true
+  command -v update-desktop-database >/dev/null && update-desktop-database /usr/share/applications || true
+  command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+}
+post_upgrade() { post_install; }
+post_remove() {
+  command -v update-desktop-database >/dev/null && update-desktop-database /usr/share/applications || true
+  command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+}
+ARCH_INSTALL
+LANG=C bsdtar -czf "$ARCH_ROOT/.MTREE" \
+  --format=mtree \
+  --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' \
+  -C "$ARCH_ROOT" .PKGINFO .INSTALL usr
+ARCH_PACKAGE="$OUT/intellifill-ocr-$VERSION-1-x86_64.pkg.tar.zst"
+bsdtar --uid 0 --gid 0 -C "$ARCH_ROOT" -cf - . | zstd -q -19 -T0 -o "$ARCH_PACKAGE"
 
 if ! command -v alien >/dev/null 2>&1; then
   echo "alien was not found. Install it to convert the Debian package to RPM." >&2

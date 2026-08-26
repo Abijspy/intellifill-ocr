@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "5.1.0";
+    private const string AppVersion = "5.2.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -429,9 +429,13 @@ public sealed partial class MainWindow : Window
 
         if (repository.IsConfigured)
         {
-            string updateCommand = repository.Kind == LinuxRepositoryKind.Apt
-                ? "sudo apt update && sudo apt upgrade"
-                : "sudo dnf upgrade";
+            string updateCommand = repository.Kind switch
+            {
+                LinuxRepositoryKind.Apt => "sudo apt update && sudo apt upgrade",
+                LinuxRepositoryKind.Rpm => "sudo dnf upgrade",
+                LinuxRepositoryKind.Pacman => "sudo pacman -Syu",
+                _ => "Use your system package manager"
+            };
             SetStatus($"Linux package repository is configured. Updates are maintained by {repository.PackageManager}.", StatusLevel.Success);
             await ShowMessageAsync("Linux Package Repository", $"{repository.Message}{Environment.NewLine}{Environment.NewLine}Update IntelliFill OCR with normal system updates:{Environment.NewLine}{updateCommand}");
             return;
@@ -502,6 +506,29 @@ public sealed partial class MainWindow : Window
 
         bool aptFamily = family.Contains("debian", StringComparison.Ordinal) || family.Contains("ubuntu", StringComparison.Ordinal) || File.Exists("/usr/bin/apt");
         bool rpmFamily = family.Contains("fedora", StringComparison.Ordinal) || family.Contains("rhel", StringComparison.Ordinal) || family.Contains("centos", StringComparison.Ordinal) || family.Contains("suse", StringComparison.Ordinal) || File.Exists("/usr/bin/dnf");
+        bool pacmanFamily = family.Contains("arch", StringComparison.Ordinal) || family.Contains("manjaro", StringComparison.Ordinal) || File.Exists("/usr/bin/pacman");
+        bool solusFamily = family.Contains("solus", StringComparison.Ordinal) || File.Exists("/usr/bin/eopkg");
+        if (pacmanFamily)
+        {
+            const string repoPath = "/etc/pacman.d/intellifill-ocr.conf";
+            bool configured = FileContains(repoPath, "packages.abishekprabakaran.com/arch/$arch") &&
+                              FileContains("/etc/pacman.conf", $"Include = {repoPath}");
+            string message = configured
+                ? $"Detected {distribution}. The pacman repository is configured; updates are handled by pacman -Syu."
+                : $"Detected {distribution}. The IntelliFill OCR pacman repository is missing.";
+            return new LinuxRepositoryStatus(LinuxRepositoryKind.Pacman, distribution, "pacman", configured, message);
+        }
+
+        if (solusFamily)
+        {
+            return new LinuxRepositoryStatus(
+                LinuxRepositoryKind.Unsupported,
+                distribution,
+                "eopkg",
+                false,
+                $"Detected {distribution}. A native Solus eopkg recipe is included with the project, but the IntelliFill OCR public eopkg repository is not published yet.");
+        }
+
         if (aptFamily)
         {
             const string sourcePath = "/etc/apt/sources.list.d/intellifill-ocr.list";
@@ -528,7 +555,7 @@ public sealed partial class MainWindow : Window
             distribution,
             "the system package manager",
             false,
-            $"Detected {distribution}, but automatic setup currently supports Debian/Ubuntu APT and Fedora/RHEL DNF distributions only.");
+            $"Detected {distribution}, but automatic setup currently supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman distributions only.");
     }
 
     private static Dictionary<string, string> ReadOsRelease()
@@ -3409,6 +3436,12 @@ exit /b %INSTALL_EXIT%
         return """
         IntelliFill OCR Changelog
 
+        Version 5.2.0
+        - Added native Arch Linux and Manjaro pacman packages to automated GitHub releases.
+        - Added a signed Arch package repository with automatic key enrollment, repository detection, and pacman system updates.
+        - Added a native Solus ypkg recipe generator that pins each release archive with its SHA-256 checksum for eopkg builds.
+        - Updated the app, website, README, and Linux installer with Arch, Manjaro, and Solus package guidance.
+
         Version 5.1.0
         - Split update features at publish time so Windows packages omit Linux repository code and Linux packages omit the Windows installer updater.
         - Added a reusable Bash repository installer that detects Debian/Ubuntu APT or Fedora/RHEL DNF and rejects unsupported architectures.
@@ -3858,7 +3891,8 @@ exit /b %INSTALL_EXIT%
     {
         Unsupported,
         Apt,
-        Rpm
+        Rpm,
+        Pacman
     }
 #endif
 
