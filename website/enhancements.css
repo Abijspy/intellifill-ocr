@@ -228,6 +228,13 @@ body.viewer-open { overflow: hidden; }
 .cli-notes { display: grid; gap: 14px; margin-top: 22px; }
 .cli-notes > div { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 14px 18px; border-radius: 13px; background: rgba(139, 156, 255, .055); }
 .cli-notes span { color: var(--muted); }
+.macos-install { padding-top: 30px; }
+.macos-install .install { border: 1px solid rgba(139, 156, 255, .15); border-radius: 28px; background: radial-gradient(circle at 85% 20%, rgba(94, 231, 247, .1), transparent 26rem), linear-gradient(145deg, rgba(19, 24, 48, .72), rgba(10, 14, 30, .5)); }
+.mac-downloads { display: grid; gap: 13px; }
+.mac-downloads .button { justify-content: flex-start; min-height: 68px; }
+.mac-downloads .button span { display: grid; }
+.mac-downloads .button small { color: inherit; opacity: .72; font-weight: 550; }
+.mac-downloads p { color: var(--muted); font-size: 14px; }
 .feature-list { display: grid; gap: 15px; margin: 30px 0 0; padding: 0; list-style: none; }
 .feature-list li { display: grid; grid-template-columns: 145px 1fr; gap: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
 .feature-list b { display: flex; align-items: center; gap: 8px; color: var(--text); }

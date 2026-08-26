@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v5.3.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v6.0.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -452,7 +452,7 @@
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="12">
                                         <TextBlock Text="Appearance" Classes="sectionTitle" />
-                                        <TextBlock Text="Choose the window theme and button accent used consistently on Windows and Linux." Classes="muted" />
+                                        <TextBlock Text="Choose the window theme and button accent used consistently on Windows, macOS, and Linux." Classes="muted" />
                                         <TextBlock Text="Theme" Classes="kicker" />
                                         <ComboBox x:Name="ThemeComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left">
                                             <ComboBoxItem Content="Use system theme" />
@@ -524,7 +524,7 @@
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="Software Updates" Classes="sectionTitle" />
                                         <StackPanel x:Name="WindowsUpdatePanel" Spacing="8">
-                                            <TextBlock Text="Check GitHub Releases and launch the signed Windows installer." Classes="muted" />
+                                            <TextBlock x:Name="PlatformUpdateDescriptionText" Text="Check GitHub Releases for the package built for this operating system." Classes="muted" />
                                             <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
                                         </StackPanel>
                                         <StackPanel x:Name="LinuxUpdatePanel" Spacing="8" IsVisible="False">

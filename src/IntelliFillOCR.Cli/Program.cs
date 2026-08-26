@@ -13,7 +13,7 @@ namespace IntelliFillOCR.Cli;
 
 internal static partial class Program
 {
-    private const string Version = "5.3.0";
+    private const string Version = "6.0.0";
     private static readonly HashSet<string> SupportedFormats = new(StringComparer.OrdinalIgnoreCase)
     {
         "csv", "xlsx", "docx", "pdf"
@@ -380,6 +380,12 @@ internal static partial class Program
         {
             candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tesseract-OCR", "tesseract.exe"));
             candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Tesseract-OCR", "tesseract.exe"));
+        }
+        if (OperatingSystem.IsMacOS())
+        {
+            candidates.Add("/opt/homebrew/bin/tesseract");
+            candidates.Add("/usr/local/bin/tesseract");
+            candidates.Add("/opt/local/bin/tesseract");
         }
         string executableName = OperatingSystem.IsWindows() ? "tesseract.exe" : "tesseract";
         string? pathValue = Environment.GetEnvironmentVariable("PATH");

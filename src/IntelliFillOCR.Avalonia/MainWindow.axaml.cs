@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "5.3.0";
+    private const string AppVersion = "6.0.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -408,6 +408,9 @@ public sealed partial class MainWindow : Window
         LinuxUpdatePanel.IsVisible = isLinux;
         if (!isLinux)
         {
+            PlatformUpdateDescriptionText.Text = OperatingSystem.IsMacOS()
+                ? "Check GitHub Releases and open the latest macOS disk image for this Mac."
+                : "Check GitHub Releases for the package built for this operating system.";
             return;
         }
 
@@ -622,6 +625,7 @@ public sealed partial class MainWindow : Window
     {
         WindowsUpdatePanel.IsVisible = true;
         LinuxUpdatePanel.IsVisible = false;
+        PlatformUpdateDescriptionText.Text = "Check GitHub Releases and launch the signed Windows installer.";
     }
 
     private void CheckLinuxRepository_Click(object? sender, RoutedEventArgs e) { }
@@ -1188,6 +1192,13 @@ public sealed partial class MainWindow : Window
             return name.EndsWith(".deb", StringComparison.OrdinalIgnoreCase) ||
                    name.EndsWith(".rpm", StringComparison.OrdinalIgnoreCase) ||
                    name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            string architecture = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "osx-arm64" : "osx-x64";
+            return name.EndsWith(".dmg", StringComparison.OrdinalIgnoreCase) &&
+                   name.Contains(architecture, StringComparison.OrdinalIgnoreCase);
         }
 
         return name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase);
@@ -1914,6 +1925,21 @@ exit /b %INSTALL_EXIT%
                 System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Tesseract-OCR", "tesseract.exe")
             };
 
+            string? match = candidates.FirstOrDefault(File.Exists);
+            if (!string.IsNullOrWhiteSpace(match))
+            {
+                return match;
+            }
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            string[] candidates =
+            {
+                "/opt/homebrew/bin/tesseract",
+                "/usr/local/bin/tesseract",
+                "/opt/local/bin/tesseract"
+            };
             string? match = candidates.FirstOrDefault(File.Exists);
             if (!string.IsNullOrWhiteSpace(match))
             {
@@ -3435,6 +3461,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.0.0
+        - Added native macOS application bundles and DMG packages for Apple Silicon and Intel Macs.
+        - Added automated macOS release builds, native application icons, architecture-specific dependencies, bundled CLI tools, and drag-to-Applications installation.
+        - Added macOS-aware release checks and automatic Tesseract detection for Homebrew and MacPorts installations.
+        - Added macOS downloads and installation guidance to the website and expanded the project documentation for all three desktop platforms.
 
         Version 5.3.0
         - Expanded the command line from scanning into a complete document workflow with batch processing, field inspection, automatic template filling, validation, SQLite history, and explicit cell overrides.

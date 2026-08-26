@@ -3,13 +3,13 @@
 </p>
 
 <p align="center">
-  Offline OCR, document extraction, table filling, validation, and traceable exports for Windows and Linux.
+  Offline OCR, document extraction, table filling, validation, and traceable exports for Windows, macOS, and Linux.
 </p>
 
 <p align="center">
   <a href="https://abishekprabakaran.com/intellifill-ocr/">Website</a> ·
   <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Latest release</a> ·
-  <a href="LICENSE">MIT License</a>
+  <a href="LICENSE">GPL-3.0 License</a>
 </p>
 
 [![IntelliFill OCR Builder](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml/badge.svg)](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml)
@@ -20,7 +20,7 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 
 ## Highlights
 
-- Native desktop interface for Windows and Linux.
+- Native desktop interface for Windows, macOS, and Linux.
 - Imports CSV, TXT, XLSX, DOCX, PDF, PNG, JPG, and JPEG templates.
 - Uploads up to five source documents with parsed-text and detected-table previews.
 - Image and PDF workspace with zoom, rotation, and rectangular OCR region selection.
@@ -38,6 +38,8 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 | Platform | Architecture | Recommended package | Update method |
 |---|---:|---|---|
 | Windows 10/11 | x64 | NSIS setup `.exe` | In-app release check |
+| macOS 11+ | Apple Silicon | Native `.app` in ARM64 `.dmg` | In-app release check |
+| macOS 11+ | Intel x64 | Native `.app` in x64 `.dmg` | In-app release check |
 | Debian/Ubuntu | amd64 | APT repository or `.deb` | `apt upgrade` |
 | Fedora/RHEL | x86_64 | DNF repository or `.rpm` | `dnf upgrade` |
 | Arch/Manjaro | x86_64 | pacman repository or `.pkg.tar.zst` | `pacman -Syu` |
@@ -85,6 +87,25 @@ You can also download and run the newest setup program manually. Installing a ne
 ### Uninstall on Windows
 
 Open **Settings → Apps → Installed apps**, select **IntelliFill OCR**, and choose **Uninstall**. The application installation is removed; locally created exports and user-selected SQLite databases are not deleted.
+
+## macOS Installation
+
+1. Open the [latest GitHub release](https://github.com/Abijspy/intellifill-ocr/releases/latest).
+2. Download `IntelliFillOCR-<version>-osx-arm64.dmg` for Apple Silicon or `IntelliFillOCR-<version>-osx-x64.dmg` for an Intel Mac.
+3. Open the disk image and drag **IntelliFill OCR** into **Applications**.
+4. Launch it from Applications. Early unsigned community builds may require **Control-click → Open** and confirmation in **System Settings → Privacy & Security**.
+5. Install Tesseract with Homebrew when OCR is needed: `brew install tesseract`.
+
+The DMG contains a self-contained native `.app`; users do not need to install .NET. Both architectures include the desktop application, local PDF/image dependencies, and the complete CLI. To expose the CLI after copying the app:
+
+```bash
+sudo ln -sf "/Applications/IntelliFill OCR.app/Contents/Resources/cli/intellifill" /usr/local/bin/intellifill
+intellifill --help
+```
+
+Use **Settings → Software Updates → Check for Updates** to check GitHub Releases. On macOS the app selects the DMG matching the running Intel or Apple Silicon architecture and opens the release page for installation.
+
+To uninstall, remove **IntelliFill OCR.app** from Applications. User-created exports and databases are not deleted.
 
 ## Linux Installation
 
@@ -241,7 +262,7 @@ Application settings and logs use the operating system's local application-data 
 
 ## Command-Line Interface
 
-The Windows and Linux packages include the `intellifill` command. Version 5.3 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+The Windows, macOS, and Linux packages include the `intellifill` command. Version 6 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
 
 ### Scan and batch processing
 
@@ -406,6 +427,7 @@ Requirements:
 - .NET 8 SDK
 - Tesseract OCR for region-extraction testing
 - NSIS 3.x for Windows installer builds
+- macOS with `hdiutil`, `iconutil`, `sips`, `plutil`, and `codesign` for DMG builds
 - `dpkg-deb`, RPM tools, `alien`, `bsdtar`, and `zstd` for Linux package builds
 
 Build the application:
@@ -417,28 +439,38 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 5.3.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 6.0.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-5.3.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-6.0.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 5.3.0 linux-x64 Release
+bash scripts/package-linux.sh 6.0.0 linux-x64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
+
+Build a macOS disk image on a Mac:
+
+```bash
+bash scripts/package-macos.sh 6.0.0 osx-arm64 Release
+# or: bash scripts/package-macos.sh 6.0.0 osx-x64 Release
+```
+
+macOS outputs are written under `release/macos/`.
 
 ## Release Automation
 
 The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produces:
 
 - Windows NSIS setup EXE
+- Apple Silicon and Intel macOS DMG images
 - Debian/Ubuntu DEB
 - Fedora/RHEL RPM
 - Arch/Manjaro pacman package
@@ -450,8 +482,8 @@ The package-repository workflow then publishes signed APT metadata, DNF metadata
 Create a release by pushing a version tag:
 
 ```bash
-git tag v5.3.0
-git push origin v5.3.0
+git tag v6.0.0
+git push origin v6.0.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.
@@ -464,6 +496,7 @@ src/IntelliFillOCR.Cli/           Cross-platform intellifill command
 src/IntelliFillOCR.Core/          Document, export, and SQLite services
 installer/IntelliFillOCR.nsi      Windows NSIS installer
 scripts/                          Build, version, and packaging scripts
+scripts/package-macos.sh          macOS app-bundle and DMG builder
 package-repository/               Repository signing material and configuration
 assets/                           Application icons and branding
 demo/                             Small CSV demonstration fixtures
@@ -472,4 +505,4 @@ website/                          Static official project website
 
 ## License
 
-IntelliFill OCR is free software licensed under the [MIT License](LICENSE).
+IntelliFill OCR is free software licensed under the [GNU General Public License v3.0](LICENSE).

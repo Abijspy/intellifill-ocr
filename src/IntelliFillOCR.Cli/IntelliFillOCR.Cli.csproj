@@ -7,15 +7,16 @@
     <AssemblyName>intellifill</AssemblyName>
     <RootNamespace>IntelliFillOCR.Cli</RootNamespace>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
-    <Version>5.3.0</Version>
-    <AssemblyVersion>5.3.0.0</AssemblyVersion>
-    <FileVersion>5.3.0.0</FileVersion>
+    <Version>6.0.0</Version>
+    <AssemblyVersion>6.0.0.0</AssemblyVersion>
+    <FileVersion>6.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.4" />
     <ProjectReference Include="..\IntelliFillOCR.Core\IntelliFillOCR.Core.csproj" />
   </ItemGroup>
 </Project>
