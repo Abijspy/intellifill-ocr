@@ -11,9 +11,9 @@ using SkiaSharp;
 
 namespace IntelliFillOCR.Cli;
 
-internal static class Program
+internal static partial class Program
 {
-    private const string Version = "5.2.0";
+    private const string Version = "5.3.0";
     private static readonly HashSet<string> SupportedFormats = new(StringComparer.OrdinalIgnoreCase)
     {
         "csv", "xlsx", "docx", "pdf"
@@ -36,15 +36,15 @@ internal static class Program
                 return 0;
             }
 
-            if (!args[0].Equals("scan", StringComparison.OrdinalIgnoreCase))
+            string command = args[0].ToLowerInvariant();
+            if (command == "scan")
             {
-                return Fail($"Unknown command '{args[0]}'. Run 'intellifill --help' for usage.");
+                CliOptions options = ParseScanOptions(args[1..]);
+                ScanResult result = await ScanAsync(options);
+                WriteResult(result, options.Json);
+                return result.ValidationIssues.Count == 0 ? 0 : 2;
             }
-
-            CliOptions options = ParseScanOptions(args[1..]);
-            ScanResult result = await ScanAsync(options);
-            WriteResult(result, options.Json);
-            return result.ValidationIssues.Count == 0 ? 0 : 2;
+            return await RunExtendedCommandAsync(command, args[1..]);
         }
         catch (CliException ex)
         {
@@ -52,6 +52,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
+            if (Environment.GetEnvironmentVariable("INTELLIFILL_DEBUG") == "1") Console.Error.WriteLine(ex);
             return Fail(ex.Message);
         }
     }
@@ -147,6 +148,42 @@ internal static class Program
 
     private static async Task<ScanResult> ScanAsync(CliOptions options)
     {
+        ExtractedDocument document = await ExtractDocumentAsync(options);
+        IReadOnlyList<DocumentTable> tables = document.Tables;
+        int fieldCount = CountFields(tables);
+        List<string> validationIssues = ValidateScan(tables, fieldCount);
+        string traceabilityId = TraceabilityService.Create();
+        var exportedFiles = new List<string>();
+
+        IReadOnlyList<OutputTable> outputTables = tables
+            .Select(table => new OutputTable(table.Label, table.Rows))
+            .ToList();
+        if (!options.NoExport && outputTables.Count > 0)
+        {
+            Directory.CreateDirectory(options.OutputDirectory);
+            string baseName = SafeFileName(Path.GetFileNameWithoutExtension(options.SourcePath));
+            var exporter = new ExportService();
+            foreach (string format in options.Formats)
+            {
+                string path = Path.Combine(options.OutputDirectory, $"{baseName}-{traceabilityId}.{format.ToLowerInvariant()}");
+                Export(exporter, outputTables, path, format, traceabilityId);
+                exportedFiles.Add(path);
+            }
+        }
+
+        return new ScanResult(
+            Path.GetFileName(options.SourcePath),
+            document.Engine,
+            document.Pages,
+            tables.Count,
+            fieldCount,
+            traceabilityId,
+            validationIssues,
+            exportedFiles);
+    }
+
+    private static async Task<ExtractedDocument> ExtractDocumentAsync(CliOptions options)
+    {
         string extension = Path.GetExtension(options.SourcePath).ToLowerInvariant();
         bool usesOcr = extension is ".pdf" or ".png" or ".jpg" or ".jpeg" or ".tif" or ".tiff" or ".bmp";
         string engine;
@@ -194,42 +231,19 @@ internal static class Program
             engine = "Native document parser";
         }
 
-        IReadOnlyList<OutputTable> outputTables = tables
-            .Select(table => new OutputTable(table.Label, table.Rows))
-            .ToList();
-        int fieldCount = CountFields(tables);
-        List<string> validationIssues = ValidateScan(tables, fieldCount);
-        string traceabilityId = "IF" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-        var exportedFiles = new List<string>();
+        return new ExtractedDocument(engine, pages, tables);
+    }
 
-        if (!options.NoExport && outputTables.Count > 0)
+    private static void Export(ExportService exporter, IReadOnlyList<OutputTable> tables, string path, string format, string traceabilityId)
+    {
+        switch (format.ToLowerInvariant())
         {
-            Directory.CreateDirectory(options.OutputDirectory);
-            string baseName = SafeFileName(Path.GetFileNameWithoutExtension(options.SourcePath));
-            var exporter = new ExportService();
-            foreach (string format in options.Formats)
-            {
-                string path = Path.Combine(options.OutputDirectory, $"{baseName}-{traceabilityId}.{format.ToLowerInvariant()}");
-                switch (format.ToLowerInvariant())
-                {
-                    case "csv": exporter.ExportCsv(outputTables, path, traceabilityId); break;
-                    case "xlsx": exporter.ExportXlsx(outputTables, path, traceabilityId); break;
-                    case "docx": exporter.ExportDocx(outputTables, path, traceabilityId); break;
-                    case "pdf": exporter.ExportPdf(outputTables, path, traceabilityId); break;
-                }
-                exportedFiles.Add(path);
-            }
+            case "csv": exporter.ExportCsv(tables, path, traceabilityId); break;
+            case "xlsx": exporter.ExportXlsx(tables, path, traceabilityId); break;
+            case "docx": exporter.ExportDocx(tables, path, traceabilityId); break;
+            case "pdf": exporter.ExportPdf(tables, path, traceabilityId); break;
+            default: throw new CliException($"Unsupported export format '{format}'.");
         }
-
-        return new ScanResult(
-            Path.GetFileName(options.SourcePath),
-            engine,
-            pages,
-            tables.Count,
-            fieldCount,
-            traceabilityId,
-            validationIssues,
-            exportedFiles);
     }
 
     private static IReadOnlyList<string> RenderPdfPages(string path)
@@ -440,6 +454,17 @@ internal static class Program
 
         Usage:
           intellifill scan <file> [options]
+          intellifill batch <files...> [options]
+          intellifill inspect <files...> [--json]
+          intellifill fill --template <file> --source <file>... [options]
+          intellifill validate <file> [--json]
+          intellifill history <database> [--json]
+          intellifill trace-id [options]
+          intellifill health [options]
+          intellifill signatures <files...> [--json]
+          intellifill repo status [--json]
+          intellifill repo install
+          intellifill update check [--json]
           intellifill --version
 
         Scan options:
@@ -454,6 +479,10 @@ internal static class Program
           intellifill scan invoice.pdf
           intellifill scan receipt.png --format csv,xlsx --output ./exports
           intellifill scan report.docx --no-export --json
+          intellifill batch scans/*.pdf --format xlsx,pdf --output ./exports
+          intellifill fill --template template.xlsx --source invoice.pdf --save-db runs.db
+          intellifill trace-id --mode prefix-random --value ACME-
+          intellifill health --tesseract /usr/bin/tesseract --database runs.db
         """);
     }
 
@@ -475,6 +504,8 @@ internal static class Program
         string TraceabilityId,
         IReadOnlyList<string> ValidationIssues,
         IReadOnlyList<string> ExportedFiles);
+
+    private sealed record ExtractedDocument(string Engine, int Pages, IReadOnlyList<DocumentTable> Tables);
 
     private sealed class CliException(string message) : Exception(message);
 }

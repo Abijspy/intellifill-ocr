@@ -241,7 +241,9 @@ Application settings and logs use the operating system's local application-data 
 
 ## Command-Line Interface
 
-The Windows installer and Linux DEB/RPM packages include the `intellifill` command. It uses the same local document parser and export services as the desktop application. PDF and image scans are rasterized locally and processed with the installed Tesseract executable.
+The Windows and Linux packages include the `intellifill` command. Version 5.3 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+
+### Scan and batch processing
 
 Scan an invoice and create XLSX and PDF output in the current directory:
 
@@ -261,14 +263,15 @@ Select another Tesseract language or executable:
 intellifill scan invoice.pdf --language eng --tesseract /usr/bin/tesseract
 ```
 
-Scan without exporting, or return a machine-readable result for scripts:
+Scan without exporting, return JSON, or process several documents with the same settings:
 
 ```bash
 intellifill scan report.docx --no-export
 intellifill scan invoice.pdf --no-export --json
+intellifill batch scans/*.pdf --format xlsx,pdf --output ./exports
 ```
 
-Available options:
+Scan and batch options:
 
 | Option | Purpose |
 |---|---|
@@ -279,7 +282,86 @@ Available options:
 | `--no-export` | Extract and validate without writing exports. |
 | `--json` | Print structured JSON suitable for automation. |
 
-Run `intellifill --help` for command help or `intellifill --version` for the installed CLI version. On Windows, open a new terminal after installation so the updated user `PATH` is loaded.
+### Inspect, fill, and validate
+
+Inspect extracted labels and values before filling a template:
+
+```bash
+intellifill inspect invoice.pdf --json
+```
+
+Fill a template from as many as five source documents, export the result, and preserve the run in SQLite:
+
+```bash
+intellifill fill \
+  --template template.xlsx \
+  --source invoice.pdf \
+  --source purchase-order.docx \
+  --output ./exports \
+  --format xlsx,pdf \
+  --save-db ./records/intellifill.db
+```
+
+Fill options:
+
+| Option | Purpose |
+|---|---|
+| `--template <file>` | Required output template. |
+| `--source <file>` | Required input; repeat up to five times. |
+| `-o, --output <directory>` | Export directory. |
+| `-f, --format <list>` | Comma-separated `csv`, `xlsx`, `docx`, and `pdf`. |
+| `--threshold <0-1>` | Minimum automatic field-match score; default `0.42`. |
+| `--set T,R,C=value` | Override a 1-based table, row, and column; repeat as needed. |
+| `--trace-id <id>` | Use an explicit traceability ID. |
+| `--trace-mode <mode>` | Use `timestamp`, `prefix-timestamp`, `prefix-random`, or `manual`. |
+| `--trace-value <value>` | Prefix or manual value used by the selected trace mode. |
+| `--save-db <file>` | Save values and mappings to SQLite. |
+| `--no-export` | Fill and validate without creating export files. |
+| `--json` | Return a structured automation report. |
+
+Validate a document independently, or inspect saved audit history:
+
+```bash
+intellifill validate completed.xlsx
+intellifill history ./records/intellifill.db --json
+```
+
+Validation warnings return exit code `2`; command or input errors return `1`; success returns `0`.
+
+### Diagnostics and maintenance
+
+```bash
+intellifill trace-id --mode prefix-random --value ACME-
+intellifill health --tesseract /usr/bin/tesseract --database ./records/intellifill.db
+intellifill signatures contract.pdf stamp-scan.png
+intellifill update check --json
+```
+
+On Linux, check or configure the native package repository. Repository installation opens the normal PolicyKit administrator prompt.
+
+```bash
+intellifill repo status
+intellifill repo install
+```
+
+`signatures` identifies documents that need visual signature/stamp review; it does not claim cryptographic signature verification.
+
+### Ready-made automation scripts
+
+Reusable Bash and PowerShell examples live in [`scripts/cli`](scripts/cli):
+
+```bash
+bash scripts/cli/batch-scan.sh ./incoming ./exports xlsx,pdf
+bash scripts/cli/validate-folder.sh ./completed
+bash scripts/cli/fill-and-archive.sh template.xlsx invoice.pdf ./exports ./records/runs.db
+```
+
+```powershell
+.\scripts\cli\batch-scan.ps1 -InputDirectory .\incoming -OutputDirectory .\exports
+.\scripts\cli\fill-and-archive.ps1 -Template template.xlsx -Source invoice.pdf -OutputDirectory .\exports -Database .\records\runs.db
+```
+
+Run `intellifill --help` for the command summary or `intellifill --version` for the installed version. On Windows, open a new terminal after installation so the updated user `PATH` is loaded. The same complete guide is also published on the [project website](https://abishekprabakaran.com/intellifill-ocr/#cli-reference).
 
 ## Troubleshooting
 
@@ -335,19 +417,19 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 5.2.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 5.3.0 -RuntimeIdentifier win-x64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-5.2.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-5.3.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 5.2.0 linux-x64 Release
+bash scripts/package-linux.sh 5.3.0 linux-x64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -368,8 +450,8 @@ The package-repository workflow then publishes signed APT metadata, DNF metadata
 Create a release by pushing a version tag:
 
 ```bash
-git tag v5.2.0
-git push origin v5.2.0
+git tag v5.3.0
+git push origin v5.3.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.

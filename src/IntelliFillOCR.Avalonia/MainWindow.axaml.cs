@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "5.2.0";
+    private const string AppVersion = "5.3.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -3435,6 +3435,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 5.3.0
+        - Expanded the command line from scanning into a complete document workflow with batch processing, field inspection, automatic template filling, validation, SQLite history, and explicit cell overrides.
+        - Added traceability-ID generation, system readiness diagnostics, signature review candidates, Linux repository status/setup, release update checks, and structured JSON output for automation.
+        - Added reusable Bash and PowerShell scripts for folder scans, validation pipelines, and fill-and-archive workflows.
+        - Published the complete CLI reference and practical automation examples on the project website while retaining the same guide in the GitHub README.
 
         Version 5.2.0
         - Added native Arch Linux and Manjaro pacman packages to automated GitHub releases.
