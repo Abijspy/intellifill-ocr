@@ -8,6 +8,10 @@ on:
         required: true
         default: "6.0.0"
 
+concurrency:
+  group: publish-linux-repositories
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -181,6 +185,26 @@ jobs:
         run: |
           cd published-repository
 
+          echo "=== Largest repository files ==="
+          find . \
+            -path './.git' -prune -o \
+            -type f -printf '%s %p\n' | \
+            sort -nr | \
+            sed -n '1,30p' | \
+            numfmt --field=1 --to=iec-i --suffix=B
+
+          echo "=== Checking GitHub 100 MiB file limit ==="
+          oversized="$(
+            find . \
+              -path './.git' -prune -o \
+              -type f -size +104857600c -print
+          )"
+          if [ -n "$oversized" ]; then
+            echo "::error::Files larger than GitHub's 100 MiB Git limit:"
+            printf '%s\n' "$oversized"
+            exit 1
+          fi
+
           git add --all
 
           git -c user.name="github-actions[bot]" \
@@ -188,9 +212,19 @@ jobs:
               commit \
               -m "Publish Linux packages v${{ inputs.version }}" || true
 
+          echo "=== Git status and object database ==="
+          git status --short
+          git count-objects -vH
+
           git branch -M gh-pages
 
           git remote set-url origin \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          git push --force origin gh-pages
+          echo "=== Pushing gh-pages ==="
+          git \
+            -c pack.window=0 \
+            -c pack.compression=0 \
+            push \
+            --progress \
+            origin gh-pages
