@@ -493,14 +493,14 @@ public sealed partial class MainWindow : Window
 
         Dictionary<string, string> osRelease = ReadOsRelease();
         string distribution = osRelease.TryGetValue("PRETTY_NAME", out string? prettyName) ? prettyName : "Linux";
-        if (RuntimeInformation.OSArchitecture != Architecture.X64)
+        if (RuntimeInformation.OSArchitecture is not (Architecture.X64 or Architecture.Arm64))
         {
             return new LinuxRepositoryStatus(
                 LinuxRepositoryKind.Unsupported,
                 distribution,
                 "the system package manager",
                 false,
-                $"Detected {distribution} on {RuntimeInformation.OSArchitecture}. The IntelliFill OCR package repositories currently support x86_64/amd64 Linux only.");
+                $"Detected {distribution} on {RuntimeInformation.OSArchitecture}. IntelliFill OCR currently supports x86_64 and ARM64 Linux.");
         }
 
         string family = string.Join(' ',
@@ -3465,6 +3465,7 @@ exit /b %INSTALL_EXIT%
         Version 6.0.0
         - Added native macOS application bundles and DMG packages for Apple Silicon and Intel Macs.
         - Added automated macOS release builds, native application icons, architecture-specific dependencies, bundled CLI tools, and drag-to-Applications installation.
+        - Added Linux ARM64 packages and repository indexes for Debian/Ubuntu, Fedora/RHEL, Arch-based systems, and portable installations alongside existing x64 builds.
         - Added macOS-aware release checks and automatic Tesseract detection for Homebrew and MacPorts installations.
         - Added macOS downloads and installation guidance to the website and expanded the project documentation for all three desktop platforms.
 

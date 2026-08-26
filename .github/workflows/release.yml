@@ -77,8 +77,14 @@ jobs:
           if-no-files-found: error
 
   linux-packages:
-    name: Build Linux packages
+    name: Build Linux ${{ matrix.runtime }} packages
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - linux-x64
+          - linux-arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -117,10 +123,12 @@ jobs:
       - name: Build Linux packages
         shell: bash
         run: |
-          bash scripts/package-linux.sh "$RELEASE_VERSION" linux-x64 Release
-          bash scripts/prepare-solus-package.sh \
-            "$RELEASE_VERSION" \
-            "release/linux/IntelliFillOCR-$RELEASE_VERSION-linux-x64.tar.gz"
+          bash scripts/package-linux.sh "$RELEASE_VERSION" "${{ matrix.runtime }}" Release
+          if [ "${{ matrix.runtime }}" = "linux-x64" ]; then
+            bash scripts/prepare-solus-package.sh \
+              "$RELEASE_VERSION" \
+              "release/linux/IntelliFillOCR-$RELEASE_VERSION-linux-x64.tar.gz"
+          fi
 
       - name: Collect Linux assets
         shell: bash
@@ -130,13 +138,15 @@ jobs:
           cp release/linux/*.deb release-assets/
           cp release/linux/*.rpm release-assets/
           cp release/linux/*.pkg.tar.zst release-assets/
-          cp packaging/solus/package.yml \
-            "release-assets/intellifill-ocr-$RELEASE_VERSION-solus-package.yml"
+          if [ "${{ matrix.runtime }}" = "linux-x64" ]; then
+            cp packaging/solus/package.yml \
+              "release-assets/intellifill-ocr-$RELEASE_VERSION-solus-package.yml"
+          fi
 
       - name: Upload Linux assets
         uses: actions/upload-artifact@v6
         with:
-          name: linux-packages
+          name: linux-${{ matrix.runtime }}-packages
           path: release-assets/*
           if-no-files-found: error
 

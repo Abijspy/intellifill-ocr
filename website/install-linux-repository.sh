@@ -25,10 +25,11 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 architecture="$(uname -m)"
-if [[ "$architecture" != "x86_64" && "$architecture" != "amd64" ]]; then
-  echo "Unsupported architecture: $architecture. IntelliFill OCR repositories currently publish x86_64/amd64 packages only." >&2
-  exit 2
-fi
+case "$architecture" in
+  x86_64|amd64) deb_arch="amd64" ;;
+  aarch64|arm64) deb_arch="arm64" ;;
+  *) echo "Unsupported architecture: $architecture. IntelliFill OCR supports x86_64 and ARM64 Linux." >&2; exit 2 ;;
+esac
 
 if ! command -v curl >/dev/null 2>&1; then
   echo "curl is required to install the repository." >&2
@@ -77,7 +78,7 @@ if [[ "$family" == *debian* || "$family" == *ubuntu* ]] || command -v apt-get >/
   install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
   curl -fsSL "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" -o "$APT_KEYRING"
   chmod 0644 "$APT_KEYRING"
-  printf '%s\n' "deb [arch=amd64 signed-by=$APT_KEYRING] $REPOSITORY_HOST/apt stable main" > "$APT_SOURCE"
+  printf '%s\n' "deb [arch=$deb_arch signed-by=$APT_KEYRING] $REPOSITORY_HOST/apt stable main" > "$APT_SOURCE"
   chmod 0644 "$APT_SOURCE"
   apt-get update
   echo "Repository installed. Use: sudo apt install intellifill-ocr"

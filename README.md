@@ -40,13 +40,13 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 | Windows 10/11 | x64 | NSIS setup `.exe` | In-app release check |
 | macOS 11+ | Apple Silicon | Native `.app` in ARM64 `.dmg` | In-app release check |
 | macOS 11+ | Intel x64 | Native `.app` in x64 `.dmg` | In-app release check |
-| Debian/Ubuntu | amd64 | APT repository or `.deb` | `apt upgrade` |
-| Fedora/RHEL | x86_64 | DNF repository or `.rpm` | `dnf upgrade` |
-| Arch/Manjaro | x86_64 | pacman repository or `.pkg.tar.zst` | `pacman -Syu` |
+| Debian/Ubuntu | amd64 or ARM64 | APT repository or `.deb` | `apt upgrade` |
+| Fedora/RHEL | x86_64 or ARM64 | DNF repository or `.rpm` | `dnf upgrade` |
+| Arch/Manjaro | x86_64 or ARM64 | pacman repository or `.pkg.tar.zst` | `pacman -Syu` |
 | Solus | x86_64 | Native `.eopkg` recipe | `eopkg upgrade` after repository acceptance |
-| Other x64 Linux | x64 | Portable `.tar.gz` | Replace with a newer release |
+| Other Linux | x64 or ARM64 | Portable `.tar.gz` | Replace with a newer release |
 
-The current packaged releases do not support ARM, ARM64, x86/i386, or 32-bit Linux.
+Linux releases support x86_64/amd64 and ARM64/aarch64. ARMv7, x86/i386, and other 32-bit Linux architectures are not supported.
 
 ## Windows Installation
 
@@ -130,7 +130,7 @@ less /tmp/intellifill-repository.sh
 sudo bash /tmp/intellifill-repository.sh
 ```
 
-The script detects Debian/Ubuntu APT, Fedora/RHEL DNF, or Arch/Manjaro pacman, rejects unsupported architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
+The script detects Debian/Ubuntu APT, Fedora/RHEL DNF, or Arch/Manjaro pacman, rejects unsupported and 32-bit architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
 
 ```bash
 sudo apt install intellifill-ocr
@@ -164,18 +164,21 @@ Debian/Ubuntu:
 
 ```bash
 sudo apt install ./intellifill-ocr_<version>_amd64.deb
+# ARM64: sudo apt install ./intellifill-ocr_<version>_arm64.deb
 ```
 
 Fedora/RHEL:
 
 ```bash
 sudo dnf install ./intellifill-ocr-<version>-1.x86_64.rpm
+# ARM64: sudo dnf install ./intellifill-ocr-<version>-1.aarch64.rpm
 ```
 
 Arch/Manjaro:
 
 ```bash
 sudo pacman -U ./intellifill-ocr-<version>-1-x86_64.pkg.tar.zst
+# ARM64: sudo pacman -U ./intellifill-ocr-<version>-1-aarch64.pkg.tar.zst
 ```
 
 Solus uses its native `solbuild`/`ypkg` toolchain. Generate the version-pinned recipe from the release tarball and build the `.eopkg` as documented in [`packaging/solus/README.md`](packaging/solus/README.md). Publication in the official Solus repository requires review by the Solus packaging team.
@@ -184,7 +187,7 @@ The packaged installer adds the official repository automatically. If the reposi
 
 ### Portable Linux archive
 
-The release also includes `IntelliFillOCR-<version>-linux-x64.tar.gz`. Extract it to a user-writable directory and run `IntelliFillOCR`. Portable installations do not register a desktop launcher or package repository automatically.
+The release also includes `IntelliFillOCR-<version>-linux-<x64|arm64>.tar.gz`. Extract it to a user-writable directory and run `IntelliFillOCR`. Portable installations do not register a desktop launcher or package repository automatically.
 
 ### Linux desktop launcher and icon
 
@@ -452,6 +455,7 @@ Build Linux packages on Linux:
 
 ```bash
 bash scripts/package-linux.sh 6.0.0 linux-x64 Release
+# or: bash scripts/package-linux.sh 6.0.0 linux-arm64 Release
 ```
 
 Linux outputs are written under `release/linux/`.

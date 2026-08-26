@@ -14,6 +14,23 @@ PUBLISH="$ROOT/release/avalonia-$RID/publish"
 CLI_PUBLISH="$PUBLISH/cli"
 APPSTREAM_ID="com.abishekprabakaran.IntelliFillOCR"
 
+case "$RID" in
+  linux-x64)
+    DEB_ARCH="amd64"
+    RPM_ARCH="x86_64"
+    ARCH_ARCH="x86_64"
+    ;;
+  linux-arm64)
+    DEB_ARCH="arm64"
+    RPM_ARCH="aarch64"
+    ARCH_ARCH="aarch64"
+    ;;
+  *)
+    echo "Unsupported Linux runtime: $RID. Use linux-x64 or linux-arm64." >&2
+    exit 2
+    ;;
+esac
+
 mkdir -p "$OUT" "$PUBLISH"
 
 dotnet publish "$PROJECT" \
@@ -150,7 +167,7 @@ Package: intellifill-ocr
 Version: $VERSION
 Section: utils
 Priority: optional
-Architecture: amd64
+Architecture: $DEB_ARCH
 Maintainer: IntelliFill OCR
 Depends: libx11-6, libice6, libsm6, libfontconfig1
 Homepage: https://abishekprabakaran.com/intellifill-ocr/
@@ -163,7 +180,7 @@ Description: Offline OCR document automation and traceable exports
  intellifill command-line workflow for unattended automation.
 CONTROL
 
-DEB="$OUT/intellifill-ocr_${VERSION}_amd64.deb"
+DEB="$OUT/intellifill-ocr_${VERSION}_${DEB_ARCH}.deb"
 dpkg-deb --build "$PKG_ROOT" "$DEB"
 
 if ! command -v bsdtar >/dev/null 2>&1 || ! command -v zstd >/dev/null 2>&1; then
@@ -187,7 +204,7 @@ url = https://abishekprabakaran.com/intellifill-ocr/
 builddate = $(date +%s)
 packager = IntelliFill OCR
 size = $(du -sb "$ARCH_ROOT/usr" | cut -f1)
-arch = x86_64
+arch = $ARCH_ARCH
 license = GPL-3.0-only
 depend = libx11
 depend = libice
@@ -210,7 +227,7 @@ LANG=C bsdtar -czf "$ARCH_ROOT/.MTREE" \
   --format=mtree \
   --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' \
   -C "$ARCH_ROOT" .PKGINFO .INSTALL usr
-ARCH_PACKAGE="$OUT/intellifill-ocr-$VERSION-1-x86_64.pkg.tar.zst"
+ARCH_PACKAGE="$OUT/intellifill-ocr-$VERSION-1-$ARCH_ARCH.pkg.tar.zst"
 bsdtar --uid 0 --gid 0 -C "$ARCH_ROOT" -cf - . | zstd -q -19 -T0 -o "$ARCH_PACKAGE"
 
 if ! command -v alien >/dev/null 2>&1; then

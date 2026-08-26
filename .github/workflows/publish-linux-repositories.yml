@@ -71,80 +71,65 @@ jobs:
           mkdir -p \
             published-repository/apt/pool/main/i/intellifill-ocr \
             published-repository/apt/dists/stable/main/binary-amd64 \
+            published-repository/apt/dists/stable/main/binary-arm64 \
             published-repository/rpm/x86_64 \
+            published-repository/rpm/aarch64 \
             published-repository/arch/x86_64 \
+            published-repository/arch/aarch64 \
             published-repository/keys
 
           # Repository metadata is rebuilt from the retained package files.
-          rm -rf published-repository/rpm/x86_64/repodata
+          rm -rf published-repository/rpm/x86_64/repodata published-repository/rpm/aarch64/repodata
 
           cp release-assets/*.deb \
             published-repository/apt/pool/main/i/intellifill-ocr/
 
-          cp release-assets/*.rpm \
-            published-repository/rpm/x86_64/
+          for package in release-assets/*.rpm; do
+            package_architecture="$(rpm -qp --qf '%{ARCH}' "$package")"
+            if [[ "$package_architecture" == aarch64 || "$package_architecture" == arm64 ]]; then destination=aarch64; else destination=x86_64; fi
+            cp "$package" "published-repository/rpm/$destination/"
+          done
+          for package in release-assets/*.pkg.tar.zst; do
+            if [[ "$package" == *-aarch64.pkg.tar.zst ]]; then destination=aarch64; else destination=x86_64; fi
+            cp "$package" "published-repository/arch/$destination/"
+          done
 
-          cp release-assets/*.pkg.tar.zst \
-            published-repository/arch/x86_64/
-
-          mapfile -t deb_packages < <(
-            find published-repository/apt/pool/main/i/intellifill-ocr \
-              -maxdepth 1 -type f -name '*.deb' | sort -V
-          )
-          if [ "${#deb_packages[@]}" -gt 3 ]; then
-            for package in "${deb_packages[@]:0:${#deb_packages[@]}-3}"; do
-              rm -f -- "$package"
-            done
-          fi
-
-          mapfile -t rpm_packages < <(
-            find published-repository/rpm/x86_64 \
-              -maxdepth 1 -type f -name '*.rpm' | sort -V
-          )
-          if [ "${#rpm_packages[@]}" -gt 3 ]; then
-            for package in "${rpm_packages[@]:0:${#rpm_packages[@]}-3}"; do
-              rm -f -- "$package"
-            done
-          fi
-
-          mapfile -t arch_packages < <(
-            find published-repository/arch/x86_64 \
-              -maxdepth 1 -type f -name '*.pkg.tar.zst' | sort -V
-          )
-          if [ "${#arch_packages[@]}" -gt 3 ]; then
-            for package in "${arch_packages[@]:0:${#arch_packages[@]}-3}"; do
-              rm -f -- "$package" "$package.sig"
-            done
-          fi
+          keep_three() {
+            local directory="$1" pattern="$2"
+            mapfile -t packages < <(find "$directory" -maxdepth 1 -type f -name "$pattern" | sort -V)
+            if [ "${#packages[@]}" -gt 3 ]; then
+              for package in "${packages[@]:0:${#packages[@]}-3}"; do rm -f -- "$package" "$package.sig"; done
+            fi
+          }
+          keep_three published-repository/apt/pool/main/i/intellifill-ocr '*_amd64.deb'
+          keep_three published-repository/apt/pool/main/i/intellifill-ocr '*_arm64.deb'
+          for architecture in x86_64 aarch64; do
+            keep_three "published-repository/rpm/$architecture" '*.rpm'
+            keep_three "published-repository/arch/$architecture" '*.pkg.tar.zst'
+          done
 
           cp package-repository/keys/intellifill-ocr-archive-keyring.gpg \
             published-repository/keys/
 
-          deb_count=$(find published-repository/apt/pool/main/i/intellifill-ocr -maxdepth 1 -type f -name '*.deb' | wc -l)
-          rpm_count=$(find published-repository/rpm/x86_64 -maxdepth 1 -type f -name '*.rpm' | wc -l)
-          arch_count=$(find published-repository/arch/x86_64 -maxdepth 1 -type f -name '*.pkg.tar.zst' | wc -l)
-          test "$deb_count" -ge 1 && test "$deb_count" -le 3
-          test "$rpm_count" -ge 1 && test "$rpm_count" -le 3
-          test "$arch_count" -ge 1 && test "$arch_count" -le 3
+          for architecture in amd64 arm64; do
+            count=$(find published-repository/apt/pool/main/i/intellifill-ocr -maxdepth 1 -type f -name "*_${architecture}.deb" | wc -l)
+            test "$count" -ge 1 && test "$count" -le 3
+          done
 
           (
             cd published-repository/apt
 
-            apt-ftparchive packages pool \
-              > dists/stable/main/binary-amd64/Packages
-
-            gzip \
-              --no-name \
-              --force \
-              --keep \
-              dists/stable/main/binary-amd64/Packages
+            for architecture in amd64 arm64; do
+              apt-ftparchive -a "$architecture" packages pool > "dists/stable/main/binary-$architecture/Packages"
+              gzip --no-name --force --keep "dists/stable/main/binary-$architecture/Packages"
+            done
 
             apt-ftparchive \
               -o APT::FTPArchive::Release::Origin="IntelliFill OCR" \
               -o APT::FTPArchive::Release::Label="IntelliFill OCR" \
               -o APT::FTPArchive::Release::Suite=stable \
               -o APT::FTPArchive::Release::Codename=stable \
-              -o APT::FTPArchive::Release::Architectures=amd64 \
+              -o APT::FTPArchive::Release::Architectures="amd64 arm64" \
               -o APT::FTPArchive::Release::Components=main \
               release \
               dists/stable \
@@ -166,25 +151,19 @@ jobs:
               dists/stable/Release
           )
 
-          createrepo_c \
-            published-repository/rpm/x86_64
-
-          gpg \
-            --batch \
-            --yes \
-            --armor \
-            --detach-sign \
-            --output published-repository/rpm/x86_64/repodata/repomd.xml.asc \
-            published-repository/rpm/x86_64/repodata/repomd.xml
-
-          for package in published-repository/arch/x86_64/*.pkg.tar.zst; do
-            gpg --batch --yes --detach-sign --output "$package.sig" "$package"
+          for architecture in x86_64 aarch64; do
+            createrepo_c "published-repository/rpm/$architecture"
+            gpg --batch --yes --armor --detach-sign \
+              --output "published-repository/rpm/$architecture/repodata/repomd.xml.asc" \
+              "published-repository/rpm/$architecture/repodata/repomd.xml"
+            for package in published-repository/arch/$architecture/*.pkg.tar.zst; do
+              gpg --batch --yes --detach-sign --output "$package.sig" "$package"
+            done
+            docker run --rm \
+              -v "$PWD/published-repository/arch/$architecture:/repo" \
+              archlinux:base-devel \
+              bash -lc 'cd /repo && repo-add intellifill-ocr.db.tar.gz ./*.pkg.tar.zst'
           done
-
-          docker run --rm \
-            -v "$PWD/published-repository/arch/x86_64:/repo" \
-            archlinux:base-devel \
-            bash -lc 'cd /repo && repo-add intellifill-ocr.db.tar.gz ./*.pkg.tar.zst'
 
           printf '%s\n' \
             '[intellifill-ocr]' \
