@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "6.0.0",
+    [string]$Version = "6.1.0",
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$OutputDir = "release",
@@ -80,6 +80,7 @@ if (-not $Makensis -or -not (Test-Path $Makensis)) {
     "/DAPP_FILE_VERSION=$AppFileVersion" `
     "/DPUBLISH_DIR=$PublishDir" `
     "/DOUTPUT_EXE=$Installer" `
+    "/DAPP_RUNTIME=$RuntimeIdentifier" `
     $NsiScript
 
 if ($LASTEXITCODE -ne 0) {

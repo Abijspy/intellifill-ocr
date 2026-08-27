@@ -22,6 +22,10 @@ ${UnStrRep}
   !define OUTPUT_EXE "out\IntelliFillOCR-${APP_VERSION}-setup-win-x64.exe"
 !endif
 
+!ifndef APP_RUNTIME
+  !define APP_RUNTIME "win-x64"
+!endif
+
 !define APP_NAME "IntelliFill OCR"
 !define APP_PUBLISHER "IntelliFill OCR"
 !define APP_EXE "IntelliFillOCR.exe"
@@ -44,14 +48,18 @@ VIAddVersionKey "CompanyName" "${APP_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${APP_NAME} Setup"
 VIAddVersionKey "FileVersion" "${APP_VERSION}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
-VIAddVersionKey "OriginalFilename" "IntelliFillOCR-${APP_VERSION}-setup-win-x64.exe"
+VIAddVersionKey "OriginalFilename" "IntelliFillOCR-${APP_VERSION}-setup-${APP_RUNTIME}.exe"
 VIAddVersionKey "LegalCopyright" "Copyright 2026 IntelliFill OCR"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON "..\assets\app.ico"
 !define MUI_UNICON "..\assets\app.ico"
 !define MUI_WELCOMEPAGE_TITLE "Install ${APP_NAME}"
-!define MUI_WELCOMEPAGE_TEXT "This wizard installs ${APP_NAME} ${APP_VERSION}.$\r$\n$\r$\nTesseract OCR is required for OCR extraction. You can install it separately, configure its path in Settings, or select the optional Tesseract component below."
+!if "${APP_RUNTIME}" == "win-x64"
+  !define MUI_WELCOMEPAGE_TEXT "This wizard installs ${APP_NAME} ${APP_VERSION} for Windows x64.$\r$\n$\r$\nTesseract OCR is required for OCR extraction. You can install it separately, configure its path in Settings, or select the optional Tesseract component below."
+!else
+  !define MUI_WELCOMEPAGE_TEXT "This wizard installs ${APP_NAME} ${APP_VERSION} for Windows ARM64.$\r$\n$\r$\nInstall a Windows ARM64-compatible Tesseract build separately, then select its executable in Settings."
+!endif
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Launch ${APP_NAME}"
 
@@ -112,7 +120,8 @@ Section "${APP_NAME} application" SecApp
   DetailPrint "Setup complete. Update-package cleanup is handled after setup exits."
 SectionEnd
 
-Section /o "Install Tesseract OCR 5.5.0" SecTesseract
+!if "${APP_RUNTIME}" == "win-x64"
+Section /o "Install Tesseract OCR 5.5.0 (x64)" SecTesseract
   StrCpy $0 "$TEMP\tesseract-ocr-w64-setup-5.5.0.exe"
   Delete "$0"
 
@@ -129,6 +138,7 @@ Section /o "Install Tesseract OCR 5.5.0" SecTesseract
     MessageBox MB_ICONEXCLAMATION "Tesseract OCR could not be downloaded. The app is still installed. Configure Tesseract manually from Settings after installation."
   ${EndIf}
 SectionEnd
+!endif
 
 Section "Uninstall"
   DetailPrint "Stopping IntelliFill OCR..."

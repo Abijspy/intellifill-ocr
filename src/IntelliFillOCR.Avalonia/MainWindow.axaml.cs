@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.0.0";
+    private const string AppVersion = "6.1.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -1183,8 +1183,9 @@ public sealed partial class MainWindow : Window
     {
         if (OperatingSystem.IsWindows())
         {
+            string architecture = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "win-arm64" : "win-x64";
             return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-                   name.Contains("setup-win-x64", StringComparison.OrdinalIgnoreCase);
+                   name.Contains($"setup-{architecture}", StringComparison.OrdinalIgnoreCase);
         }
 
         if (OperatingSystem.IsLinux())
@@ -3461,6 +3462,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.1.0
+        - Added native Windows ARM64 desktop and CLI packages with architecture-aware installers and update selection.
+        - Added generated NixOS packages for x86_64-linux and aarch64-linux with automatic ELF patching, desktop integration, icons, and CLI wrappers.
+        - Extended automated releases, website downloads, platform documentation, and release metadata for Windows ARM and NixOS.
+        - Standardized project, website, AppStream, Nix, Solus, Arch, NuGet, and macOS bundle licensing on the MIT License.
 
         Version 6.0.0
         - Added native macOS application bundles and DMG packages for Apple Silicon and Intel Macs.

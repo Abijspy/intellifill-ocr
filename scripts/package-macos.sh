@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-6.0.0}"
+VERSION="${1:-6.1.0}"
 RID="${2:-osx-arm64}"
 CONFIGURATION="${3:-Release}"
 
@@ -59,7 +59,7 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>$VERSION</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
-  <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Abishek Prabakaran. GPL-3.0-only.</string>
+  <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Abishek Prabakaran. MIT License.</string>
 </dict></plist>
 PLIST
 plutil -lint "$CONTENTS/Info.plist"

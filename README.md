@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://abishekprabakaran.com/intellifill-ocr/">Website</a> ·
   <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Latest release</a> ·
-  <a href="LICENSE">GPL-3.0 License</a>
+  <a href="LICENSE">MIT License</a>
 </p>
 
 [![IntelliFill OCR Builder](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml/badge.svg)](https://github.com/Abijspy/intellifill-ocr/actions/workflows/release.yml)
@@ -37,7 +37,7 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 
 | Platform | Architecture | Recommended package | Update method |
 |---|---:|---|---|
-| Windows 10/11 | x64 | NSIS setup `.exe` | In-app release check |
+| Windows 10/11 | x64 or ARM64 | Native NSIS setup `.exe` | In-app release check |
 | macOS 11+ | Apple Silicon | Native `.app` in ARM64 `.dmg` | In-app release check |
 | macOS 11+ | Intel x64 | Native `.app` in x64 `.dmg` | In-app release check |
 | Debian/Ubuntu | amd64 or ARM64 | APT repository or `.deb` | `apt upgrade` |
@@ -45,6 +45,7 @@ IntelliFill OCR is a local-first desktop application for extracting information 
 | Arch/Manjaro | x86_64 or ARM64 | pacman repository or `.pkg.tar.zst` | `pacman -Syu` |
 | Solus | x86_64 | Native `.eopkg` recipe | `eopkg upgrade` after repository acceptance |
 | Other Linux | x64 or ARM64 | Portable `.tar.gz` | Replace with a newer release |
+| NixOS | x86_64 or aarch64 | Generated `.nix` derivation | Rebuild from a newer release expression |
 
 Linux releases support x86_64/amd64 and ARM64/aarch64. ARMv7, x86/i386, and other 32-bit Linux architectures are not supported.
 
@@ -53,7 +54,7 @@ Linux releases support x86_64/amd64 and ARM64/aarch64. ARMv7, x86/i386, and othe
 ### Install with the setup program
 
 1. Open the [latest GitHub release](https://github.com/Abijspy/intellifill-ocr/releases/latest).
-2. Download `IntelliFillOCR-<version>-setup-win-x64.exe`.
+2. Download `IntelliFillOCR-<version>-setup-win-x64.exe` for Intel/AMD Windows or `IntelliFillOCR-<version>-setup-win-arm64.exe` for Windows on ARM.
 3. Run the installer. If Windows SmartScreen appears, confirm that the file came from this official repository before continuing.
 4. Keep the optional Tesseract OCR component selected if Tesseract is not already installed.
 5. Start IntelliFill OCR from the Start Menu or desktop shortcut.
@@ -68,7 +69,7 @@ It also creates Start Menu and optional desktop shortcuts, plus an uninstall ent
 
 ### Configure Tesseract on Windows
 
-OCR region extraction requires Tesseract. The installer can install Tesseract 5.5.0, or you can install it separately and configure its executable in **Settings → Local Paths**.
+OCR region extraction requires Tesseract. The x64 installer can install Tesseract 5.5.0, or you can install it separately and configure its executable in **Settings → Local Paths**. Windows ARM64 users should install an ARM64-compatible Tesseract build separately.
 
 The common path is:
 
@@ -189,6 +190,18 @@ The packaged installer adds the official repository automatically. If the reposi
 
 The release also includes `IntelliFillOCR-<version>-linux-<x64|arm64>.tar.gz`. Extract it to a user-writable directory and run `IntelliFillOCR`. Portable installations do not register a desktop launcher or package repository automatically.
 
+### NixOS
+
+Download `intellifill-ocr-<version>.nix` from the matching GitHub release. The fixed-output derivation selects x86_64 or ARM64 automatically, patches the self-contained binaries for the Nix store, installs required runtime libraries and Tesseract, and provides the desktop launcher plus both commands.
+
+```bash
+nix-build intellifill-ocr-6.1.0.nix -E \
+  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.1.0.nix {}'
+./result/bin/intellifill-ocr
+```
+
+See [`packaging/nixos/README.md`](packaging/nixos/README.md) for profile installation.
+
 ### Linux desktop launcher and icon
 
 DEB, RPM, and pacman packages install:
@@ -265,7 +278,7 @@ Application settings and logs use the operating system's local application-data 
 
 ## Command-Line Interface
 
-The Windows, macOS, and Linux packages include the `intellifill` command. Version 6 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.1 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
 
 ### Scan and batch processing
 
@@ -442,20 +455,22 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 6.0.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 6.1.0 -RuntimeIdentifier win-x64
+# ARM64:
+.\scripts\package-release.ps1 -Version 6.1.0 -RuntimeIdentifier win-arm64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-6.0.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-6.1.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 6.0.0 linux-x64 Release
-# or: bash scripts/package-linux.sh 6.0.0 linux-arm64 Release
+bash scripts/package-linux.sh 6.1.0 linux-x64 Release
+# or: bash scripts/package-linux.sh 6.1.0 linux-arm64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -463,8 +478,8 @@ Linux outputs are written under `release/linux/`.
 Build a macOS disk image on a Mac:
 
 ```bash
-bash scripts/package-macos.sh 6.0.0 osx-arm64 Release
-# or: bash scripts/package-macos.sh 6.0.0 osx-x64 Release
+bash scripts/package-macos.sh 6.1.0 osx-arm64 Release
+# or: bash scripts/package-macos.sh 6.1.0 osx-x64 Release
 ```
 
 macOS outputs are written under `release/macos/`.
@@ -474,20 +489,22 @@ macOS outputs are written under `release/macos/`.
 The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produces:
 
 - Windows NSIS setup EXE
+- Windows ARM64 NSIS setup EXE
 - Apple Silicon and Intel macOS DMG images
 - Debian/Ubuntu DEB
 - Fedora/RHEL RPM
 - Arch/Manjaro pacman package
 - Solus native eopkg recipe
 - Portable Linux tarball
+- Generated NixOS derivation for x86_64 and aarch64
 
 The package-repository workflow then publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository to the `gh-pages` deployment, retaining the three newest Linux package versions.
 
 Create a release by pushing a version tag:
 
 ```bash
-git tag v6.0.0
-git push origin v6.0.0
+git tag v6.1.0
+git push origin v6.1.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.
@@ -509,4 +526,4 @@ website/                          Static official project website
 
 ## License
 
-IntelliFill OCR is free software licensed under the [GNU General Public License v3.0](LICENSE).
+IntelliFill OCR is free software licensed under the [MIT License](LICENSE).

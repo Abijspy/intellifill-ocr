@@ -2,10 +2,13 @@
   const api = "https://api.github.com/repos/Abijspy/intellifill-ocr/releases/latest";
   const fallback = "https://github.com/Abijspy/intellifill-ocr/releases/latest";
   const buttons = document.querySelectorAll("[data-windows-download]");
+  const windowsX64Buttons = document.querySelectorAll("[data-windows-x64-download]");
+  const windowsArmButtons = document.querySelectorAll("[data-windows-arm-download]");
   const linuxButtons = document.querySelectorAll("[data-linux-download]");
   const macButtons = document.querySelectorAll("[data-macos-download]");
   const macArmButtons = document.querySelectorAll("[data-macos-arm-download]");
   const macX64Buttons = document.querySelectorAll("[data-macos-x64-download]");
+  const nixosButtons = document.querySelectorAll("[data-nixos-download]");
   const status = document.querySelector("[data-release-status]");
 
   const detectedPlatform = String(
@@ -13,6 +16,7 @@
   ).toLowerCase();
   const prefersLinux = detectedPlatform.includes("linux") && !detectedPlatform.includes("android");
   const prefersMac = detectedPlatform.includes("mac");
+  const prefersWindowsArm = detectedPlatform.includes("arm64") || detectedPlatform.includes("aarch64");
 
   buttons.forEach((button) => {
     button.classList.toggle("primary", !prefersLinux && !prefersMac);
@@ -36,13 +40,19 @@
       return response.json();
     })
     .then((release) => {
-      const installer = release.assets?.find((asset) => /setup-win-x64\.exe$/i.test(asset.name));
+      const windowsX64 = release.assets?.find((asset) => /setup-win-x64\.exe$/i.test(asset.name));
+      const windowsArm = release.assets?.find((asset) => /setup-win-arm64\.exe$/i.test(asset.name));
       const macArm = release.assets?.find((asset) => /osx-arm64\.dmg$/i.test(asset.name));
       const macX64 = release.assets?.find((asset) => /osx-x64\.dmg$/i.test(asset.name));
-      if (!installer) throw new Error("No Windows installer");
-      buttons.forEach((button) => { button.href = installer.browser_download_url; });
+      const nixos = release.assets?.find((asset) => /intellifill-ocr-[\d.]+\.nix$/i.test(asset.name));
+      if (!windowsX64) throw new Error("No Windows installer");
+      const recommendedWindows = prefersWindowsArm && windowsArm ? windowsArm : windowsX64;
+      buttons.forEach((button) => { button.href = recommendedWindows.browser_download_url; });
+      windowsX64Buttons.forEach((button) => { button.href = windowsX64.browser_download_url; });
+      if (windowsArm) windowsArmButtons.forEach((button) => { button.href = windowsArm.browser_download_url; });
       if (macArm) macArmButtons.forEach((button) => { button.href = macArm.browser_download_url; });
       if (macX64) macX64Buttons.forEach((button) => { button.href = macX64.browser_download_url; });
+      if (nixos) nixosButtons.forEach((button) => { button.href = nixos.browser_download_url; });
       if (status) status.textContent = release.tag_name;
     })
     .catch(() => {

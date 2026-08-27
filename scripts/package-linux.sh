@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-6.0.0}"
+VERSION="${1:-6.1.0}"
 RID="${2:-linux-x64}"
 CONFIGURATION="${3:-Release}"
 
@@ -205,7 +205,7 @@ builddate = $(date +%s)
 packager = IntelliFill OCR
 size = $(du -sb "$ARCH_ROOT/usr" | cut -f1)
 arch = $ARCH_ARCH
-license = GPL-3.0-only
+license = MIT
 depend = libx11
 depend = libice
 depend = libsm

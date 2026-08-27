@@ -5,7 +5,7 @@ release    : 1
 source     :
     - https://github.com/Abijspy/intellifill-ocr/releases/download/v@VERSION@/IntelliFillOCR-@VERSION@-linux-x64.tar.gz : '@SHA256@'
 homepage   : https://abishekprabakaran.com/intellifill-ocr/
-license    : GPL-3.0-only
+license    : MIT
 component  : office
 summary    : Offline OCR extraction and table filling
 description: |

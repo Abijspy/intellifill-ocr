@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "6.0.0"
+        default: "6.1.0"
   push:
     tags:
       - "v*"
@@ -21,8 +21,14 @@ env:
 
 jobs:
   windows-nsis:
-    name: Build Windows installer
+    name: Build Windows ${{ matrix.runtime }} installer
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - win-x64
+          - win-arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -55,13 +61,13 @@ jobs:
 
       - name: Build NSIS setup EXE
         shell: pwsh
-        run: .\scripts\package-release.ps1 -Version $env:RELEASE_VERSION -RuntimeIdentifier win-x64
+        run: .\scripts\package-release.ps1 -Version $env:RELEASE_VERSION -RuntimeIdentifier "${{ matrix.runtime }}"
 
       - name: Collect Windows asset
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path release-assets -Force | Out-Null
-          $asset = "installer\out\IntelliFillOCR-$env:RELEASE_VERSION-setup-win-x64.exe"
+          $asset = "installer\out\IntelliFillOCR-$env:RELEASE_VERSION-setup-${{ matrix.runtime }}.exe"
           if (-not (Test-Path $asset)) {
             throw "Windows installer was not created: $asset"
           }
@@ -70,7 +76,7 @@ jobs:
       - name: Upload Windows asset
         uses: actions/upload-artifact@v6
         with:
-          name: windows-nsis
+          name: windows-${{ matrix.runtime }}-nsis
           path: release-assets/*
           if-no-files-found: error
 
@@ -220,6 +226,15 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+
+      - name: Generate NixOS package
+        shell: bash
+        run: |
+          bash scripts/prepare-nixos-package.sh \
+            "$RELEASE_VERSION" \
+            "release-assets/IntelliFillOCR-$RELEASE_VERSION-linux-x64.tar.gz" \
+            "release-assets/IntelliFillOCR-$RELEASE_VERSION-linux-arm64.tar.gz" \
+            "release-assets/intellifill-ocr-$RELEASE_VERSION.nix"
 
       - name: Write asset checksums
         shell: bash

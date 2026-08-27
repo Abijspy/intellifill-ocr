@@ -1,0 +1,60 @@
+{ lib, stdenv, fetchurl, autoPatchelfHook, makeWrapper, alsa-lib, fontconfig,
+  freetype, icu, libGL, libICE, libSM, libX11, libXcursor, libXext, libXfixes,
+  libXi, libXrandr, libXrender, libxkbcommon, openssl, tesseract, wayland, zlib }:
+
+let
+  version = "@VERSION@";
+  sources = {
+    x86_64-linux = {
+      url = "https://github.com/Abijspy/intellifill-ocr/releases/download/v${version}/IntelliFillOCR-${version}-linux-x64.tar.gz";
+      hash = "sha256-@X64_HASH@";
+    };
+    aarch64-linux = {
+      url = "https://github.com/Abijspy/intellifill-ocr/releases/download/v${version}/IntelliFillOCR-${version}-linux-arm64.tar.gz";
+      hash = "sha256-@ARM64_HASH@";
+    };
+  };
+  source = sources.${stdenv.hostPlatform.system} or
+    (throw "IntelliFill OCR supports x86_64-linux and aarch64-linux on NixOS");
+in stdenv.mkDerivation {
+  pname = "intellifill-ocr";
+  inherit version;
+  src = fetchurl source;
+  sourceRoot = ".";
+
+  nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
+  buildInputs = [
+    alsa-lib fontconfig freetype icu libGL libICE libSM libX11 libXcursor
+    libXext libXfixes libXi libXrandr libXrender libxkbcommon openssl wayland
+    zlib stdenv.cc.cc.lib
+  ];
+
+  dontBuild = true;
+  dontStrip = true;
+
+  installPhase = ''
+    runHook preInstall
+    mkdir -p "$out/lib/intellifill-ocr" "$out/bin" "$out/share/applications" \
+      "$out/share/icons/hicolor/512x512/apps"
+    cp -a . "$out/lib/intellifill-ocr/"
+    makeWrapper "$out/lib/intellifill-ocr/IntelliFillOCR" "$out/bin/intellifill-ocr" \
+      --prefix PATH : "${lib.makeBinPath [ tesseract ]}"
+    makeWrapper "$out/lib/intellifill-ocr/cli/intellifill" "$out/bin/intellifill" \
+      --prefix PATH : "${lib.makeBinPath [ tesseract ]}"
+    install -m 0644 packaging/intellifill-ocr.desktop \
+      "$out/share/applications/intellifill-ocr.desktop"
+    substituteInPlace "$out/share/applications/intellifill-ocr.desktop" \
+      --replace-fail 'Exec=/usr/bin/intellifill-ocr' "Exec=$out/bin/intellifill-ocr"
+    install -m 0644 packaging/intellifill-ocr.png \
+      "$out/share/icons/hicolor/512x512/apps/intellifill-ocr.png"
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "Offline OCR document automation and traceable exports";
+    homepage = "https://abishekprabakaran.com/intellifill-ocr/";
+    license = lib.licenses.mit;
+    mainProgram = "intellifill-ocr";
+    platforms = [ "x86_64-linux" "aarch64-linux" ];
+  };
+}
