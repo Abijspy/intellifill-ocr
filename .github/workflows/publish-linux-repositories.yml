@@ -50,15 +50,18 @@ jobs:
       - name: Build signed repositories
         env:
           GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: "0"
         run: |
-          if git ls-remote --exit-code --heads \
-              "https://github.com/${GITHUB_REPOSITORY}.git" \
-              gh-pages >/dev/null 2>&1; then
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
 
             git clone \
+              --progress \
               --depth 1 \
+              --single-branch \
               --branch gh-pages \
-              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              "$REPO_URL" \
               published-repository
 
           else
@@ -67,8 +70,7 @@ jobs:
             cd published-repository
             git init
             git checkout -b gh-pages
-            git remote add origin \
-              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git remote add origin "$REPO_URL"
             cd ..
           fi
 
@@ -182,6 +184,7 @@ jobs:
       - name: Publish GitHub Pages branch
         env:
           GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: "0"
         run: |
           cd published-repository
 
