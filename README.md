@@ -112,6 +112,34 @@ To uninstall, remove **IntelliFill OCR.app** from Applications. User-created exp
 
 The recommended Linux installation uses the official package repository. Once configured, IntelliFill OCR updates alongside the rest of the system through APT, DNF, or pacman. The repositories retain the three newest package versions; older artifacts remain available from [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases).
 
+### Flatpak bundle
+
+The release provides self-contained Flatpak bundles for x86_64 and ARM64. The
+bundle includes the desktop app, complete `intellifill` CLI, Tesseract 5.5.3,
+Leptonica, English OCR data, and orientation/script detection data. It does not
+use the host distribution's Tesseract installation.
+
+Download the bundle matching your architecture from the
+[latest release](https://github.com/Abijspy/intellifill-ocr/releases/latest),
+then install it locally:
+
+```bash
+flatpak install --user ./IntelliFillOCR-<version>-linux-x64.flatpak
+# ARM64: flatpak install --user ./IntelliFillOCR-<version>-linux-arm64.flatpak
+flatpak run com.abishekprabakaran.IntelliFillOCR
+```
+
+Run the bundled CLI with:
+
+```bash
+flatpak run --command=intellifill com.abishekprabakaran.IntelliFillOCR --help
+```
+
+Flatpak installations are updated by the Flatpak software manager. IntelliFill
+therefore disables native APT, DNF, pacman, and eopkg repository setup inside
+the sandbox. The bundle uses document portals and does not request access to
+the entire home directory or host operating-system files.
+
 Repository endpoints:
 
 - APT: `https://packages.abishekprabakaran.com/apt`
@@ -195,8 +223,8 @@ The release also includes `IntelliFillOCR-<version>-linux-<x64|arm64>.tar.gz`. E
 Download `intellifill-ocr-<version>.nix` from the matching GitHub release. The fixed-output derivation selects x86_64 or ARM64 automatically, patches the self-contained binaries for the Nix store, installs required runtime libraries and Tesseract, and provides the desktop launcher plus both commands.
 
 ```bash
-nix-build intellifill-ocr-6.1.0.nix -E \
-  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.1.0.nix {}'
+nix-build intellifill-ocr-6.2.0.nix -E \
+  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.2.0.nix {}'
 ./result/bin/intellifill-ocr
 ```
 
@@ -278,7 +306,7 @@ Application settings and logs use the operating system's local application-data 
 
 ## Command-Line Interface
 
-The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.1 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.2 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
 
 ### Scan and batch processing
 
@@ -455,31 +483,43 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 6.1.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 6.2.0 -RuntimeIdentifier win-x64
 # ARM64:
-.\scripts\package-release.ps1 -Version 6.1.0 -RuntimeIdentifier win-arm64
+.\scripts\package-release.ps1 -Version 6.2.0 -RuntimeIdentifier win-arm64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-6.1.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-6.2.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 6.1.0 linux-x64 Release
-# or: bash scripts/package-linux.sh 6.1.0 linux-arm64 Release
+bash scripts/package-linux.sh 6.2.0 linux-x64 Release
+# or: bash scripts/package-linux.sh 6.2.0 linux-arm64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
 
+Build a Flatpak bundle natively on the target architecture after installing the
+Freedesktop 25.08 SDK:
+
+```bash
+bash scripts/package-flatpak.sh 6.2.0 linux-x64 Release
+# On ARM64: bash scripts/package-flatpak.sh 6.2.0 linux-arm64 Release
+```
+
+Flatpak outputs are written under `release/flatpak/`. See
+[`packaging/flatpak/README.md`](packaging/flatpak/README.md) for prerequisites
+and test commands.
+
 Build a macOS disk image on a Mac:
 
 ```bash
-bash scripts/package-macos.sh 6.1.0 osx-arm64 Release
-# or: bash scripts/package-macos.sh 6.1.0 osx-x64 Release
+bash scripts/package-macos.sh 6.2.0 osx-arm64 Release
+# or: bash scripts/package-macos.sh 6.2.0 osx-x64 Release
 ```
 
 macOS outputs are written under `release/macos/`.
@@ -496,6 +536,7 @@ The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produc
 - Arch/Manjaro pacman package
 - Solus native eopkg recipe
 - Portable Linux tarball
+- Self-contained x86_64 and ARM64 Flatpak bundles with bundled Tesseract
 - Generated NixOS derivation for x86_64 and aarch64
 
 The package-repository workflow then publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository to the `gh-pages` deployment, retaining the three newest Linux package versions.
@@ -503,8 +544,8 @@ The package-repository workflow then publishes signed APT metadata, DNF metadata
 Create a release by pushing a version tag:
 
 ```bash
-git tag v6.1.0
-git push origin v6.1.0
+git tag v6.2.0
+git push origin v6.2.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.
@@ -518,6 +559,8 @@ src/IntelliFillOCR.Core/          Document, export, and SQLite services
 installer/IntelliFillOCR.nsi      Windows NSIS installer
 scripts/                          Build, version, and packaging scripts
 scripts/package-macos.sh          macOS app-bundle and DMG builder
+scripts/package-flatpak.sh        Self-contained Flatpak bundle builder
+packaging/flatpak/                Flatpak manifest and build documentation
 package-repository/               Repository signing material and configuration
 assets/                           Application icons and branding
 demo/                             Small CSV demonstration fixtures

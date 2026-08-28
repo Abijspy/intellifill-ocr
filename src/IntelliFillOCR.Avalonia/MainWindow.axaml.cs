@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.1.0";
+    private const string AppVersion = "6.2.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -38,6 +38,11 @@ public sealed partial class MainWindow : Window
     private const int PageAnimationDurationMs = 180;
     private const int DialogAnimationDurationMs = 150;
     private const double DialogBlurRadius = 4.0;
+    private const string FlatpakTesseractPath = "/app/bin/tesseract";
+
+    private static bool IsFlatpak() =>
+        OperatingSystem.IsLinux() &&
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FLATPAK_ID"));
 
     private readonly DocumentLoader _loader = new();
     private readonly ExportService _exportService = new();
@@ -414,6 +419,20 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (IsFlatpak())
+        {
+            LinuxUpdateDescriptionText.Text = "This installation is managed by Flatpak. Updates are delivered through your Flatpak software manager.";
+            LinuxRepositoryStatusText.Text = "APT, DNF, pacman, and eopkg repository controls are disabled inside the Flatpak sandbox.";
+            CheckLinuxRepositoryButton.Content = "Managed by Flatpak";
+            CheckLinuxRepositoryButton.IsEnabled = false;
+            TesseractPathBox.Text = FlatpakTesseractPath;
+            TesseractPathBox.IsReadOnly = true;
+            AutoDetectTesseractButton.IsEnabled = false;
+            BrowseTesseractButton.IsEnabled = false;
+            _lastUpdateCheckSummary = "Managed by Flatpak; use the configured Flatpak software manager for updates.";
+            return;
+        }
+
         LinuxRepositoryStatus repository = DetectLinuxRepository();
         LinuxRepositoryStatusText.Text = repository.Message;
         _lastUpdateCheckSummary = repository.IsConfigured
@@ -423,6 +442,12 @@ public sealed partial class MainWindow : Window
 
     private async void CheckLinuxRepository_Click(object? sender, RoutedEventArgs e)
     {
+        if (IsFlatpak())
+        {
+            await ShowMessageAsync("Flatpak Updates", "This installation is managed by Flatpak. Use your Flatpak software manager or run flatpak update.");
+            return;
+        }
+
         LinuxRepositoryStatus repository = DetectLinuxRepository();
         LinuxRepositoryStatusText.Text = repository.Message;
         _lastUpdateCheckSummary = repository.IsConfigured
@@ -1917,6 +1942,11 @@ exit /b %INSTALL_EXIT%
 
     private static string? DetectTesseractPath()
     {
+        if (IsFlatpak() && File.Exists(FlatpakTesseractPath))
+        {
+            return FlatpakTesseractPath;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             string[] candidates =
@@ -3462,6 +3492,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.2.0
+        - Added self-contained x86_64 and ARM64 Flatpak bundles with Tesseract 5.5.3, Leptonica, English OCR data, orientation detection, desktop integration, and the complete CLI.
+        - Added Flatpak-aware OCR detection and update controls so sandboxed installations use the bundled engine and defer upgrades to the Flatpak software manager.
+        - Added automated Flatpak builds and release assets for both supported Linux architectures.
+        - Redesigned the website around one release-aware download center that shows only published packages and highlights the best match for the visitor's platform.
 
         Version 6.1.0
         - Added native Windows ARM64 desktop and CLI packages with architecture-aware installers and update selection.

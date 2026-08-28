@@ -1,0 +1,73 @@
+app-id: com.abishekprabakaran.IntelliFillOCR
+runtime: org.freedesktop.Platform
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+command: intellifill-ocr
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+
+modules:
+  - name: leptonica
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+    cleanup:
+      - /include
+      - /share/doc
+      - /share/man
+      - /lib/*.a
+      - /lib/*.la
+      - /lib/pkgconfig
+    sources:
+      - type: archive
+        url: https://github.com/DanBloomberg/leptonica/releases/download/1.87.0/leptonica-1.87.0.tar.gz
+        sha256: c73363397f96eb1295602bf44d708a994ad42046c791bf03ea0505d829bdb6a7
+
+  - name: tesseract
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+      - --disable-openmp
+      - --disable-graphics
+    cleanup:
+      - /include
+      - /share/doc
+      - /share/man
+      - /lib/*.a
+      - /lib/*.la
+      - /lib/pkgconfig
+    sources:
+      - type: archive
+        url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.5.3.tar.gz
+        sha256: 9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884
+
+  - name: tessdata
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 eng.traineddata /app/share/tessdata/eng.traineddata
+      - install -Dm644 osd.traineddata /app/share/tessdata/osd.traineddata
+    sources:
+      - type: file
+        url: https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/eng.traineddata
+        sha256: 7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2
+      - type: file
+        url: https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/osd.traineddata
+        sha256: 9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff
+
+  - name: intellifill-ocr
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/intellifill
+      - cp -a publish/. /app/lib/intellifill/
+      - install -Dm755 intellifill-ocr /app/bin/intellifill-ocr
+      - install -Dm755 intellifill /app/bin/intellifill
+      - install -Dm644 com.abishekprabakaran.IntelliFillOCR.desktop /app/share/applications/com.abishekprabakaran.IntelliFillOCR.desktop
+      - install -Dm644 com.abishekprabakaran.IntelliFillOCR.metainfo.xml /app/share/metainfo/com.abishekprabakaran.IntelliFillOCR.metainfo.xml
+      - install -Dm644 com.abishekprabakaran.IntelliFillOCR.png /app/share/icons/hicolor/512x512/apps/com.abishekprabakaran.IntelliFillOCR.png
+    sources:
+      - type: dir
+        path: ../../release/flatpak/staging

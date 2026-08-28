@@ -182,7 +182,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v6.1.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v6.2.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -438,8 +438,8 @@
                                         <TextBlock Text="Tesseract OCR" Classes="kicker" />
                                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                             <TextBox x:Name="TesseractPathBox" PlaceholderText="Tesseract executable path" />
-                                            <Button Grid.Column="1" Click="AutoDetectTesseract_Click" Content="Auto Detect" />
-                                            <Button Grid.Column="2" Click="BrowseTesseract_Click" Content="Browse" />
+                                            <Button x:Name="AutoDetectTesseractButton" Grid.Column="1" Click="AutoDetectTesseract_Click" Content="Auto Detect" />
+                                            <Button x:Name="BrowseTesseractButton" Grid.Column="2" Click="BrowseTesseract_Click" Content="Browse" />
                                         </Grid>
                                         <TextBlock Text="SQLite Database" Classes="kicker" />
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -528,9 +528,9 @@
                                             <Button x:Name="CheckForUpdatesButton" Classes="rail" Click="CheckForUpdates_Click" Content="Check for Updates" />
                                         </StackPanel>
                                         <StackPanel x:Name="LinuxUpdatePanel" Spacing="8" IsVisible="False">
-                                            <TextBlock Text="Linux updates are maintained by your system through APT, DNF, pacman, or eopkg. IntelliFill OCR can verify supported package repositories." Classes="muted" />
+                                            <TextBlock x:Name="LinuxUpdateDescriptionText" Text="Linux updates are maintained by your system through APT, DNF, pacman, or eopkg. IntelliFill OCR can verify supported package repositories." Classes="muted" />
                                             <TextBlock x:Name="LinuxRepositoryStatusText" Text="Repository status has not been checked." Foreground="{DynamicResource BodyTextBrush}" TextWrapping="Wrap" />
-                                            <Button Classes="rail" Click="CheckLinuxRepository_Click" Content="Check Linux Package Repository" />
+                                            <Button x:Name="CheckLinuxRepositoryButton" Classes="rail" Click="CheckLinuxRepository_Click" Content="Check Linux Package Repository" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>

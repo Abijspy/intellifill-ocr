@@ -49,6 +49,11 @@ $Files = @(
         Replacement = "private const string AppVersion = `"$Version`";"
     },
     @{
+        Path = Join-Path $Root "src/IntelliFillOCR.Avalonia/MainWindow.axaml"
+        Pattern = '(<TextBlock x:Name="VersionBadgeText" Text=")v[^\"]+(\")'
+        Replacement = "`${1}v$Version`${2}"
+    },
+    @{
         Path = Join-Path $Root "src/IntelliFillOCR.Cli/Program.cs"
         Pattern = 'private const string Version = "[^"]+";'
         Replacement = "private const string Version = `"$Version`";"
