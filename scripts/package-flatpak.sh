@@ -81,7 +81,7 @@ sed -i "s#<launchable type=\"desktop-id\">intellifill-ocr.desktop</launchable>#<
 sed -i "s#<icon type=\"stock\">intellifill-ocr</icon>#<icon type=\"stock\">$APP_ID</icon>#" "$STAGING/$APP_ID.metainfo.xml"
 install -m 0644 "$ROOT/assets/logo_512.png" "$STAGING/$APP_ID.png"
 
-flatpak-builder --force-clean --repo="$REPOSITORY" "$BUILD" "$MANIFEST"
+flatpak-builder --force-clean --default-branch=stable --repo="$REPOSITORY" "$BUILD" "$MANIFEST"
 flatpak build-bundle "$REPOSITORY" "$OUT/IntelliFillOCR-$VERSION-$RID.flatpak" "$APP_ID" stable
 
 echo "Flatpak bundle created: $OUT/IntelliFillOCR-$VERSION-$RID.flatpak"
