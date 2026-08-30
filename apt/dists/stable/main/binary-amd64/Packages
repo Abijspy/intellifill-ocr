@@ -20,3 +20,25 @@ Description: Offline OCR document automation and traceable exports
  The package includes both the graphical desktop application and the complete
  intellifill command-line workflow for unattended automation.
 
+Package: intellifill-ocr
+Architecture: amd64
+Version: 6.3.2
+Priority: optional
+Section: utils
+Maintainer: IntelliFill OCR
+Depends: libx11-6, libice6, libsm6, libfontconfig1
+Filename: pool/main/i/intellifill-ocr/intellifill-ocr_6.3.2_amd64.deb
+Size: 69115794
+MD5sum: d6f385caab8b524dcbf1298c0e064756
+SHA1: b681ef1427405188ac5396750e622af6c69fa26e
+SHA256: dce94e6e15245ac9992d9a4c4ef87826bae8731decfc522b107b88a0a70cf807
+SHA512: 276e48f6f3ea04c3254f8632cadbb25b0ad2f810390863d711c93a986148ae0efea3bc74239dc1b7abfba4aeb04def74f6d482b2760d019288243c2b6df92edd
+Homepage: https://abishekprabakaran.com/intellifill-ocr/
+Description: Offline OCR document automation and traceable exports
+ IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
+ documents, and text files. It fills templates, validates business data, stores
+ SQLite audit history, and exports PDF, Word, Excel, and CSV files.
+ .
+ The package includes both the graphical desktop application and the complete
+ intellifill command-line workflow for unattended automation.
+
