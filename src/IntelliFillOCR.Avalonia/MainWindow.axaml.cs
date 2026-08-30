@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.2.0";
+    private const string AppVersion = "6.3.0";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -84,7 +84,6 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         ActualThemeVariantChanged += OnActualThemeVariantChanged;
-        ConfigureWindowTransparency();
         _appDataPath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "IntelliFillOCR");
@@ -94,6 +93,7 @@ public sealed partial class MainWindow : Window
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_logPath)!);
 
         _settings = LoadSettings();
+        ConfigureWindowTransparency();
         _settingsReady = true;
         _traceabilityCode = CreateTraceabilityCode();
         AutoDetectTesseractPath();
@@ -108,6 +108,7 @@ public sealed partial class MainWindow : Window
         {
             AttachMainButtonAnimations();
             _ = AnimateControlAsync(AppShell, fromOpacity: 0.96, toOpacity: 1, fromY: 8, toY: 0, PageAnimationDurationMs);
+            await RefreshBlurSupportStatusAsync();
 #if !INTELLIFILL_LINUX
             await NotifyIfUpdateAvailableAsync();
 #else
@@ -118,15 +119,67 @@ public sealed partial class MainWindow : Window
 
     private void ConfigureWindowTransparency()
     {
-        TransparencyLevelHint = new[]
+        TransparencyLevelHint = PreferredTransparencyLevels();
+        TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
+        BlurSupportText.Text = _settings.EnableCompositorBlur
+            ? "Blur requested. Waiting for the window system and compositor to report the applied effect."
+            : "Window background blur is disabled. A solid background is being used.";
+    }
+
+    private IReadOnlyList<WindowTransparencyLevel> PreferredTransparencyLevels()
+    {
+        if (!_settings.EnableCompositorBlur)
         {
-            WindowTransparencyLevel.Mica,
-            WindowTransparencyLevel.AcrylicBlur,
+            return new[] { WindowTransparencyLevel.None };
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return new[]
+            {
+                WindowTransparencyLevel.Mica,
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.None
+            };
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return new[] { WindowTransparencyLevel.Transparent, WindowTransparencyLevel.None };
+        }
+
+        return new[]
+        {
             WindowTransparencyLevel.Blur,
+            WindowTransparencyLevel.Transparent,
             WindowTransparencyLevel.None
         };
-        TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush");
     }
+
+    private async Task RefreshBlurSupportStatusAsync()
+    {
+        await Task.Delay(250);
+        if (!_settings.EnableCompositorBlur)
+        {
+            BlurSupportText.Text = "Window background blur is disabled. A solid background is being used.";
+            return;
+        }
+
+        string session = IsWaylandSession() ? "Wayland" : OperatingSystem.IsLinux() ? "X11" : "the window system";
+        BlurSupportText.Text = ActualTransparencyLevel switch
+        {
+            var level when level == WindowTransparencyLevel.Mica => $"Blur is active through {session} (Mica).",
+            var level when level == WindowTransparencyLevel.AcrylicBlur => $"Blur is active through {session} (acrylic).",
+            var level when level == WindowTransparencyLevel.Blur => $"Compositor blur is active through {session}.",
+            var level when level == WindowTransparencyLevel.Transparent => $"{session} granted transparency but not background blur; the transparent fallback is active.",
+            _ => $"Background blur is unavailable in {session}; the solid fallback is active."
+        };
+    }
+
+    private static bool IsWaylandSession() =>
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ||
+        string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase);
 
     private async void UploadTemplate_Click(object? sender, RoutedEventArgs e)
     {
@@ -373,6 +426,11 @@ public sealed partial class MainWindow : Window
     private async void OpenHelp_Click(object? sender, RoutedEventArgs e)
     {
         await ShowMessageAsync("User Guide and Feature Help", HelpText());
+    }
+
+    private async void OpenKeyboardShortcuts_Click(object? sender, RoutedEventArgs e)
+    {
+        await ShowMessageAsync("Keyboard Shortcuts", KeyboardShortcutsText());
     }
 
     private void OpenWebsite_Click(object? sender, RoutedEventArgs e)
@@ -730,7 +788,8 @@ public sealed partial class MainWindow : Window
             2 => "Dark",
             _ => "Default"
         };
-        _settings.AccentColor = AccentNameForIndex(AccentColorComboBox.SelectedIndex);
+        _settings.AccentColor = AccentNameForIndex(AccentColorPicker.SelectedIndex);
+        _settings.EnableCompositorBlur = CompositorBlurToggle.IsChecked == true;
         ReadTraceabilitySettingsFromUi();
         if (!ValidateTraceabilitySettings(out string traceabilityError))
         {
@@ -739,6 +798,8 @@ public sealed partial class MainWindow : Window
         }
         SaveSettings();
         ApplyTheme();
+        ConfigureWindowTransparency();
+        _ = RefreshBlurSupportStatusAsync();
         SetStatus("Settings saved.");
     }
 
@@ -749,10 +810,26 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        _settings.AccentColor = AccentNameForIndex(AccentColorComboBox.SelectedIndex);
+        _settings.AccentColor = AccentNameForIndex(AccentColorPicker.SelectedIndex);
         ApplyAccentPalette();
         SaveSettings();
         SetStatus($"Button accent color changed to {_settings.AccentColor}.", StatusLevel.Success);
+    }
+
+    private void CompositorBlurToggle_IsCheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        if (!_settingsReady || _isApplyingSettingsToUi)
+        {
+            return;
+        }
+
+        _settings.EnableCompositorBlur = CompositorBlurToggle.IsChecked == true;
+        SaveSettings();
+        ConfigureWindowTransparency();
+        _ = RefreshBlurSupportStatusAsync();
+        SetStatus(
+            _settings.EnableCompositorBlur ? "Window background blur requested." : "Window background blur disabled.",
+            StatusLevel.Success);
     }
 
     private void TraceabilityMode_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
@@ -886,6 +963,139 @@ public sealed partial class MainWindow : Window
         if (!pageWasVisible)
         {
             _ = AnimateControlAsync(page, fromOpacity: 0, toOpacity: 1, fromY: 12, toY: 0, PageAnimationDurationMs);
+        }
+    }
+
+    private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
+    {
+        bool control = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        bool alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+
+        if (e.Key == Key.F1)
+        {
+            OpenKeyboardShortcuts_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && _regionSelectionMode)
+        {
+            _regionSelectionMode = false;
+            RegionSelectionText.Text = _selectedRegion is null ? "No region selected" : "Region selection cancelled";
+            PreviewCanvas.Cursor = Cursor.Default;
+            SetStatus("Region selection cancelled.");
+            e.Handled = true;
+            return;
+        }
+
+        if (control && TryPageShortcut(e.Key, out int requestedPage))
+        {
+            NavigateToPage(requestedPage, focusTab: true);
+            e.Handled = true;
+            return;
+        }
+
+        if (IsTextEntrySource(e.Source))
+        {
+            return;
+        }
+
+        if (control && e.Key == Key.O)
+        {
+            if (shift)
+            {
+                UploadSources_Click(this, new RoutedEventArgs());
+            }
+            else
+            {
+                UploadTemplate_Click(this, new RoutedEventArgs());
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (control && e.Key == Key.S)
+        {
+            SaveToDatabase_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (control && e.Key == Key.E)
+        {
+            ExportPdf_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (control && e.Key == Key.OemComma)
+        {
+            NavigateToPage(4, focusTab: true);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.F5)
+        {
+            RunValidation_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.F6 || (alt && e.Key is Key.Left or Key.Right))
+        {
+            int direction = e.Key == Key.Left || (e.Key == Key.F6 && shift) ? -1 : 1;
+            NavigateToPage((CurrentPageIndex() + direction + 5) % 5, focusTab: true);
+            e.Handled = true;
+        }
+    }
+
+    private static bool IsTextEntrySource(object? source)
+    {
+        if (source is not Visual visual)
+        {
+            return false;
+        }
+
+        return visual is TextBox || visual.GetVisualAncestors().OfType<TextBox>().Any();
+    }
+
+    private static bool TryPageShortcut(Key key, out int pageIndex)
+    {
+        pageIndex = key switch
+        {
+            Key.D1 or Key.NumPad1 => 0,
+            Key.D2 or Key.NumPad2 => 1,
+            Key.D3 or Key.NumPad3 => 2,
+            Key.D4 or Key.NumPad4 => 3,
+            Key.D5 or Key.NumPad5 => 4,
+            _ => -1
+        };
+        return pageIndex >= 0;
+    }
+
+    private int CurrentPageIndex()
+    {
+        Control[] pages = { TemplatePage, SourcesPage, MappingPage, ReviewPage, SettingsPage };
+        int index = Array.FindIndex(pages, page => page.IsVisible);
+        return index < 0 ? 0 : index;
+    }
+
+    private void NavigateToPage(int index, bool focusTab)
+    {
+        Control[] pages = { TemplatePage, SourcesPage, MappingPage, ReviewPage, SettingsPage };
+        Button[] buttons = { TemplatePageButton, SourcesPageButton, MappingPageButton, ReviewPageButton, SettingsPageButton };
+        index = Math.Clamp(index, 0, pages.Length - 1);
+        if (index == 3)
+        {
+            RenderReviewOutputTable();
+            RefreshExportPdfPreview();
+        }
+        ShowPage(pages[index], buttons[index]);
+        if (focusTab)
+        {
+            Dispatcher.UIThread.Post(() => buttons[index].Focus());
         }
     }
 
@@ -2603,7 +2813,8 @@ exit /b %INSTALL_EXIT%
                 "Dark" => 2,
                 _ => 0
             };
-            AccentColorComboBox.SelectedIndex = AccentIndexForName(_settings.AccentColor);
+            AccentColorPicker.SelectedIndex = AccentIndexForName(_settings.AccentColor);
+            CompositorBlurToggle.IsChecked = _settings.EnableCompositorBlur;
             TraceabilityModeComboBox.SelectedIndex = TraceabilityModeIndex(_settings.TraceabilityMode);
             TraceabilityPrefixBox.Text = _settings.TraceabilityPrefix;
             ManualTraceabilityIdBox.Text = _settings.ManualTraceabilityId;
@@ -2714,21 +2925,35 @@ exit /b %INSTALL_EXIT%
 
     private static string AccentNameForIndex(int index) => index switch
     {
-        1 => "Cyan",
-        2 => "Emerald",
-        3 => "Violet",
-        4 => "Rose",
-        5 => "Orange",
+        1 => "Sky",
+        2 => "Amber",
+        3 => "Cyan",
+        4 => "Teal",
+        5 => "Emerald",
+        6 => "Green",
+        7 => "Sand",
+        8 => "Slate",
+        9 => "Orange",
+        10 => "Red",
+        11 => "Rose",
+        12 => "Violet",
         _ => "Blue"
     };
 
     private static int AccentIndexForName(string? name) => name switch
     {
-        "Cyan" => 1,
-        "Emerald" => 2,
-        "Violet" => 3,
-        "Rose" => 4,
-        "Orange" => 5,
+        "Sky" => 1,
+        "Amber" => 2,
+        "Cyan" => 3,
+        "Teal" => 4,
+        "Emerald" => 5,
+        "Green" => 6,
+        "Sand" => 7,
+        "Slate" => 8,
+        "Orange" => 9,
+        "Red" => 10,
+        "Rose" => 11,
+        "Violet" => 12,
         _ => 0
     };
 
@@ -2828,11 +3053,18 @@ exit /b %INSTALL_EXIT%
     {
         string accent = _settings.AccentColor switch
         {
-            "Cyan" => "#0E7490",
-            "Emerald" => "#047857",
+            "Sky" => "#0284C7",
+            "Amber" => "#D99A21",
+            "Cyan" => "#0891B2",
+            "Teal" => "#0F766E",
+            "Emerald" => "#059669",
+            "Green" => "#16A34A",
+            "Sand" => "#B08968",
+            "Slate" => "#64748B",
+            "Orange" => "#EA580C",
+            "Red" => "#DC2626",
+            "Rose" => "#DB2777",
             "Violet" => "#7C3AED",
-            "Rose" => "#E11D48",
-            "Orange" => "#C2410C",
             _ => "#2563EB"
         };
 
@@ -3260,12 +3492,7 @@ exit /b %INSTALL_EXIT%
             FontFamily = FontFamily,
             Background = DialogBrush("AppBackgroundBrush"),
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            TransparencyLevelHint = new[]
-            {
-                WindowTransparencyLevel.AcrylicBlur,
-                WindowTransparencyLevel.Blur,
-                WindowTransparencyLevel.None
-            },
+            TransparencyLevelHint = PreferredTransparencyLevels(),
             TransparencyBackgroundFallback = DialogBrush("AppBackgroundBrush"),
             Content = dialogContent
         };
@@ -3492,6 +3719,12 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.0
+        - Added complete keyboard navigation across the desktop application, including page switching, workflow commands, validation, export, and region-selection cancellation.
+        - Added an in-app keyboard shortcut guide, shortcut tooltips, predictable focus movement, and text-entry safeguards that preserve standard editing behavior.
+        - Added an expanded cross-platform accent-color swatch picker with keyboard selection and immediate button, tab, dialog, and selection styling.
+        - Added an optional compositor-aware background blur setting with immediate updates, Wayland capability reporting, and a readable fallback when blur is unavailable.
 
         Version 6.2.0
         - Added self-contained x86_64 and ARM64 Flatpak bundles with Tesseract 5.5.3, Leptonica, English OCR data, orientation detection, desktop integration, and the complete CLI.
@@ -3904,6 +4137,7 @@ exit /b %INSTALL_EXIT%
         - Tesseract OCR path: auto-detect or browse to tesseract.exe.
         - SQLite database path: choose where the local database is stored.
         - Theme: switch between default, light, and dark, and choose a cross-platform button accent color.
+        - Compositor blur: immediately enable or disable window background blur. Wayland applies it only when the active compositor and backend support the effect; otherwise the app uses a solid fallback.
         - Run System Readiness Check: verifies local app data and database folders are writable and confirms whether Tesseract OCR is configured.
         - System Readiness: summarizes workstation/environment readiness such as OCR, app data storage, SQLite path, and update-check state.
         - Application Status: shows the current run state such as last operation, traceability ID, loaded tables/sources, selected source, extracted fields, and mappings.
@@ -3936,6 +4170,39 @@ exit /b %INSTALL_EXIT%
 
         Best Practice
         Map one document type carefully, validate it, save the mapping as a reusable template, and use Auto Fill only after checking the first few runs. This gives the fastest workflow while keeping the exported documents reliable.
+        """;
+    }
+
+    private static string KeyboardShortcutsText()
+    {
+        return """
+        Keyboard Navigation
+
+        General
+        - Tab / Shift+Tab: move forward or backward through controls.
+        - Enter / Space: activate the focused button, switch, or selection.
+        - Arrow keys: move through lists, menus, selectors, and accent colors.
+        - F1: open this keyboard shortcut guide.
+        - Escape: cancel an active OCR region selection.
+
+        Pages
+        - Ctrl+1: Template
+        - Ctrl+2: Sources
+        - Ctrl+3: Mapping
+        - Ctrl+4: Review
+        - Ctrl+5 or Ctrl+Comma: Settings
+        - F6 / Shift+F6: move to the next or previous page.
+        - Alt+Right / Alt+Left: move to the next or previous page.
+
+        Workflow
+        - Ctrl+O: upload a template.
+        - Ctrl+Shift+O: upload source documents.
+        - F5: validate the current output.
+        - Ctrl+S: save the run to SQLite.
+        - Ctrl+E: export a PDF with traceability.
+
+        Application shortcuts are suspended while you type in a text field, except
+        for page shortcuts and F1. Standard editing shortcuts therefore continue to work.
         """;
     }
 
@@ -3984,6 +4251,7 @@ exit /b %INSTALL_EXIT%
         public string DatabasePath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Default";
         public string AccentColor { get; set; } = "Blue";
+        public bool EnableCompositorBlur { get; set; } = true;
         public string TraceabilityMode { get; set; } = "Automatic";
         public string TraceabilityPrefix { get; set; } = "IF";
         public string ManualTraceabilityId { get; set; } = string.Empty;

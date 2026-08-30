@@ -223,8 +223,8 @@ The release also includes `IntelliFillOCR-<version>-linux-<x64|arm64>.tar.gz`. E
 Download `intellifill-ocr-<version>.nix` from the matching GitHub release. The fixed-output derivation selects x86_64 or ARM64 automatically, patches the self-contained binaries for the Nix store, installs required runtime libraries and Tesseract, and provides the desktop launcher plus both commands.
 
 ```bash
-nix-build intellifill-ocr-6.2.0.nix -E \
-  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.2.0.nix {}'
+nix-build intellifill-ocr-6.3.0.nix -E \
+  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.3.0.nix {}'
 ./result/bin/intellifill-ocr
 ```
 
@@ -287,12 +287,19 @@ Removing the package does not delete exports or user-selected database files.
 
 1. Open **Settings → Local Paths** and auto-detect or select Tesseract.
 2. Confirm or choose the SQLite database path.
-3. Select the system, light, or dark theme and preferred accent color.
+3. Select the system, light, or dark theme, preferred accent color, and whether compositor blur is enabled.
 4. Choose a traceability-ID mode.
 5. Run **Diagnostics and Storage → Run System Readiness Check**.
 6. On Linux, verify the package source under **Software Updates**.
 
 Application settings and logs use the operating system's local application-data location under an `IntelliFillOCR` directory. The default SQLite database is also created there unless you select a different path.
+
+On Linux, **Settings → Appearance → Enable window background blur** asks the
+active window system for its best supported blur effect. Native Wayland
+compositors may accept the blur request, provide transparency only, or reject
+the effect. The status beneath the switch reports the effect Avalonia actually
+received, and unsupported compositors automatically use a readable solid
+fallback. Turning the switch off takes effect immediately and is remembered.
 
 ## Basic Workflow
 
@@ -304,9 +311,32 @@ Application settings and logs use the operating system's local application-data 
 6. Save the run to SQLite when an audit record is needed.
 7. Preview and export PDF, Word, Excel, or CSV output.
 
+## Keyboard Navigation
+
+The desktop application is fully operable without a mouse. Use `Tab` and
+`Shift+Tab` to move between controls, `Enter` or `Space` to activate the focused
+control, and the arrow keys to navigate lists, selectors, and the accent-color
+swatches. Press `F1` at any time to open the in-app shortcut guide.
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+1` … `Ctrl+5` | Open Template, Sources, Mapping, Review, or Settings. |
+| `F6` / `Shift+F6` | Move to the next or previous application page. |
+| `Alt+Right` / `Alt+Left` | Move to the next or previous application page. |
+| `Ctrl+O` | Upload a template. |
+| `Ctrl+Shift+O` | Upload source documents. |
+| `F5` | Validate the current output. |
+| `Ctrl+S` | Save the current run to SQLite. |
+| `Ctrl+E` | Export PDF with traceability. |
+| `Ctrl+,` | Open Settings. |
+| `Escape` | Cancel active OCR region selection. |
+
+Workflow shortcuts are suspended while focus is in a text field so normal text
+editing remains predictable. Page shortcuts and `F1` remain available.
+
 ## Command-Line Interface
 
-The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.2 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.3 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
 
 ### Scan and batch processing
 
@@ -483,22 +513,22 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 6.2.0 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 6.3.0 -RuntimeIdentifier win-x64
 # ARM64:
-.\scripts\package-release.ps1 -Version 6.2.0 -RuntimeIdentifier win-arm64
+.\scripts\package-release.ps1 -Version 6.3.0 -RuntimeIdentifier win-arm64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-6.2.0-setup-win-x64.exe
+installer\out\IntelliFillOCR-6.3.0-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 6.2.0 linux-x64 Release
-# or: bash scripts/package-linux.sh 6.2.0 linux-arm64 Release
+bash scripts/package-linux.sh 6.3.0 linux-x64 Release
+# or: bash scripts/package-linux.sh 6.3.0 linux-arm64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -507,8 +537,8 @@ Build a Flatpak bundle natively on the target architecture after installing the
 Freedesktop 25.08 SDK:
 
 ```bash
-bash scripts/package-flatpak.sh 6.2.0 linux-x64 Release
-# On ARM64: bash scripts/package-flatpak.sh 6.2.0 linux-arm64 Release
+bash scripts/package-flatpak.sh 6.3.0 linux-x64 Release
+# On ARM64: bash scripts/package-flatpak.sh 6.3.0 linux-arm64 Release
 ```
 
 Flatpak outputs are written under `release/flatpak/`. See
@@ -518,8 +548,8 @@ and test commands.
 Build a macOS disk image on a Mac:
 
 ```bash
-bash scripts/package-macos.sh 6.2.0 osx-arm64 Release
-# or: bash scripts/package-macos.sh 6.2.0 osx-x64 Release
+bash scripts/package-macos.sh 6.3.0 osx-arm64 Release
+# or: bash scripts/package-macos.sh 6.3.0 osx-x64 Release
 ```
 
 macOS outputs are written under `release/macos/`.
@@ -544,8 +574,8 @@ The package-repository workflow then publishes signed APT metadata, DNF metadata
 Create a release by pushing a version tag:
 
 ```bash
-git tag v6.2.0
-git push origin v6.2.0
+git tag v6.3.0
+git push origin v6.3.0
 ```
 
 The workflows can also be started manually from GitHub Actions with an explicit version.

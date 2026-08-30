@@ -13,7 +13,7 @@ namespace IntelliFillOCR.Cli;
 
 internal static partial class Program
 {
-    private const string Version = "6.2.0";
+    private const string Version = "6.3.0";
     private static readonly HashSet<string> SupportedFormats = new(StringComparer.OrdinalIgnoreCase)
     {
         "csv", "xlsx", "docx", "pdf"

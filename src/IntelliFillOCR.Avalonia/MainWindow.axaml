@@ -9,6 +9,7 @@
     MinWidth="980"
     MinHeight="640"
     FontFamily="Segoe UI, Noto Sans, Cantarell, Sans"
+    KeyDown="MainWindow_KeyDown"
     Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.Resources>
@@ -170,6 +171,33 @@
             <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
+        <Style Selector="ListBox.accentPicker">
+            <Setter Property="MaxWidth" Value="620" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.accentPicker ListBoxItem">
+            <Setter Property="MinWidth" Value="42" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ListBox.accentPicker ListBoxItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+        </Style>
+        <Style Selector="ListBox.accentPicker ListBoxItem:selected">
+            <Setter Property="Background" Value="{DynamicResource PreviewPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
     </Window.Styles>
 
     <Grid Margin="16">
@@ -182,7 +210,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v6.2.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v6.3.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -190,11 +218,11 @@
                     <Border Classes="softPanel" Padding="10">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="TemplatePageButton" Classes="pageTab primary" Click="ShowTemplatePage_Click" Content="Template" />
-                                <Button x:Name="SourcesPageButton" Classes="pageTab" Click="ShowSourcesPage_Click" Content="Sources" />
-                                <Button x:Name="MappingPageButton" Classes="pageTab" Click="ShowMappingPage_Click" Content="Mapping" />
-                                <Button x:Name="ReviewPageButton" Classes="pageTab" Click="ShowReviewPage_Click" Content="Review" />
-                                <Button x:Name="SettingsPageButton" Classes="pageTab" Click="ShowSettingsPage_Click" Content="Settings" />
+                                <Button x:Name="TemplatePageButton" Classes="pageTab primary" Click="ShowTemplatePage_Click" Content="Template" ToolTip.Tip="Template page · Ctrl+1" />
+                                <Button x:Name="SourcesPageButton" Classes="pageTab" Click="ShowSourcesPage_Click" Content="Sources" ToolTip.Tip="Sources page · Ctrl+2" />
+                                <Button x:Name="MappingPageButton" Classes="pageTab" Click="ShowMappingPage_Click" Content="Mapping" ToolTip.Tip="Mapping page · Ctrl+3" />
+                                <Button x:Name="ReviewPageButton" Classes="pageTab" Click="ShowReviewPage_Click" Content="Review" ToolTip.Tip="Review page · Ctrl+4" />
+                                <Button x:Name="SettingsPageButton" Classes="pageTab" Click="ShowSettingsPage_Click" Content="Settings" ToolTip.Tip="Settings page · Ctrl+5 or Ctrl+," />
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
@@ -209,7 +237,7 @@
                                             <TextBox x:Name="TemplatePathBox" IsReadOnly="True" PlaceholderText="No template loaded" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                                            <Button Classes="primary" Click="UploadTemplate_Click" Content="Upload Template" />
+                                            <Button Classes="primary" Click="UploadTemplate_Click" Content="Upload Template" ToolTip.Tip="Ctrl+O" />
                                             <Button Click="AutoFill_Click" Content="Auto Fill" />
                                         </StackPanel>
                                     </Grid>
@@ -246,7 +274,7 @@
                                             <TextBlock x:Name="SelectedDocumentText" Text="Upload and select a document." Classes="muted" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                            <Button Classes="primary" Click="UploadSources_Click" Content="Upload Sources" />
+                                            <Button Classes="primary" Click="UploadSources_Click" Content="Upload Sources" ToolTip.Tip="Ctrl+Shift+O" />
                                             <Button Click="OpenOriginal_Click" Content="Open Original" />
                                         </StackPanel>
                                     </Grid>
@@ -361,8 +389,8 @@
                                         </Border>
                                         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Button Classes="primary" Click="RunValidation_Click" Content="Validate" />
-                                                <Button Click="SaveToDatabase_Click" Content="Save SQLite" />
+                                                <Button Classes="primary" Click="RunValidation_Click" Content="Validate" ToolTip.Tip="F5" />
+                                                <Button Click="SaveToDatabase_Click" Content="Save SQLite" ToolTip.Tip="Ctrl+S" />
                                                 <Button Click="DetectSignatures_Click" Content="Signatures/Stamps" />
                                             </StackPanel>
                                         </ScrollViewer>
@@ -411,7 +439,7 @@
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="10">
                                         <TextBlock Text="Export" Classes="sectionTitle" />
-                                        <Button Classes="primary rail" Click="ExportPdf_Click" Content="PDF with Traceability" />
+                                        <Button Classes="primary rail" Click="ExportPdf_Click" Content="PDF with Traceability" ToolTip.Tip="Ctrl+E" />
                                         <Button Classes="rail" Click="ExportWord_Click" Content="Word Document" />
                                         <Button Classes="rail" Click="ExportExcel_Click" Content="Excel Workbook" />
                                         <Button Classes="rail" Click="ExportCsv_Click" Content="CSV File" />
@@ -460,15 +488,29 @@
                                             <ComboBoxItem Content="Dark" />
                                         </ComboBox>
                                         <TextBlock Text="Button Accent Color" Classes="kicker" />
-                                        <ComboBox x:Name="AccentColorComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left" SelectionChanged="AccentColor_SelectionChanged">
-                                            <ComboBoxItem Content="Blue" />
-                                            <ComboBoxItem Content="Cyan" />
-                                            <ComboBoxItem Content="Emerald" />
-                                            <ComboBoxItem Content="Violet" />
-                                            <ComboBoxItem Content="Rose" />
-                                            <ComboBoxItem Content="Orange" />
-                                        </ComboBox>
+                                        <ListBox x:Name="AccentColorPicker" Classes="accentPicker" SelectedIndex="0" SelectionMode="Single" SelectionChanged="AccentColor_SelectionChanged">
+                                            <ListBox.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                            </ListBox.ItemsPanel>
+                                            <ListBoxItem ToolTip.Tip="Blue"><Border Width="26" Height="26" CornerRadius="13" Background="#2563EB" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Sky"><Border Width="26" Height="26" CornerRadius="13" Background="#0284C7" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Amber"><Border Width="26" Height="26" CornerRadius="13" Background="#D99A21" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Cyan"><Border Width="26" Height="26" CornerRadius="13" Background="#0891B2" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Teal"><Border Width="26" Height="26" CornerRadius="13" Background="#0F766E" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Emerald"><Border Width="26" Height="26" CornerRadius="13" Background="#059669" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Green"><Border Width="26" Height="26" CornerRadius="13" Background="#16A34A" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Sand"><Border Width="26" Height="26" CornerRadius="13" Background="#B08968" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Slate"><Border Width="26" Height="26" CornerRadius="13" Background="#64748B" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Orange"><Border Width="26" Height="26" CornerRadius="13" Background="#EA580C" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Red"><Border Width="26" Height="26" CornerRadius="13" Background="#DC2626" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Rose"><Border Width="26" Height="26" CornerRadius="13" Background="#DB2777" /></ListBoxItem>
+                                            <ListBoxItem ToolTip.Tip="Violet"><Border Width="26" Height="26" CornerRadius="13" Background="#7C3AED" /></ListBoxItem>
+                                        </ListBox>
                                         <TextBlock Text="Changes primary buttons, active tabs, dialog actions, and selection highlights." Classes="muted" />
+                                        <TextBlock Text="Compositor Effects" Classes="kicker" />
+                                        <ToggleSwitch x:Name="CompositorBlurToggle" Content="Enable window background blur" IsChecked="True" IsCheckedChanged="CompositorBlurToggle_IsCheckedChanged" />
+                                        <TextBlock x:Name="BlurSupportText" Text="Blur support is checked when the window opens." Classes="muted" TextWrapping="Wrap" />
+                                        <TextBlock Text="On Wayland, the compositor decides whether its supported blur protocol is granted. Unsupported sessions use a solid, readable fallback." Classes="muted" TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 
@@ -541,6 +583,7 @@
                                         <TextBlock Text="Open documentation, release history, project information, and the official website." Classes="muted" />
                                         <Button Classes="rail" Click="OpenWebsite_Click" Content="Open Project Website" />
                                         <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
+                                        <Button Classes="rail" Click="OpenKeyboardShortcuts_Click" Content="Keyboard Shortcuts" />
                                         <Button Classes="rail" Click="OpenChangelog_Click" Content="View Changelog" />
                                         <Button Classes="rail" Click="OpenAbout_Click" Content="About IntelliFill OCR" />
                                     </StackPanel>
