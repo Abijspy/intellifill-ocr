@@ -84,6 +84,7 @@ jobs:
             ! -name 'arch' \
             ! -name 'keys' \
             ! -name 'intellifill-ocr.repo' \
+            ! -name 'CNAME' \
             -exec rm -rf -- {} +
 
           mkdir -p \
@@ -192,6 +193,9 @@ jobs:
             'repo_gpgcheck=1' \
             'gpgkey=https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg' \
             > published-repository/intellifill-ocr.repo
+
+          printf '%s\n' 'packages.abishekprabakaran.com' \
+            > published-repository/CNAME
 
       - name: Publish GitHub Pages branch
         env:
