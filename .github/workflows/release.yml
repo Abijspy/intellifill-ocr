@@ -336,3 +336,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run publish-linux-repositories.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f version="$RELEASE_VERSION"
+
+      - name: Publish website and latest packages to Codeberg Pages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-codeberg-pages.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f version="$RELEASE_VERSION"

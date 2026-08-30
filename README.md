@@ -8,7 +8,8 @@
 
 <p align="center">
   <a href="https://abishekprabakaran.com/intellifill-ocr/">Website</a> ·
-  <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Latest release</a> ·
+  <a href="https://codeberg.org/abijspy/intellifill-ocr">Source</a> ·
+  <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Downloads</a> ·
   <a href="LICENSE">MIT License</a>
 </p>
 
@@ -569,7 +570,7 @@ The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produc
 - Self-contained x86_64 and ARM64 Flatpak bundles with bundled Tesseract
 - Generated NixOS derivation for x86_64 and aarch64
 
-The package-repository workflow then publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository to the `gh-pages` deployment, retaining the three newest Linux package versions.
+The package-repository workflow publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository to the GitHub Pages mirror, retaining the three newest Linux package versions. Codeberg is the canonical source forge; its `pages` deployment contains the project website and the latest signed package version while the storage-expansion request is reviewed. Codeberg automatically push-mirrors branches and tags to GitHub, where the multi-platform hosted runners build release assets.
 
 Create a release by pushing a version tag:
 
