@@ -74,6 +74,18 @@ jobs:
             cd ..
           fi
 
+          # Pages is a package endpoint, never the project website. Preserve only
+          # repository trees and their client configuration at the branch root.
+          find published-repository \
+            -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name 'apt' \
+            ! -name 'rpm' \
+            ! -name 'arch' \
+            ! -name 'keys' \
+            ! -name 'intellifill-ocr.repo' \
+            -exec rm -rf -- {} +
+
           mkdir -p \
             published-repository/apt/pool/main/i/intellifill-ocr \
             published-repository/apt/dists/stable/main/binary-amd64 \

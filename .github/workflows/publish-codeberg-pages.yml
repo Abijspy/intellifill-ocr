@@ -1,17 +1,12 @@
-name: Publish Codeberg Pages
+name: Publish Codeberg Linux repository
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Optional release version for latest-only Linux repositories
-        required: false
-        default: ""
-  push:
-    branches: [main]
-    paths:
-      - "website/**"
-      - ".github/workflows/publish-codeberg-pages.yml"
+        description: Release version for latest-only Linux repositories
+        required: true
+        default: "6.3.1"
 
 permissions:
   contents: read
@@ -26,29 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Prepare Codeberg Pages checkout
-        env:
-          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+      - name: Prepare package repository directory
         run: |
           set -euo pipefail
-          test -n "$CODEBERG_TOKEN"
-          repo_url="https://abijspy:${CODEBERG_TOKEN}@codeberg.org/abijspy/intellifill-ocr.git"
-          if git ls-remote --exit-code --heads "$repo_url" pages >/dev/null 2>&1; then
-            git clone --depth 1 --single-branch --branch pages "$repo_url" codeberg-pages
-          else
-            mkdir codeberg-pages
-            git -C codeberg-pages init
-          fi
-          rsync -a --delete \
-            --exclude '.git/' \
-            --exclude 'apt/' \
-            --exclude 'rpm/' \
-            --exclude 'arch/' \
-            --exclude 'keys/' \
-            website/ codeberg-pages/
+          mkdir codeberg-pages
 
       - name: Build latest-only signed package repositories
-        if: ${{ inputs.version != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE_SIGNING_KEY: ${{ secrets.INTELLIFILL_PACKAGE_SIGNING_KEY }}
@@ -114,6 +92,16 @@ jobs:
               'cd /repo && repo-add intellifill-ocr.db.tar.gz ./*.pkg.tar.zst'
           done
 
+          printf '%s\n' \
+            '[intellifill-ocr]' \
+            'name=IntelliFill OCR (Codeberg latest)' \
+            'baseurl=https://abijspy.codeberg.page/intellifill-ocr/rpm/$basearch' \
+            'enabled=1' \
+            'gpgcheck=0' \
+            'repo_gpgcheck=1' \
+            'gpgkey=https://abijspy.codeberg.page/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg' \
+            > codeberg-pages/intellifill-ocr.repo
+
       - name: Publish fresh Codeberg Pages snapshot
         env:
           CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
@@ -127,7 +115,7 @@ jobs:
           git add --all
           git -c user.name='IntelliFill OCR Publisher' \
               -c user.email='abijspy@noreply.codeberg.org' \
-              commit -m "Publish Codeberg Pages${RELEASE_VERSION:+ v$RELEASE_VERSION}"
+              commit -m "Publish latest Linux repositories v$RELEASE_VERSION"
           git remote add origin \
             "https://abijspy:${CODEBERG_TOKEN}@codeberg.org/abijspy/intellifill-ocr.git"
           git push --force origin pages
