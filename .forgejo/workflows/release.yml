@@ -45,8 +45,12 @@ jobs:
         shell: bash
         working-directory: source
         run: |
-          dotnet restore IntelliFillOCR.sln
-          dotnet build IntelliFillOCR.sln --configuration Release --no-restore
+          dotnet restore src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj
+          dotnet restore src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj
+          dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj \
+            --configuration Release --no-restore
+          dotnet build src/IntelliFillOCR.Cli/IntelliFillOCR.Cli.csproj \
+            --configuration Release --no-restore
 
       - name: Dispatch cross-platform packaging to the GitHub runner mirror
         shell: bash
