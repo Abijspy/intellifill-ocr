@@ -224,8 +224,8 @@ The release also includes `IntelliFillOCR-<version>-linux-<x64|arm64>.tar.gz`. E
 Download `intellifill-ocr-<version>.nix` from the matching GitHub release. The fixed-output derivation selects x86_64 or ARM64 automatically, patches the self-contained binaries for the Nix store, installs required runtime libraries and Tesseract, and provides the desktop launcher plus both commands.
 
 ```bash
-nix-build intellifill-ocr-6.3.3.nix -E \
-  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.3.3.nix {}'
+nix-build intellifill-ocr-6.3.4.nix -E \
+  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.3.4.nix {}'
 ./result/bin/intellifill-ocr
 ```
 
@@ -337,7 +337,7 @@ editing remains predictable. Page shortcuts and `F1` remain available.
 
 ## Command-Line Interface
 
-The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.3.3 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
+The Windows, macOS, and Linux packages include the `intellifill` command. Version 6.3.4 uses the same local loaders, field-matching logic, validation, exporters, traceability IDs, and SQLite history as the desktop application. PDF and image OCR runs locally through Tesseract; supported office documents are parsed natively.
 
 ### Scan and batch processing
 
@@ -514,22 +514,22 @@ dotnet build src/IntelliFillOCR.Avalonia/IntelliFillOCR.Avalonia.csproj -c Relea
 Build the Windows installer from PowerShell:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 6.3.3 -RuntimeIdentifier win-x64
+.\scripts\package-release.ps1 -Version 6.3.4 -RuntimeIdentifier win-x64
 # ARM64:
-.\scripts\package-release.ps1 -Version 6.3.3 -RuntimeIdentifier win-arm64
+.\scripts\package-release.ps1 -Version 6.3.4 -RuntimeIdentifier win-arm64
 ```
 
 Output:
 
 ```text
-installer\out\IntelliFillOCR-6.3.3-setup-win-x64.exe
+installer\out\IntelliFillOCR-6.3.4-setup-win-x64.exe
 ```
 
 Build Linux packages on Linux:
 
 ```bash
-bash scripts/package-linux.sh 6.3.3 linux-x64 Release
-# or: bash scripts/package-linux.sh 6.3.3 linux-arm64 Release
+bash scripts/package-linux.sh 6.3.4 linux-x64 Release
+# or: bash scripts/package-linux.sh 6.3.4 linux-arm64 Release
 ```
 
 Linux outputs are written under `release/linux/`.
@@ -538,8 +538,8 @@ Build a Flatpak bundle natively on the target architecture after installing the
 Freedesktop 25.08 SDK:
 
 ```bash
-bash scripts/package-flatpak.sh 6.3.3 linux-x64 Release
-# On ARM64: bash scripts/package-flatpak.sh 6.3.3 linux-arm64 Release
+bash scripts/package-flatpak.sh 6.3.4 linux-x64 Release
+# On ARM64: bash scripts/package-flatpak.sh 6.3.4 linux-arm64 Release
 ```
 
 Flatpak outputs are written under `release/flatpak/`. See
@@ -549,8 +549,8 @@ and test commands.
 Build a macOS disk image on a Mac:
 
 ```bash
-bash scripts/package-macos.sh 6.3.3 osx-arm64 Release
-# or: bash scripts/package-macos.sh 6.3.3 osx-x64 Release
+bash scripts/package-macos.sh 6.3.4 osx-arm64 Release
+# or: bash scripts/package-macos.sh 6.3.4 osx-x64 Release
 ```
 
 macOS outputs are written under `release/macos/`.
@@ -575,8 +575,8 @@ The package-repository workflow publishes signed APT metadata, DNF metadata, and
 Create a release by pushing a version tag:
 
 ```bash
-git tag v6.3.3
-git push origin v6.3.3
+git tag v6.3.4
+git push origin v6.3.4
 ```
 
 The workflow can also be started manually from GitHub Actions with an explicit version.

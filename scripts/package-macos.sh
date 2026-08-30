@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-6.3.3}"
+VERSION="${1:-6.3.4}"
 RID="${2:-osx-arm64}"
 CONFIGURATION="${3:-Release}"
 

@@ -9,8 +9,8 @@ Install the Freedesktop 25.08 SDK and build a bundle for the current CPU:
 ```bash
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install --user -y flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
-bash scripts/package-flatpak.sh 6.3.3 linux-x64 Release
-flatpak install --user release/flatpak/IntelliFillOCR-6.3.3-linux-x64.flatpak
+bash scripts/package-flatpak.sh 6.3.4 linux-x64 Release
+flatpak install --user release/flatpak/IntelliFillOCR-6.3.4-linux-x64.flatpak
 ```
 
 Use `linux-arm64` on an ARM64 build machine. Flatpak native dependencies must

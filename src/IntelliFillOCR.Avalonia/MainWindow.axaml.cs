@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.3";
+    private const string AppVersion = "6.3.4";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const string ProjectSourceUrl = "https://github.com/Abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
@@ -3732,6 +3732,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.4
+        - Consolidated source hosting, issues, release automation, downloads, and project links on GitHub.
+        - Restored GitHub tag pushes as the direct trigger for cross-platform release builds.
+        - Removed the legacy secondary-forge automation and updated the app, website, README, and Linux metadata to use GitHub exclusively.
 
         Version 6.3.3
         - Restored GitHub Pages as the exclusive host for the signed APT, DNF, and pacman repositories.
