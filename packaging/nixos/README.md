@@ -4,8 +4,8 @@ Each GitHub release includes `intellifill-ocr-<version>.nix`, generated with
 fixed hashes for the x86_64 and ARM64 portable archives.
 
 ```bash
-nix-build intellifill-ocr-6.3.2.nix -E \
-  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.3.2.nix {}'
+nix-build intellifill-ocr-6.3.3.nix -E \
+  'with import <nixpkgs> {}; callPackage ./intellifill-ocr-6.3.3.nix {}'
 ./result/bin/intellifill-ocr
 ```
 
@@ -13,7 +13,7 @@ Install it into the current user profile with:
 
 ```bash
 nix-env -f '<nixpkgs>' -iE \
-  'pkgs: pkgs.callPackage ./intellifill-ocr-6.3.2.nix {}'
+  'pkgs: pkgs.callPackage ./intellifill-ocr-6.3.3.nix {}'
 ```
 
 The derivation chooses `x86_64-linux` or `aarch64-linux` automatically, patches

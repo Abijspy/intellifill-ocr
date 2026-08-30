@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "6.3.2"
+        default: "6.3.3"
   repository_dispatch:
     types:
       - codeberg-release
@@ -346,13 +346,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run publish-linux-repositories.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f version="$RELEASE_VERSION"
-
-      - name: Publish latest Linux packages to Codeberg Pages
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run publish-codeberg-pages.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f version="$RELEASE_VERSION"

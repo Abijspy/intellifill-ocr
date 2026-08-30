@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.2";
+    private const string AppVersion = "6.3.3";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const string ProjectSourceUrl = "https://codeberg.org/abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
@@ -3732,6 +3732,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.3
+        - Restored GitHub Pages as the exclusive host for the signed APT, DNF, and pacman repositories after Codeberg package publication exceeded its Git storage quota.
+        - Kept Codeberg as the primary source forge and release coordinator while preventing failed Codeberg Pages package uploads from recurring.
+        - Preserved packages.abishekprabakaran.com as the stable package-manager address so installed systems do not require source-list changes after DNS returns to GitHub Pages.
 
         Version 6.3.2
         - Made Codeberg the primary source repository, issue tracker, and project link throughout the app and website.
