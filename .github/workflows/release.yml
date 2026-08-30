@@ -6,10 +6,10 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: "6.3.1"
-  push:
-    tags:
-      - "v*"
+        default: "6.3.2"
+  repository_dispatch:
+    types:
+      - codeberg-release
 
 permissions:
   actions: write
@@ -36,7 +36,9 @@ jobs:
       - name: Resolve release version
         shell: pwsh
         run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          if ("${{ github.event_name }}" -eq "repository_dispatch") {
+            $version = "${{ github.event.client_payload.version }}"
+          } elseif ("${{ github.event_name }}" -eq "workflow_dispatch") {
             $version = "${{ inputs.version }}"
           } else {
             $version = "${{ github.ref_name }}".TrimStart("v")
@@ -96,7 +98,9 @@ jobs:
       - name: Resolve release version
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            version="${{ github.event.client_payload.version }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ inputs.version }}"
           else
             version="${GITHUB_REF_NAME#v}"
@@ -170,7 +174,9 @@ jobs:
       - name: Resolve release version
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            version="${{ github.event.client_payload.version }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ inputs.version }}"
           else
             version="${GITHUB_REF_NAME#v}"
@@ -228,7 +234,9 @@ jobs:
       - name: Resolve release version
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            version="${{ github.event.client_payload.version }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ inputs.version }}"
           else
             version="${GITHUB_REF_NAME#v}"
@@ -274,7 +282,9 @@ jobs:
       - name: Resolve release version
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            version="${{ github.event.client_payload.version }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ inputs.version }}"
           else
             version="${GITHUB_REF_NAME#v}"

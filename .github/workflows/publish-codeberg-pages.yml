@@ -6,7 +6,7 @@ on:
       version:
         description: Release version for latest-only Linux repositories
         required: true
-        default: "6.3.1"
+        default: "6.3.2"
 
 permissions:
   contents: read
@@ -95,11 +95,11 @@ jobs:
           printf '%s\n' \
             '[intellifill-ocr]' \
             'name=IntelliFill OCR (Codeberg latest)' \
-            'baseurl=https://abijspy.codeberg.page/intellifill-ocr/rpm/$basearch' \
+            'baseurl=https://packages.abishekprabakaran.com/rpm/$basearch' \
             'enabled=1' \
             'gpgcheck=0' \
             'repo_gpgcheck=1' \
-            'gpgkey=https://abijspy.codeberg.page/intellifill-ocr/keys/intellifill-ocr-archive-keyring.gpg' \
+            'gpgkey=https://packages.abishekprabakaran.com/keys/intellifill-ocr-archive-keyring.gpg' \
             > codeberg-pages/intellifill-ocr.repo
 
       - name: Publish fresh Codeberg Pages snapshot

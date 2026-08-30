@@ -27,8 +27,9 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.1";
+    private const string AppVersion = "6.3.2";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
+    private const string ProjectSourceUrl = "https://codeberg.org/abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -437,6 +438,12 @@ public sealed partial class MainWindow : Window
     {
         OpenUrl(ProjectWebsiteUrl);
         SetStatus("Opened the IntelliFill OCR project website.", StatusLevel.Success);
+    }
+
+    private void OpenSource_Click(object? sender, RoutedEventArgs e)
+    {
+        OpenUrl(ProjectSourceUrl);
+        SetStatus("Opened the IntelliFill OCR source repository on Codeberg.", StatusLevel.Success);
     }
 
     private async void OpenChangelog_Click(object? sender, RoutedEventArgs e)
@@ -3725,6 +3732,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.2
+        - Made Codeberg the primary source repository, issue tracker, and project link throughout the app and website.
+        - Added a Codeberg-hosted release coordinator that validates release tags before dispatching cross-platform packaging to the GitHub runner mirror.
+        - Prepared the Linux package repository for the packages.abishekprabakaran.com Codeberg Pages custom domain without changing installed package URLs.
 
         Version 6.3.1
         - Added a dedicated highlighted state for the page currently in use, including clearer borders, stronger contrast, and visible keyboard focus.
