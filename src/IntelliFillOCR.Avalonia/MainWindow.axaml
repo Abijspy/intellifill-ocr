@@ -599,9 +599,9 @@
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="Help and Project" Classes="sectionTitle" />
-                                        <TextBlock Text="Open documentation, release history, the primary Codeberg source repository, and the official website." Classes="muted" />
+                                        <TextBlock Text="Open documentation, release history, the GitHub source repository, and the official website." Classes="muted" />
                                         <Button Classes="rail" Click="OpenWebsite_Click" Content="Open Project Website" />
-                                        <Button Classes="rail" Click="OpenSource_Click" Content="View Source on Codeberg" />
+                                        <Button Classes="rail" Click="OpenSource_Click" Content="View Source on GitHub" />
                                         <Button Classes="rail" Click="OpenHelp_Click" Content="Open User Guide" />
                                         <Button Classes="rail" Click="OpenKeyboardShortcuts_Click" Content="Keyboard Shortcuts" />
                                         <Button Classes="rail" Click="OpenChangelog_Click" Content="View Changelog" />

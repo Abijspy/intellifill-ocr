@@ -11,9 +11,9 @@
   </description>
   <launchable type="desktop-id">intellifill-ocr.desktop</launchable>
   <url type="homepage">https://abishekprabakaran.com/intellifill-ocr/</url>
-  <url type="bugtracker">https://codeberg.org/abijspy/intellifill-ocr/issues</url>
-  <url type="vcs-browser">https://codeberg.org/abijspy/intellifill-ocr</url>
-  <url type="contribute">https://codeberg.org/abijspy/intellifill-ocr</url>
+  <url type="bugtracker">https://github.com/Abijspy/intellifill-ocr/issues</url>
+  <url type="vcs-browser">https://github.com/Abijspy/intellifill-ocr</url>
+  <url type="contribute">https://github.com/Abijspy/intellifill-ocr</url>
   <developer id="com.abishekprabakaran">
     <name>Abishek Prabakaran</name>
   </developer>

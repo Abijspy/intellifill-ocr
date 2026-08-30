@@ -8,12 +8,12 @@
 
 <p align="center">
   <a href="https://abishekprabakaran.com/intellifill-ocr/">Website</a> ·
-  <a href="https://codeberg.org/abijspy/intellifill-ocr">Source</a> ·
+  <a href="https://github.com/Abijspy/intellifill-ocr">Source</a> ·
   <a href="https://github.com/Abijspy/intellifill-ocr/releases/latest">Downloads</a> ·
   <a href="LICENSE">MIT License</a>
 </p>
 
-Primary development, issues, and release orchestration are hosted on [Codeberg](https://codeberg.org/abijspy/intellifill-ocr). GitHub is retained as the cross-platform build and binary-download mirror.
+Development, issues, release automation, binary downloads, and Linux package repositories are hosted on [GitHub](https://github.com/Abijspy/intellifill-ocr).
 
 # IntelliFill OCR Desktop
 
@@ -281,7 +281,7 @@ Removing the package does not delete exports or user-selected database files.
 - APT metadata is published with a signed `InRelease` file and a key restricted through `signed-by`.
 - Do not add `trusted=yes` to the APT source.
 - DNF validates signed repository metadata with `repo_gpgcheck=1`.
-- Release tags are validated and orchestrated by Codeberg Actions. GitHub-hosted runners build the Windows, macOS, and Linux assets because Codeberg does not provide the required cross-platform hosted runners.
+- GitHub Actions builds the Windows, macOS, and Linux assets from version tags.
 - `packages.abishekprabakaran.com` is backed exclusively by GitHub Pages; its DNS CNAME must point to `abijspy.github.io`.
 
 ## First-Run Configuration
@@ -570,9 +570,7 @@ The `IntelliFill OCR Builder` workflow in `.github/workflows/release.yml` produc
 - Self-contained x86_64 and ARM64 Flatpak bundles with bundled Tesseract
 - Generated NixOS derivation for x86_64 and aarch64
 
-The package-repository workflow publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository exclusively to GitHub Pages, retaining the three newest Linux package versions. Codeberg remains the canonical source forge and release coordinator, but does not store package repositories because their binary snapshots exceed its default Git quota. The project website remains at `abishekprabakaran.com/intellifill-ocr/` and is separate from the package branch.
-
-Codeberg Actions owns the release entry point in `.forgejo/workflows/release.yml`: it validates the tagged source, then sends a narrowly scoped `codeberg-release` dispatch to the GitHub mirror. GitHub-hosted Windows, Linux, ARM64, and macOS runners build and publish the binary assets. Add a Codeberg Actions secret named `RELEASE_DISPATCH_TOKEN` with permission to dispatch workflows in the GitHub mirror before creating a release tag.
+The package-repository workflow publishes signed APT metadata, DNF metadata, and a signed Arch pacman repository exclusively to GitHub Pages, retaining the three newest Linux package versions. GitHub Actions builds and publishes the Windows, Linux, ARM64, Flatpak, NixOS, and macOS assets. The project website remains at `abishekprabakaran.com/intellifill-ocr/` and is separate from the package branch.
 
 Create a release by pushing a version tag:
 
@@ -581,7 +579,7 @@ git tag v6.3.3
 git push origin v6.3.3
 ```
 
-The coordinator can also be started manually from Codeberg Actions with an explicit version. GitHub Actions remains available as a manual recovery path.
+The workflow can also be started manually from GitHub Actions with an explicit version.
 
 ## Repository Layout
 

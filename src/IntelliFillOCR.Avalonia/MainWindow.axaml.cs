@@ -29,7 +29,7 @@ public sealed partial class MainWindow : Window
 {
     private const string AppVersion = "6.3.3";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
-    private const string ProjectSourceUrl = "https://codeberg.org/abijspy/intellifill-ocr";
+    private const string ProjectSourceUrl = "https://github.com/Abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
     private const double PreviewMinZoom = 0.5;
@@ -443,7 +443,7 @@ public sealed partial class MainWindow : Window
     private void OpenSource_Click(object? sender, RoutedEventArgs e)
     {
         OpenUrl(ProjectSourceUrl);
-        SetStatus("Opened the IntelliFill OCR source repository on Codeberg.", StatusLevel.Success);
+        SetStatus("Opened the IntelliFill OCR source repository on GitHub.", StatusLevel.Success);
     }
 
     private async void OpenChangelog_Click(object? sender, RoutedEventArgs e)
@@ -3734,14 +3734,9 @@ exit /b %INSTALL_EXIT%
         IntelliFill OCR Changelog
 
         Version 6.3.3
-        - Restored GitHub Pages as the exclusive host for the signed APT, DNF, and pacman repositories after Codeberg package publication exceeded its Git storage quota.
-        - Kept Codeberg as the primary source forge and release coordinator while preventing failed Codeberg Pages package uploads from recurring.
+        - Restored GitHub Pages as the exclusive host for the signed APT, DNF, and pacman repositories.
+        - Consolidated source hosting, issues, release automation, binary downloads, and package publication on GitHub.
         - Preserved packages.abishekprabakaran.com as the stable package-manager address so installed systems do not require source-list changes after DNS returns to GitHub Pages.
-
-        Version 6.3.2
-        - Made Codeberg the primary source repository, issue tracker, and project link throughout the app and website.
-        - Added a Codeberg-hosted release coordinator that validates release tags before dispatching cross-platform packaging to the GitHub runner mirror.
-        - Prepared the Linux package repository for the packages.abishekprabakaran.com Codeberg Pages custom domain without changing installed package URLs.
 
         Version 6.3.1
         - Added a dedicated highlighted state for the page currently in use, including clearer borders, stronger contrast, and visible keyboard focus.
