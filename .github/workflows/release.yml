@@ -74,7 +74,7 @@ jobs:
           Copy-Item $asset release-assets\
 
       - name: Upload Windows asset
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: windows-${{ matrix.runtime }}-nsis
           path: release-assets/*
@@ -146,7 +146,7 @@ jobs:
           fi
 
       - name: Upload Linux assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: linux-${{ matrix.runtime }}-packages
           path: release-assets/*
@@ -206,7 +206,7 @@ jobs:
         run: bash scripts/package-flatpak.sh "$RELEASE_VERSION" "${{ matrix.runtime }}" Release
 
       - name: Upload Flatpak asset
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: flatpak-${{ matrix.runtime }}
           path: release/flatpak/IntelliFillOCR-${{ env.RELEASE_VERSION }}-${{ matrix.runtime }}.flatpak
@@ -253,7 +253,7 @@ jobs:
         run: bash scripts/package-macos.sh "$RELEASE_VERSION" "${{ matrix.runtime }}" Release
 
       - name: Upload macOS asset
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: macos-${{ matrix.runtime }}
           path: release/macos/IntelliFillOCR-${{ env.RELEASE_VERSION }}-${{ matrix.runtime }}.dmg
