@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.0";
+    private const string AppVersion = "6.3.1";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const double PreviewBaseWidth = 1120;
     private const double PreviewBaseHeight = 760;
@@ -956,9 +956,9 @@ public sealed partial class MainWindow : Window
 
         foreach (Button button in buttons)
         {
-            button.Classes.Remove("primary");
+            button.Classes.Remove("active");
         }
-        selectedButton.Classes.Add("primary");
+        selectedButton.Classes.Add("active");
 
         if (!pageWasVisible)
         {
@@ -3071,6 +3071,12 @@ exit /b %INSTALL_EXIT%
         SetBrush("PrimaryBrush", accent);
         SetBrush("SelectionStrokeBrush", accent);
         SetBrush("SelectionFillBrush", "#33" + accent[1..]);
+        SetBrush("ToggleSwitchFillOn", accent);
+        SetBrush("ToggleSwitchFillOnPointerOver", accent);
+        SetBrush("ToggleSwitchFillOnPressed", accent);
+        SetBrush("ToggleSwitchStrokeOn", accent);
+        SetBrush("ToggleSwitchStrokeOnPointerOver", accent);
+        SetBrush("ToggleSwitchStrokeOnPressed", accent);
     }
 
     private void SetBrush(string key, string color)
@@ -3719,6 +3725,10 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.1
+        - Added a dedicated highlighted state for the page currently in use, including clearer borders, stronger contrast, and visible keyboard focus.
+        - Updated the Wayland compositor blur toggle to follow the selected application accent color across its enabled, hover, and pressed states while retaining theme-aware off-state contrast.
 
         Version 6.3.0
         - Added complete keyboard navigation across the desktop application, including page switching, workflow commands, validation, export, and region-selection cancellation.

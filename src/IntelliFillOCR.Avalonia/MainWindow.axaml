@@ -37,6 +37,12 @@
         <SolidColorBrush x:Key="PreviewCanvasBrush" Color="#EEF3FF" />
         <SolidColorBrush x:Key="SelectionStrokeBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="SelectionFillBrush" Color="#332563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#2563EB" />
     </Window.Resources>
 
     <Window.Styles>
@@ -144,6 +150,21 @@
             <Setter Property="CornerRadius" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="Button.pageTab:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+        </Style>
+        <Style Selector="Button.pageTab.active">
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="BoxShadow" Value="0 3 12 0 #33000000" />
+        </Style>
+        <Style Selector="Button.pageTab.active:focus-visible">
+            <Setter Property="BorderBrush" Value="White" />
+            <Setter Property="BoxShadow" Value="0 0 0 2 #66FFFFFF" />
+        </Style>
         <Style Selector="TextBox.mono">
             <Setter Property="FontFamily" Value="Consolas, Cascadia Mono, monospace" />
         </Style>
@@ -210,7 +231,7 @@
                         <TextBlock Text="A calm desktop workflow for source review, visual OCR selection, mapping, validation, and export." Classes="muted" />
                     </StackPanel>
                     <Border Grid.Column="2" Classes="softPanel" Padding="16,10" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionBadgeText" Text="v6.3.0" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
+                        <TextBlock x:Name="VersionBadgeText" Text="v6.3.1" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                     </Border>
                 </Grid>
 
@@ -218,7 +239,7 @@
                     <Border Classes="softPanel" Padding="10">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="TemplatePageButton" Classes="pageTab primary" Click="ShowTemplatePage_Click" Content="Template" ToolTip.Tip="Template page · Ctrl+1" />
+                                <Button x:Name="TemplatePageButton" Classes="pageTab active" Click="ShowTemplatePage_Click" Content="Template" ToolTip.Tip="Template page · Ctrl+1" />
                                 <Button x:Name="SourcesPageButton" Classes="pageTab" Click="ShowSourcesPage_Click" Content="Sources" ToolTip.Tip="Sources page · Ctrl+2" />
                                 <Button x:Name="MappingPageButton" Classes="pageTab" Click="ShowMappingPage_Click" Content="Mapping" ToolTip.Tip="Mapping page · Ctrl+3" />
                                 <Button x:Name="ReviewPageButton" Classes="pageTab" Click="ShowReviewPage_Click" Content="Review" ToolTip.Tip="Review page · Ctrl+4" />
@@ -508,7 +529,7 @@
                                         </ListBox>
                                         <TextBlock Text="Changes primary buttons, active tabs, dialog actions, and selection highlights." Classes="muted" />
                                         <TextBlock Text="Compositor Effects" Classes="kicker" />
-                                        <ToggleSwitch x:Name="CompositorBlurToggle" Content="Enable window background blur" IsChecked="True" IsCheckedChanged="CompositorBlurToggle_IsCheckedChanged" />
+                                        <ToggleSwitch x:Name="CompositorBlurToggle" Content="Enable window background blur" IsChecked="True" IsCheckedChanged="CompositorBlurToggle_IsCheckedChanged" ToolTip.Tip="Uses the selected accent color when enabled" />
                                         <TextBlock x:Name="BlurSupportText" Text="Blur support is checked when the window opens." Classes="muted" TextWrapping="Wrap" />
                                         <TextBlock Text="On Wayland, the compositor decides whether its supported blur protocol is granted. Unsupported sessions use a solid, readable fallback." Classes="muted" TextWrapping="Wrap" />
                                     </StackPanel>
