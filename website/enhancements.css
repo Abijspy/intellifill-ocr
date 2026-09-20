@@ -450,8 +450,49 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5ee7f7; outline-offs
 .asset-list a:hover { transform: translateX(3px); }
 .recommended-asset { border-color: rgba(94,231,247,.6) !important; background: rgba(94,231,247,.1) !important; }
 .recommended-asset b { color: #b7f7ff; }
+.installer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+.installer-links .more { margin-top: 18px; }
+.install-commands { display: grid; }
+.command-step { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px 10px; }
+.command-step b, .command-step small { display: block; }
+.command-step b { font-size: 13px; }
+.command-step small { color: var(--muted); font-size: 12px; }
+.install-commands pre { min-height: auto; padding-top: 12px; }
+.install-commands .command-step:not(:nth-of-type(1)) { border-top: 1px solid var(--line); }
 @media (max-width: 760px) {
   .links { gap: 12px; }
   .hero-proof { gap: 7px; }
   .hero-proof span { font-size: 11px; }
+}
+
+/* Layered, low-distraction motion system. */
+body { --pointer-x: 50%; --pointer-y: 20%; }
+body::before { background-image: radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(94,231,247,.12), transparent 17rem), linear-gradient(#ffffff06 1px, transparent 1px), linear-gradient(90deg, #ffffff06 1px, transparent 1px); transition: background .25s ease; }
+.hero { position: relative; overflow: clip; isolation: isolate; }
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; width: min(30vw, 420px); aspect-ratio: 1; border-radius: 50%; pointer-events: none; filter: blur(3px); animation: hero-orbit 14s ease-in-out infinite alternate; }
+.hero::before { top: 5%; left: -13%; border: 1px solid rgba(139,156,255,.14); background: radial-gradient(circle, rgba(139,156,255,.16), transparent 66%); }
+.hero::after { right: -10%; bottom: -34%; border: 1px solid rgba(94,231,247,.12); background: radial-gradient(circle, rgba(94,231,247,.12), transparent 65%); animation-delay: -7s; }
+.eyebrow { animation: badge-pulse 4s ease-in-out infinite; }
+.hero-proof span { transition: transform .25s ease, border-color .25s ease, background-color .25s ease; }
+.hero-proof span:hover { transform: translateY(-3px); border-color: rgba(94,231,247,.48); background: rgba(94,231,247,.1); }
+.cards article::after, .download-grid article::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(125deg, transparent 42%, rgba(255,255,255,.09) 50%, transparent 58%); transform: translateX(-130%); transition: transform .7s ease; }
+.cards article:hover::after, .download-grid article:hover::after { transform: translateX(130%); }
+.cards article, .download-grid article { position: relative; overflow: hidden; }
+.gallery figure { transform-origin: center bottom; }
+.gallery figure:hover { transform: translateY(-7px) scale(1.008); }
+.command { transition: border-color .28s ease, box-shadow .28s ease, transform .28s ease; }
+.command:hover { border-color: rgba(94,231,247,.34); box-shadow: 0 30px 75px rgba(2,5,18,.42), 0 0 0 1px rgba(94,231,247,.07); }
+.command-step { transition: background-color .2s ease; }
+.command-step:hover { background: rgba(139,156,255,.06); }
+.reveal-item { opacity: 0; transform: translateY(22px); transition: opacity .65s cubic-bezier(.2,.75,.25,1), transform .65s cubic-bezier(.2,.75,.25,1); }
+.reveal-item.is-visible { opacity: 1; transform: translateY(0); }
+.reveal-item:nth-child(2) { transition-delay: .08s; }
+.reveal-item:nth-child(3) { transition-delay: .16s; }
+.reveal-item:nth-child(4) { transition-delay: .24s; }
+@keyframes hero-orbit { from { transform: translate3d(-4%, -3%, 0) scale(.88); } to { transform: translate3d(12%, 11%, 0) scale(1.14); } }
+@keyframes badge-pulse { 0%, 100% { box-shadow: 0 0 0 rgba(94,231,247,0); } 50% { box-shadow: 0 0 0 5px rgba(94,231,247,.06), 0 0 22px rgba(94,231,247,.12); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero::before, .hero::after, .eyebrow { animation: none !important; }
+  .reveal-item { opacity: 1; transform: none; transition: none; }
+  .cards article::after, .download-grid article::after { display: none; }
 }

@@ -4,6 +4,7 @@
   const assetLinks = document.querySelectorAll("[data-release-asset]");
   const downloadGroups = document.querySelectorAll("[data-download-group]");
   const navigationLinks = document.querySelectorAll('.links a[href^="#"]');
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const assetPatterns = {
     "windows-x64": /setup-win-x64\.exe$/i,
@@ -42,6 +43,26 @@
   window.addEventListener("scroll", updateCurrentNavigation, { passive: true });
   updateCurrentNavigation();
 
+  if (!reduceMotion) {
+    window.addEventListener("pointermove", (event) => {
+      document.body.style.setProperty("--pointer-x", `${(event.clientX / window.innerWidth) * 100}%`);
+      document.body.style.setProperty("--pointer-y", `${(event.clientY / window.innerHeight) * 100}%`);
+    }, { passive: true });
+
+    if ("IntersectionObserver" in window) {
+      const revealTargets = document.querySelectorAll(".cards article, .steps article, .download-grid article, .cli-reference article, .setup-grid article, .faq details");
+      revealTargets.forEach((element) => element.classList.add("reveal-item"));
+      const observer = new IntersectionObserver((entries, currentObserver) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          currentObserver.unobserve(entry.target);
+        });
+      }, { threshold: .12 });
+      revealTargets.forEach((element) => observer.observe(element));
+    }
+  }
+
   fetch(api, { headers: { Accept: "application/vnd.github+json" } })
     .then((response) => {
       if (!response.ok) throw new Error(String(response.status));
@@ -64,13 +85,22 @@
       const preferredKey = prefersMac
         ? (prefersArm ? "macos-arm64" : "macos-x64")
         : prefersLinux
-          ? (prefersArm ? "flatpak-arm64" : "flatpak-x64")
+          ? null
           : (prefersArm ? "windows-arm64" : "windows-x64");
-      const recommended = document.querySelector(`[data-release-asset="${preferredKey}"]:not([hidden])`);
+      const recommended = preferredKey && document.querySelector(`[data-release-asset="${preferredKey}"]:not([hidden])`);
       if (recommended) {
         recommended.classList.add("recommended-asset");
         recommended.querySelector("b").textContent += " · Recommended";
         recommended.closest("[data-download-group]")?.parentElement?.prepend(recommended.closest("[data-download-group]"));
+      }
+
+      if (prefersLinux) {
+        const nativePackages = document.querySelector('[data-download-group="native-linux"]:not([hidden])');
+        if (nativePackages) {
+          nativePackages.dataset.recommended = "true";
+          nativePackages.querySelector("h3").textContent += " · Recommended";
+          nativePackages.parentElement?.prepend(nativePackages);
+        }
       }
 
       statuses.forEach((status) => { status.textContent = release.tag_name; });
