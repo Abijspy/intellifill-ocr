@@ -2,6 +2,27 @@
 
 set -l repository_host "https://packages.abishekprabakaran.com"
 
+function ui_title
+    echo
+    set_color --bold cyan
+    echo "IntelliFill OCR · Linux repository setup"
+    set_color normal
+end
+
+function ui_step
+    set_color cyan
+    printf "› "
+    set_color normal
+    echo $argv
+end
+
+function ui_done
+    set_color green
+    printf "✓ "
+    set_color normal
+    echo $argv
+end
+
 function show_help
     echo "Usage: sudo fish install-linux-repository.fish"
     echo "Detects APT, DNF, or pacman distributions and installs the IntelliFill OCR repository."
@@ -11,6 +32,9 @@ if contains -- --help $argv; or contains -- -h $argv
     show_help
     exit 0
 end
+
+ui_title
+ui_step "Checking system requirements…"
 
 if test (id -u) -ne 0
     if type -q pkexec
@@ -33,6 +57,7 @@ switch $architecture
         echo "Unsupported architecture: $architecture. IntelliFill OCR supports x86_64 and ARM64 Linux." >&2
         exit 2
 end
+ui_done "Architecture supported: $architecture"
 
 if not type -q curl
     echo "curl is required to install the repository." >&2
@@ -49,41 +74,52 @@ if test -r /etc/os-release
     set family "$distro_id $distro_like"
 end
 set family (string lower -- $family)
+ui_done "Detected: $distribution"
 
 if string match -q '*arch*' -- $family; or string match -rq 'manjaro|endeavouros|cachyos|garuda|arcolinux|artix|rebornos|crystal' -- $family; or type -q pacman
     echo "Detected $distribution (pacman)."
+    ui_step "Downloading and enrolling the repository signing key…"
     install -d -m 0755 /etc/pacman.d
     set -l key_file (mktemp)
     curl -fsSL "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" -o "$key_file"; or exit 5
     set -l fingerprint (gpg --show-keys --with-colons "$key_file" | awk -F: '$1 == "fpr" { print $10; exit }')
     test -n "$fingerprint"; or begin; echo "Could not read the repository signing-key fingerprint." >&2; exit 5; end
     pacman-key --add "$key_file"; and pacman-key --lsign-key "$fingerprint"; or exit 5
+    ui_done "Signing key enrolled"
     rm -f "$key_file"
     printf '%s\n' '[intellifill-ocr]' 'SigLevel = Required DatabaseOptional' "Server = $repository_host/arch/\$arch" > /etc/pacman.d/intellifill-ocr.conf
     if not grep -qF 'Include = /etc/pacman.d/intellifill-ocr.conf' /etc/pacman.conf
         printf '\n%s\n' 'Include = /etc/pacman.d/intellifill-ocr.conf' >> /etc/pacman.conf
     end
+    ui_step "Adding the pacman repository and refreshing package metadata…"
     pacman -Sy
+    ui_done "Repository is ready"
     echo "Repository installed. Use: sudo pacman -S intellifill-ocr"
     exit 0
 end
 
 if string match -rq 'debian|ubuntu' -- $family; or type -q apt-get
     echo "Detected $distribution (APT)."
+    ui_step "Downloading the repository signing key…"
     install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
     curl -fsSL "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg; or exit 5
     chmod 0644 /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
     printf '%s\n' "deb [arch=$deb_arch signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] $repository_host/apt stable main" > /etc/apt/sources.list.d/intellifill-ocr.list
+    ui_step "Adding the APT source and refreshing package metadata…"
     apt-get update
+    ui_done "Repository is ready"
     echo "Repository installed. Use: sudo apt install intellifill-ocr"
     exit 0
 end
 
 if string match -rq 'fedora|rhel|centos' -- $family; or type -q dnf
     echo "Detected $distribution (DNF)."
+    ui_step "Writing the DNF repository definition…"
     install -d -m 0755 /etc/yum.repos.d
     printf '%s\n' '[intellifill-ocr]' 'name=IntelliFill OCR' "baseurl=$repository_host/rpm/\$basearch" 'enabled=1' 'gpgcheck=0' 'repo_gpgcheck=1' "gpgkey=$repository_host/keys/intellifill-ocr-archive-keyring.gpg" > /etc/yum.repos.d/intellifill-ocr.repo
+    ui_step "Refreshing DNF package metadata…"
     dnf makecache
+    ui_done "Repository is ready"
     echo "Repository installed. Use: sudo dnf install intellifill-ocr"
     exit 0
 end
