@@ -48,7 +48,7 @@ if [[ -r /etc/os-release ]]; then
 fi
 family=" $distribution_id $distribution_like "
 
-if [[ "$family" == *arch* || "$family" == *manjaro* ]] || command -v pacman >/dev/null 2>&1; then
+if [[ "$family" == *arch* || "$family" == *manjaro* || "$family" == *endeavouros* || "$family" == *cachyos* || "$family" == *garuda* || "$family" == *arcolinux* || "$family" == *artix* || "$family" == *rebornos* || "$family" == *crystal* ]] || command -v pacman >/dev/null 2>&1; then
   echo "Detected $distribution (pacman)."
   install -d -m 0755 /etc/pacman.d
   key_file="$(mktemp)"
@@ -109,5 +109,5 @@ if [[ "$family" == *solus* ]] || command -v eopkg >/dev/null 2>&1; then
   exit 6
 fi
 
-echo "Unsupported distribution: $distribution. Automatic repository setup supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman systems." >&2
+echo "Unsupported distribution: $distribution. Automatic repository setup supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman systems (including Manjaro, EndeavourOS, CachyOS, Garuda, ArcoLinux, Artix, RebornOS, and Crystal Linux)." >&2
 exit 4

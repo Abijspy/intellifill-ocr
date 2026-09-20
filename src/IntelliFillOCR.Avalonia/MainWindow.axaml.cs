@@ -599,7 +599,16 @@ public sealed partial class MainWindow : Window
 
         bool aptFamily = family.Contains("debian", StringComparison.Ordinal) || family.Contains("ubuntu", StringComparison.Ordinal) || File.Exists("/usr/bin/apt");
         bool rpmFamily = family.Contains("fedora", StringComparison.Ordinal) || family.Contains("rhel", StringComparison.Ordinal) || family.Contains("centos", StringComparison.Ordinal) || family.Contains("suse", StringComparison.Ordinal) || File.Exists("/usr/bin/dnf");
-        bool pacmanFamily = family.Contains("arch", StringComparison.Ordinal) || family.Contains("manjaro", StringComparison.Ordinal) || File.Exists("/usr/bin/pacman");
+        bool pacmanFamily = family.Contains("arch", StringComparison.Ordinal) ||
+                            family.Contains("manjaro", StringComparison.Ordinal) ||
+                            family.Contains("endeavouros", StringComparison.Ordinal) ||
+                            family.Contains("cachyos", StringComparison.Ordinal) ||
+                            family.Contains("garuda", StringComparison.Ordinal) ||
+                            family.Contains("arcolinux", StringComparison.Ordinal) ||
+                            family.Contains("artix", StringComparison.Ordinal) ||
+                            family.Contains("rebornos", StringComparison.Ordinal) ||
+                            family.Contains("crystal", StringComparison.Ordinal) ||
+                            File.Exists("/usr/bin/pacman");
         bool solusFamily = family.Contains("solus", StringComparison.Ordinal) || File.Exists("/usr/bin/eopkg");
         if (pacmanFamily)
         {
@@ -648,7 +657,7 @@ public sealed partial class MainWindow : Window
             distribution,
             "the system package manager",
             false,
-            $"Detected {distribution}, but automatic setup currently supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman distributions only.");
+            $"Detected {distribution}, but automatic setup currently supports Debian/Ubuntu APT, Fedora/RHEL DNF, and Arch-based pacman distributions (including Manjaro, EndeavourOS, CachyOS, Garuda, ArcoLinux, Artix, RebornOS, and Crystal Linux) only.");
     }
 
     private static Dictionary<string, string> ReadOsRelease()

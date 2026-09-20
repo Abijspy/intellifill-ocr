@@ -56,6 +56,7 @@ CLI_WRAPPER
 chmod 755 "$PUBLISH/intellifill"
 install -d -m 0755 "$PUBLISH/repositories"
 install -m 0755 "$ROOT/scripts/install-linux-repository.sh" "$PUBLISH/repositories/install-linux-repository.sh"
+install -m 0755 "$ROOT/scripts/install-linux-repository.fish" "$PUBLISH/repositories/install-linux-repository.fish"
 install -d -m 0755 "$PUBLISH/packaging"
 install -m 0644 "$ROOT/assets/logo_512.png" "$PUBLISH/packaging/intellifill-ocr.png"
 python3 "$ROOT/scripts/generate-linux-metadata.py" \

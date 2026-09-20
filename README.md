@@ -160,7 +160,13 @@ less /tmp/intellifill-repository.sh
 sudo bash /tmp/intellifill-repository.sh
 ```
 
-The script detects Debian/Ubuntu APT, Fedora/RHEL DNF, or Arch/Manjaro pacman, rejects unsupported and 32-bit architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
+Fish users can use the Fish installer entry point instead:
+
+```fish
+curl -fsSL https://abishekprabakaran.com/intellifill-ocr/install-linux-repository.fish | fish
+```
+
+The script detects Debian/Ubuntu APT, Fedora/RHEL DNF, or Arch-family pacman systems—including Manjaro, EndeavourOS, CachyOS, Garuda, ArcoLinux, Artix, RebornOS, and Crystal Linux—rejects unsupported and 32-bit architectures, installs the correct repository definition and signing key, and refreshes package metadata. Then install the application:
 
 ```bash
 sudo apt install intellifill-ocr
