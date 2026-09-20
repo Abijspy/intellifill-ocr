@@ -419,3 +419,39 @@ footer { border-top-color: rgba(139, 156, 255, .12); }
     transform: none;
   }
 }
+
+/* Productive navigation and decision-focused landing experience. */
+html { scroll-padding-top: 92px; }
+.skip-link { position: fixed; z-index: 20; top: -60px; left: 20px; padding: 10px 14px; border-radius: 10px; color: #080b18; background: #5ee7f7; font-weight: 800; transition: top .2s ease; }
+.skip-link:focus { top: 16px; outline: 3px solid rgba(255,255,255,.9); outline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid #5ee7f7; outline-offset: 4px; }
+.nav { min-height: 78px; }
+.links { gap: 20px; }
+.links > a:not(.pill) { position: relative; padding: 8px 0; }
+.links > a:not(.pill)::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 2px; border-radius: 2px; background: #5ee7f7; transform: scaleX(0); transform-origin: right; transition: transform .2s ease; }
+.links > a:not(.pill):hover::after, .links > a.is-current::after { transform: scaleX(1); transform-origin: left; }
+.links > a.is-current { color: var(--text); }
+.hero { padding: clamp(84px, 11vw, 132px) 0 94px; }
+.hero-grid { gap: clamp(42px, 7vw, 88px); }
+.hero h1 { max-width: 720px; letter-spacing: -.072em; }
+.lead { max-width: 620px; }
+.hero-proof { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 25px; }
+.hero-proof span { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(139,156,255,.2); border-radius: 9px; color: #c6ccec; background: rgba(139,156,255,.055); font-size: 12px; font-weight: 700; }
+.hero-proof i { color: #5ee7f7; }
+.release-status { display: flex; align-items: center; gap: 7px; margin-top: 17px; color: #aeb6d5; }
+.release-status i { color: var(--green); }
+.release-status b { color: var(--text); font-weight: 750; }
+.terminal { border-color: rgba(139,156,255,.24); box-shadow: 0 30px 90px rgba(2,5,18,.48), 0 0 0 8px rgba(139,156,255,.025); }
+.terminal header { background: rgba(139,156,255,.055); }
+.download-center > .wrap, .workflow > .wrap, .help > .wrap { border-color: rgba(139,156,255,.16); }
+.download-grid article { position: relative; }
+.download-grid article::before { content: ""; position: absolute; top: 0; right: 22px; left: 22px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--green), #5ee7f7); opacity: .6; }
+.asset-list a { transition: transform .2s ease, background-color .2s ease, border-color .2s ease; }
+.asset-list a:hover { transform: translateX(3px); }
+.recommended-asset { border-color: rgba(94,231,247,.6) !important; background: rgba(94,231,247,.1) !important; }
+.recommended-asset b { color: #b7f7ff; }
+@media (max-width: 760px) {
+  .links { gap: 12px; }
+  .hero-proof { gap: 7px; }
+  .hero-proof span { font-size: 11px; }
+}

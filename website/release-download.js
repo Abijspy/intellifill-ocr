@@ -3,6 +3,7 @@
   const statuses = document.querySelectorAll("[data-release-status]");
   const assetLinks = document.querySelectorAll("[data-release-asset]");
   const downloadGroups = document.querySelectorAll("[data-download-group]");
+  const navigationLinks = document.querySelectorAll('.links a[href^="#"]');
 
   const assetPatterns = {
     "windows-x64": /setup-win-x64\.exe$/i,
@@ -30,6 +31,16 @@
   const prefersLinux = detectedPlatform.includes("linux") && !detectedPlatform.includes("android");
   const prefersMac = detectedPlatform.includes("mac");
   const prefersArm = detectedPlatform.includes("arm64") || detectedPlatform.includes("aarch64");
+
+  const updateCurrentNavigation = () => {
+    const current = [...navigationLinks]
+      .map((link) => [link, document.querySelector(link.getAttribute("href"))])
+      .filter(([, section]) => section)
+      .find(([, section]) => section.getBoundingClientRect().top >= 0 && section.getBoundingClientRect().top < window.innerHeight * .42);
+    navigationLinks.forEach((link) => link.classList.toggle("is-current", current?.[0] === link));
+  };
+  window.addEventListener("scroll", updateCurrentNavigation, { passive: true });
+  updateCurrentNavigation();
 
   fetch(api, { headers: { Accept: "application/vnd.github+json" } })
     .then((response) => {
