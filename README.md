@@ -493,6 +493,20 @@ sudo dnf clean metadata && sudo dnf makecache
 sudo pacman -Syy
 ```
 
+### pacman reports an invalid or corrupted IntelliFill OCR package
+
+Remove the cached IntelliFill OCR archive, refresh the repository metadata, and
+download it again. This does not remove the installed application or any user data:
+
+```bash
+sudo rm -f /var/cache/pacman/pkg/intellifill-ocr-*.pkg.tar.zst*
+sudo pacman -Syy
+sudo pacman -S intellifill-ocr
+```
+
+If a fresh download still reports missing package metadata, the published
+artifact must be rebuilt and republished; do not bypass pacman's archive validation.
+
 ### OCR is unavailable
 
 Install Tesseract, then use **Settings → Local Paths → Auto Detect**. Confirm the configured executable exists and run the system readiness check.

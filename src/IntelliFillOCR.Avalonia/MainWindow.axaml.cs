@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.4";
+    private const string AppVersion = "6.3.5";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const string ProjectSourceUrl = "https://github.com/Abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
@@ -3741,6 +3741,11 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.5
+        - Fixed Arch Linux package metadata for pacman 7 compatibility and validate each Arch package before release publication.
+        - Added guided Bash and Fish repository installers with clear setup progress and interactive confirmation.
+        - Refined the website download flow with native Linux packages recommended over Flatpak and individual command copy actions.
 
         Version 6.3.4
         - Consolidated source hosting, issues, release automation, downloads, and project links on GitHub.

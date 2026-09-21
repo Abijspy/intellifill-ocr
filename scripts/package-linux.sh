@@ -199,6 +199,7 @@ rm -rf "$ARCH_ROOT/usr/share/keyrings" \
 cat > "$ARCH_ROOT/.PKGINFO" <<PKGINFO
 pkgname = intellifill-ocr
 pkgbase = intellifill-ocr
+xdata = pkgtype=pkg
 pkgver = $VERSION-1
 pkgdesc = Offline OCR extraction, table filling, SQLite storage, and traceable exports
 url = https://abishekprabakaran.com/intellifill-ocr/
