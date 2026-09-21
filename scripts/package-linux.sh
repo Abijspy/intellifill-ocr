@@ -230,7 +230,10 @@ LANG=C bsdtar -czf "$ARCH_ROOT/.MTREE" \
   --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' \
   -C "$ARCH_ROOT" .PKGINFO .INSTALL usr
 ARCH_PACKAGE="$OUT/intellifill-ocr-$VERSION-1-$ARCH_ARCH.pkg.tar.zst"
-bsdtar --uid 0 --gid 0 -C "$ARCH_ROOT" -cf - . | zstd -q -19 -T0 -o "$ARCH_PACKAGE"
+# Pacman requires .PKGINFO at the archive root. Archiving `.` creates a `./`
+# prefix that generic tar readers accept but pacman's package parser rejects.
+bsdtar --uid 0 --gid 0 -C "$ARCH_ROOT" -cf - \
+  .PKGINFO .INSTALL .MTREE usr | zstd -q -19 -T0 -o "$ARCH_PACKAGE"
 
 if ! command -v alien >/dev/null 2>&1; then
   echo "alien was not found. Install it to convert the Debian package to RPM." >&2
