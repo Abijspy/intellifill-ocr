@@ -31,7 +31,7 @@ ui_title
 ui_step "Preparing the official repository installer…"
 set -l script_url "https://abishekprabakaran.com/intellifill-ocr/install-linux-repository.sh"
 set -l temporary_script (mktemp)
-curl -fsSL "$script_url" -o "$temporary_script"; or begin
+curl --fail --show-error --location --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 15 --max-time 120 "$script_url" -o "$temporary_script"; or begin
     set_color red
     echo "Could not download the installer. Check your internet connection and try again." >&2
     set_color normal

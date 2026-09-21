@@ -36,6 +36,17 @@ confirm_install() {
   [[ -z "$answer" || "$answer" =~ ^[Yy]([Ee][Ss])?$ ]] || { echo "No changes were made."; exit 0; }
 }
 
+download_repository_file() {
+  local url="$1" destination="$2"
+  if curl --fail --show-error --location --retry 3 --retry-delay 2 --retry-all-errors \
+    --connect-timeout 15 --max-time 120 "$url" -o "$destination"; then
+    return 0
+  fi
+  ui_warning "Could not reach $REPOSITORY_HOST after 3 attempts."
+  ui_warning "Check your network, DNS, proxy, or firewall, then run this installer again."
+  exit 7
+}
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: sudo bash install-linux-repository.sh [--yes]"
   echo "Detects an APT, DNF, or pacman Linux distribution and installs the IntelliFill OCR package repository."
@@ -91,7 +102,7 @@ if [[ "$family" == *arch* || "$family" == *manjaro* || "$family" == *endeavouros
   install -d -m 0755 /etc/pacman.d
   key_file="$(mktemp)"
   trap 'rm -f "$key_file"' EXIT
-  curl -fsSL "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" -o "$key_file"
+  download_repository_file "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" "$key_file"
   fingerprint="$(gpg --show-keys --with-colons "$key_file" | awk -F: '$1 == "fpr" { print $10; exit }')"
   [[ -n "$fingerprint" ]] || { echo "Could not read the repository signing-key fingerprint." >&2; exit 5; }
   pacman-key --add "$key_file"
@@ -119,7 +130,7 @@ if [[ "$family" == *debian* || "$family" == *ubuntu* ]] || command -v apt-get >/
   confirm_install "APT"
   ui_step "Downloading the repository signing key…"
   install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
-  curl -fsSL "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" -o "$APT_KEYRING"
+  download_repository_file "$REPOSITORY_HOST/keys/intellifill-ocr-archive-keyring.gpg" "$APT_KEYRING"
   chmod 0644 "$APT_KEYRING"
   printf '%s\n' "deb [arch=$deb_arch signed-by=$APT_KEYRING] $REPOSITORY_HOST/apt stable main" > "$APT_SOURCE"
   chmod 0644 "$APT_SOURCE"

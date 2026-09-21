@@ -23,6 +23,17 @@ function ui_done
     echo $argv
 end
 
+function download_repository_file
+    set -l url $argv[1]
+    set -l destination $argv[2]
+    curl --fail --show-error --location --retry 3 --retry-delay 2 --retry-all-errors --connect-timeout 15 --max-time 120 "$url" -o "$destination"; and return 0
+    set_color yellow
+    echo "! Could not reach $repository_host after 3 attempts." >&2
+    echo "! Check your network, DNS, proxy, or firewall, then run this installer again." >&2
+    set_color normal
+    exit 7
+end
+
 function show_help
     echo "Usage: sudo fish install-linux-repository.fish"
     echo "Detects APT, DNF, or pacman distributions and installs the IntelliFill OCR repository."
@@ -81,7 +92,7 @@ if string match -q '*arch*' -- $family; or string match -rq 'manjaro|endeavouros
     ui_step "Downloading and enrolling the repository signing key…"
     install -d -m 0755 /etc/pacman.d
     set -l key_file (mktemp)
-    curl -fsSL "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" -o "$key_file"; or exit 5
+    download_repository_file "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" "$key_file"
     set -l fingerprint (gpg --show-keys --with-colons "$key_file" | awk -F: '$1 == "fpr" { print $10; exit }')
     test -n "$fingerprint"; or begin; echo "Could not read the repository signing-key fingerprint." >&2; exit 5; end
     pacman-key --add "$key_file"; and pacman-key --lsign-key "$fingerprint"; or exit 5
@@ -102,7 +113,7 @@ if string match -rq 'debian|ubuntu' -- $family; or type -q apt-get
     echo "Detected $distribution (APT)."
     ui_step "Downloading the repository signing key…"
     install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
-    curl -fsSL "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" -o /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg; or exit 5
+    download_repository_file "$repository_host/keys/intellifill-ocr-archive-keyring.gpg" /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
     chmod 0644 /usr/share/keyrings/intellifill-ocr-archive-keyring.gpg
     printf '%s\n' "deb [arch=$deb_arch signed-by=/usr/share/keyrings/intellifill-ocr-archive-keyring.gpg] $repository_host/apt stable main" > /etc/apt/sources.list.d/intellifill-ocr.list
     ui_step "Adding the APT source and refreshing package metadata…"
