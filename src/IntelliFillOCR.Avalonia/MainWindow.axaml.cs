@@ -27,7 +27,7 @@ namespace IntelliFillOCR.Avalonia;
 
 public sealed partial class MainWindow : Window
 {
-    private const string AppVersion = "6.3.5";
+    private const string AppVersion = "6.3.6";
     private const string ProjectWebsiteUrl = "https://abishekprabakaran.com/intellifill-ocr/";
     private const string ProjectSourceUrl = "https://github.com/Abijspy/intellifill-ocr";
     private const double PreviewBaseWidth = 1120;
@@ -3860,6 +3860,10 @@ exit /b %INSTALL_EXIT%
     {
         return """
         IntelliFill OCR Changelog
+
+        Version 6.3.6
+        - Added automatic system accent compatibility for GTK 3, GTK 4, Qt 5, and Qt 6 desktop themes.
+        - Kept explicit accent selections available while making the desktop accent the default for new installations.
 
         Version 6.3.5
         - Fixed Arch Linux package metadata for pacman 7 compatibility and validate each Arch package before release publication.
