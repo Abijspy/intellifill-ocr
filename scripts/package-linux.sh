@@ -170,7 +170,7 @@ Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
 Maintainer: IntelliFill OCR
-Depends: libx11-6, libice6, libsm6, libfontconfig1
+Depends: libx11-6, libice6, libsm6, libfontconfig1, tesseract-ocr, tesseract-ocr-eng
 Homepage: https://abishekprabakaran.com/intellifill-ocr/
 Description: Offline OCR document automation and traceable exports
  IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
@@ -212,6 +212,8 @@ depend = libx11
 depend = libice
 depend = libsm
 depend = fontconfig
+depend = tesseract
+depend = tesseract-data-eng
 PKGINFO
 cat > "$ARCH_ROOT/.INSTALL" <<'ARCH_INSTALL'
 post_install() {

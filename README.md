@@ -113,6 +113,11 @@ To uninstall, remove **IntelliFill OCR.app** from Applications. User-created exp
 
 The recommended Linux installation uses the official package repository. Once configured, IntelliFill OCR updates alongside the rest of the system through APT, DNF, or pacman. The repositories retain the three newest package versions; older artifacts remain available from [GitHub Releases](https://github.com/Abijspy/intellifill-ocr/releases).
 
+Native DEB and Arch packages install Tesseract and its English OCR language data
+as dependencies. RPM-based distributions may use different package naming; if
+the system readiness check reports OCR unavailable, install the distribution's
+`tesseract` package and English language-data package, then run Auto Detect.
+
 ### Flatpak bundle
 
 The release provides self-contained Flatpak bundles for x86_64 and ARM64. The
