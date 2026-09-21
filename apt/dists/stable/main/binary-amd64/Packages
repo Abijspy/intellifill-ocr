@@ -1,27 +1,5 @@
 Package: intellifill-ocr
 Architecture: amd64
-Version: 6.3.2
-Priority: optional
-Section: utils
-Maintainer: IntelliFill OCR
-Depends: libx11-6, libice6, libsm6, libfontconfig1
-Filename: pool/main/i/intellifill-ocr/intellifill-ocr_6.3.2_amd64.deb
-Size: 69115794
-MD5sum: d6f385caab8b524dcbf1298c0e064756
-SHA1: b681ef1427405188ac5396750e622af6c69fa26e
-SHA256: dce94e6e15245ac9992d9a4c4ef87826bae8731decfc522b107b88a0a70cf807
-SHA512: 276e48f6f3ea04c3254f8632cadbb25b0ad2f810390863d711c93a986148ae0efea3bc74239dc1b7abfba4aeb04def74f6d482b2760d019288243c2b6df92edd
-Homepage: https://abishekprabakaran.com/intellifill-ocr/
-Description: Offline OCR document automation and traceable exports
- IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
- documents, and text files. It fills templates, validates business data, stores
- SQLite audit history, and exports PDF, Word, Excel, and CSV files.
- .
- The package includes both the graphical desktop application and the complete
- intellifill command-line workflow for unattended automation.
-
-Package: intellifill-ocr
-Architecture: amd64
 Version: 6.3.4
 Priority: optional
 Section: utils
@@ -55,6 +33,28 @@ MD5sum: 14dc073c18e5f26785810cf09e911eb7
 SHA1: 8e0ca3d8b1a4fba8a13db1246a644be36226e2f9
 SHA256: 0047eb213fb6d07eb1489ce79e5edefe74dcfdb49ee0c1e1cf2d6a78fafd9c06
 SHA512: 0393d6110097a051bdf0f8708947fc811902ae25b179b069e71eef63399d561cc551f73b3f94ea339a62b060f6ab5aa78901ed075d8980e4ff924c08a0115f35
+Homepage: https://abishekprabakaran.com/intellifill-ocr/
+Description: Offline OCR document automation and traceable exports
+ IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
+ documents, and text files. It fills templates, validates business data, stores
+ SQLite audit history, and exports PDF, Word, Excel, and CSV files.
+ .
+ The package includes both the graphical desktop application and the complete
+ intellifill command-line workflow for unattended automation.
+
+Package: intellifill-ocr
+Architecture: amd64
+Version: 6.3.6
+Priority: optional
+Section: utils
+Maintainer: IntelliFill OCR
+Depends: libx11-6, libice6, libsm6, libfontconfig1, tesseract-ocr, tesseract-ocr-eng
+Filename: pool/main/i/intellifill-ocr/intellifill-ocr_6.3.6_amd64.deb
+Size: 69124726
+MD5sum: 4cae96f905f83866b76f094ec75021e9
+SHA1: bc454d1dbbe0ac6f060875b4c2c5f79268785055
+SHA256: d88abec6fe8f218619a482c1457bab80f0c01d16a1a461e070ef454ef5f55ba7
+SHA512: 6c148cde7491e7c28c9e7e69373f23d05ae8e9f226d73fc800541a7dcdb221d804993d496744eff417568e55ffaa1cf5e0458fc5a1f9668a203defb3b4212d4c
 Homepage: https://abishekprabakaran.com/intellifill-ocr/
 Description: Offline OCR document automation and traceable exports
  IntelliFill OCR extracts content locally from PDFs, images, spreadsheets,
