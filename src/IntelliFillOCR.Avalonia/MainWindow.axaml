@@ -499,7 +499,7 @@
                                 <Border Classes="softPanel">
                                     <StackPanel Spacing="12">
                                         <TextBlock Text="Appearance" Classes="sectionTitle" />
-                                        <TextBlock Text="Choose the window theme and button accent used consistently on Windows, macOS, and Linux." Classes="muted" />
+                                        <TextBlock Text="Follow the GTK, Qt, Windows, or macOS theme and accent automatically, or choose an explicit override." Classes="muted" />
                                         <TextBlock Text="Theme" Classes="kicker" />
                                         <ComboBox x:Name="ThemeComboBox" SelectedIndex="0" MaxWidth="260" HorizontalAlignment="Left">
                                             <ComboBoxItem Content="Use system theme" />
@@ -511,6 +511,7 @@
                                             <ListBox.ItemsPanel>
                                                 <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                                             </ListBox.ItemsPanel>
+                                            <ListBoxItem ToolTip.Tip="Use system accent"><Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource SystemAccentColor}" /></ListBoxItem>
                                             <ListBoxItem ToolTip.Tip="Blue"><Border Width="26" Height="26" CornerRadius="13" Background="#2563EB" /></ListBoxItem>
                                             <ListBoxItem ToolTip.Tip="Sky"><Border Width="26" Height="26" CornerRadius="13" Background="#0284C7" /></ListBoxItem>
                                             <ListBoxItem ToolTip.Tip="Amber"><Border Width="26" Height="26" CornerRadius="13" Background="#D99A21" /></ListBoxItem>

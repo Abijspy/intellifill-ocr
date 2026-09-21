@@ -2941,35 +2941,37 @@ exit /b %INSTALL_EXIT%
 
     private static string AccentNameForIndex(int index) => index switch
     {
-        1 => "Sky",
-        2 => "Amber",
-        3 => "Cyan",
-        4 => "Teal",
-        5 => "Emerald",
-        6 => "Green",
-        7 => "Sand",
-        8 => "Slate",
-        9 => "Orange",
-        10 => "Red",
-        11 => "Rose",
-        12 => "Violet",
-        _ => "Blue"
+        1 => "Blue",
+        2 => "Sky",
+        3 => "Amber",
+        4 => "Cyan",
+        5 => "Teal",
+        6 => "Emerald",
+        7 => "Green",
+        8 => "Sand",
+        9 => "Slate",
+        10 => "Orange",
+        11 => "Red",
+        12 => "Rose",
+        13 => "Violet",
+        _ => "System"
     };
 
     private static int AccentIndexForName(string? name) => name switch
     {
-        "Sky" => 1,
-        "Amber" => 2,
-        "Cyan" => 3,
-        "Teal" => 4,
-        "Emerald" => 5,
-        "Green" => 6,
-        "Sand" => 7,
-        "Slate" => 8,
-        "Orange" => 9,
-        "Red" => 10,
-        "Rose" => 11,
-        "Violet" => 12,
+        "Blue" => 1,
+        "Sky" => 2,
+        "Amber" => 3,
+        "Cyan" => 4,
+        "Teal" => 5,
+        "Emerald" => 6,
+        "Green" => 7,
+        "Sand" => 8,
+        "Slate" => 9,
+        "Orange" => 10,
+        "Red" => 11,
+        "Rose" => 12,
+        "Violet" => 13,
         _ => 0
     };
 
@@ -3069,6 +3071,7 @@ exit /b %INSTALL_EXIT%
     {
         string accent = _settings.AccentColor switch
         {
+            "System" => ResolveSystemAccent(),
             "Sky" => "#0284C7",
             "Amber" => "#D99A21",
             "Cyan" => "#0891B2",
@@ -3093,6 +3096,122 @@ exit /b %INSTALL_EXIT%
         SetBrush("ToggleSwitchStrokeOn", accent);
         SetBrush("ToggleSwitchStrokeOnPointerOver", accent);
         SetBrush("ToggleSwitchStrokeOnPressed", accent);
+    }
+
+    // Avalonia provides the desktop colour when a platform backend exposes it.
+    // These fallbacks cover GTK 3/4 desktops and KDE Plasma on Qt 5/6, whose
+    // settings may otherwise be available only through gsettings/kdeglobals.
+    private static string ResolveSystemAccent()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            string desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty;
+            if (desktop.Contains("KDE", StringComparison.OrdinalIgnoreCase) && TryReadKdeAccent(out string kdeAccent))
+            {
+                return kdeAccent;
+            }
+
+            if (TryReadGtkAccent(out string gtkAccent))
+            {
+                return gtkAccent;
+            }
+
+            if (TryReadKdeAccent(out kdeAccent))
+            {
+                return kdeAccent;
+            }
+        }
+
+        return Application.Current?.PlatformSettings?.GetColorValues().AccentColor1.ToString() ?? "#2563EB";
+    }
+
+    private static bool TryReadGtkAccent(out string accent)
+    {
+        accent = string.Empty;
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "gsettings",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            startInfo.ArgumentList.Add("get");
+            startInfo.ArgumentList.Add("org.gnome.desktop.interface");
+            startInfo.ArgumentList.Add("accent-color");
+            using Process? process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return false;
+            }
+
+            string value = process.StandardOutput.ReadToEnd().Trim().Trim('\'', '"').ToLowerInvariant();
+            process.WaitForExit(1000);
+            accent = value switch
+            {
+                "blue" => "#3584E4",
+                "teal" => "#2190A4",
+                "green" => "#3A944A",
+                "yellow" => "#C88800",
+                "orange" => "#ED5B00",
+                "red" => "#E62D42",
+                "pink" => "#D56199",
+                "purple" => "#9141AC",
+                "slate" => "#6F8396",
+                _ => string.Empty
+            };
+            return accent.Length > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadKdeAccent(out string accent)
+    {
+        accent = string.Empty;
+        try
+        {
+            string configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") ??
+                                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+            string configPath = Path.Combine(configHome, "kdeglobals");
+            if (!File.Exists(configPath))
+            {
+                return false;
+            }
+
+            bool selectionSection = false;
+            foreach (string line in File.ReadLines(configPath))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
+                {
+                    selectionSection = trimmed.Equals("[Colors:Selection]", StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+                if (!selectionSection || !trimmed.StartsWith("BackgroundNormal=", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string[] channels = trimmed["BackgroundNormal=".Length..].Split(',');
+                if (channels.Length < 3 || !byte.TryParse(channels[0], out byte red) ||
+                    !byte.TryParse(channels[1], out byte green) || !byte.TryParse(channels[2], out byte blue))
+                {
+                    return false;
+                }
+                accent = $"#{red:X2}{green:X2}{blue:X2}";
+                return true;
+            }
+        }
+        catch
+        {
+            // The generic Avalonia platform colour is used if KDE settings cannot be read.
+        }
+        return false;
     }
 
     private void SetBrush(string key, string color)
@@ -4291,7 +4410,7 @@ exit /b %INSTALL_EXIT%
         public string TesseractPath { get; set; } = string.Empty;
         public string DatabasePath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Default";
-        public string AccentColor { get; set; } = "Blue";
+        public string AccentColor { get; set; } = "System";
         public bool EnableCompositorBlur { get; set; } = true;
         public string TraceabilityMode { get; set; } = "Automatic";
         public string TraceabilityPrefix { get; set; } = "IF";
